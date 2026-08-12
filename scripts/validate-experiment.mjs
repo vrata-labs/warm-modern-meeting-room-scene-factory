@@ -15,6 +15,7 @@ const readiness = await json("experiment/warm-modern-meeting-room/readiness.json
 assert(readiness.schemaVersion === 1, "invalid_readiness_schema");
 assert(/^[0-9a-f]{40}$/.test(readiness.platform.validatorCommit), "invalid_platform_validator_commit");
 assert(readiness.repositories.experiment.repository === "vrata-labs/warm-modern-meeting-room-scene-factory", "invalid_experiment_repository");
+assert(/^[0-9a-f]{40}$/.test(readiness.repositories.experiment.initialCommit), "invalid_experiment_initial_commit");
 assert(readiness.repositories.candidate01.repository.endsWith("candidate-01"), "invalid_candidate_01_repository");
 assert(readiness.repositories.candidate02.repository.endsWith("candidate-02"), "invalid_candidate_02_repository");
 assert(readiness.repositories.candidate01.repository !== readiness.repositories.candidate02.repository, "candidate_repositories_must_differ");
@@ -25,6 +26,9 @@ assert(/^[0-9a-f]{64}$/.test(readiness.toolchain.linuxArchiveSha256), "invalid_b
 assert(/^[0-9a-f]{64}$/.test(readiness.toolchain.linuxBinarySha256), "invalid_blender_binary_checksum");
 assert(/^[0-9a-f]{12}$/.test(readiness.toolchain.blenderBuildHash), "invalid_blender_build_hash");
 assert(readiness.resolved.blenderBinaryVerified === true, "blender_binary_not_verified");
+assert(readiness.resolved.experimentRepositoryCiGreen === true, "experiment_repository_ci_not_green");
+assert(readiness.resolved.candidateRepositoryCiGreen === true, "candidate_repository_ci_not_green");
+assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_protection_not_enabled");
 assert(readiness.resolved.fullShaCdnFixture.commit === readiness.historicalAssetsRepository.commit, "cdn_fixture_commit_mismatch");
 assert(readiness.resolved.fullShaCdnFixture.accessControlAllowOrigin === "*", "cdn_fixture_cors_invalid");
 assert(readiness.resolved.fullShaCdnFixture.cacheControl.includes("immutable"), "cdn_fixture_cache_not_immutable");

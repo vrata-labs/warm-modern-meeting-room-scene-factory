@@ -15,7 +15,8 @@
   "repositories": {
     "experiment": {
       "repository": "vrata-labs/warm-modern-meeting-room-scene-factory",
-      "initialCommit": null
+      "initialCommit": "8ce3ddfb9b0ddf90d9960d168961af2eb3b37569",
+      "initialCiRun": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/actions/runs/31635983923"
     },
     "candidate01": {
       "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
@@ -41,6 +42,8 @@
     "githubAdminAccess": true,
     "publicRepositoriesCreated": true,
     "candidateRepositoryCiGreen": true,
+    "experimentRepositoryCiGreen": true,
+    "mainBranchProtectionEnabled": true,
     "fullShaCdnShape": "https://cdn.jsdelivr.net/gh/<owner>/<repository>@<full-sha>/<path>",
     "fullShaCdnFixture": {
       "checkedAt": "2026-08-12T20:05:22Z",
@@ -71,7 +74,7 @@
     "androidQaOwner": null,
     "iosQaOwner": null,
     "questQaOwner": null,
-    "stagingAccessReverifiedAt": null
+    "stagingAccessReverifiedAt": "2026-08-12T20:10:00Z"
   },
   "stageRules": {
     "stage1BlockedUntil": ["restrictedStorage"],
