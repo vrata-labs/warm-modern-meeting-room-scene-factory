@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-12",
+  "platform": {
+    "repository": "vrata-labs/platform",
+    "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
+    "validatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
+    "validatorLockReview": "compatible-asset-pipeline-unchanged-since-lock"
+  },
+  "historicalAssetsRepository": {
+    "repository": "vrata-labs/scene-assets",
+    "commit": "9ea73bc1a1ed0e86d5d959738d0383ccf89ad464",
+    "usage": "historical-reference-only"
+  },
+  "repositories": {
+    "experiment": {
+      "repository": "vrata-labs/warm-modern-meeting-room-scene-factory",
+      "initialCommit": null
+    },
+    "candidate01": {
+      "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
+      "initialCommit": "1805c148866e8aeb8d21cb827bc93968bd61769c",
+      "initialCiRun": "https://github.com/vrata-labs/warm-modern-meeting-room-candidate-01/actions/runs/31635584774"
+    },
+    "candidate02": {
+      "repository": "vrata-labs/warm-modern-meeting-room-candidate-02",
+      "initialCommit": "6a8ec35fca968522e8041c1034f66bca6032aa9e",
+      "initialCiRun": "https://github.com/vrata-labs/warm-modern-meeting-room-candidate-02/actions/runs/31635604223"
+    }
+  },
+  "toolchain": {
+    "blenderVersion": "4.5.12 LTS",
+    "linuxArchiveSha256": "95e3a2dfedba3bd32ca54fc355eac6b15a11986954ccb02815a07535d0120a25",
+    "linuxBinarySha256": "33ac108ebce3c271f5357e5c664d0488717263bcf2145c80300edd0b12c31880",
+    "blenderBuildHash": "84afd5f785f7",
+    "blenderBuildDate": "2026-07-21T01:31:22Z",
+    "nodeVersion": "22",
+    "pnpmVersion": "10.0.0"
+  },
+  "resolved": {
+    "githubAdminAccess": true,
+    "publicRepositoriesCreated": true,
+    "candidateRepositoryCiGreen": true,
+    "fullShaCdnShape": "https://cdn.jsdelivr.net/gh/<owner>/<repository>@<full-sha>/<path>",
+    "fullShaCdnFixture": {
+      "checkedAt": "2026-08-12T20:05:22Z",
+      "repository": "vrata-labs/scene-assets",
+      "commit": "9ea73bc1a1ed0e86d5d959738d0383ccf89ad464",
+      "releasePath": "assets/scenes/meeting-room-review-v2/0.3.1",
+      "sceneJsonContentType": "application/json; charset=utf-8",
+      "sceneGlbContentType": "model/gltf-binary",
+      "accessControlAllowOrigin": "*",
+      "cacheControl": "public, max-age=31536000, s-maxage=31536000, immutable",
+      "sceneJsonSha256": "e3dc8e06f879173a1923ad91c4f2a122bb0e3c4164338cd5a8c8526dca49735e",
+      "sceneGlbSha256": "6fe8c7106a8640af96cc5224b45ac4f0f293c89109f88c56ac65fdf20acae117"
+    },
+    "repositoryIsolationDefined": true,
+    "blenderBinaryVerified": true
+  },
+  "blocked": {
+    "aiRightsOwner": null,
+    "gpuProvider": null,
+    "gpuRegion": null,
+    "gpuMachine": null,
+    "gpuBudgetCap": null,
+    "gpuBillingOwner": null,
+    "gpuTeardownOwner": null,
+    "restrictedStorage": null,
+    "reviewCoordinator": null,
+    "reviewers": [],
+    "androidQaOwner": null,
+    "iosQaOwner": null,
+    "questQaOwner": null,
+    "stagingAccessReverifiedAt": null
+  },
+  "stageRules": {
+    "stage1BlockedUntil": ["restrictedStorage"],
+    "stage2BlockedUntil": ["aiRightsOwner", "gpuProvider", "gpuBudgetCap", "restrictedStorage"],
+    "stage3BlockedUntil": ["greenAiFeasibilityGate"],
+    "shippingBlockedUntil": ["androidQaOwner", "iosQaOwner", "questQaOwner"]
+  }
+}

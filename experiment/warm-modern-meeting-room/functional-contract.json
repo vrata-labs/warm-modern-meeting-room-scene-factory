@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "warm-modern-meeting-room-ab-2026-08",
+  "room": {
+    "nominalWidthM": 7,
+    "nominalDepthM": 5,
+    "nominalHeightM": 3.1,
+    "maximumEnvelopeDeviationRatio": 0.1,
+    "entranceCount": 1,
+    "minimumLargeWindowCount": 1,
+    "minimumPresentationDisplayCount": 1
+  },
+  "spawn": {
+    "id": "main",
+    "floorToleranceM": 0.1,
+    "minimumWallMarginM": 0.5,
+    "minimumOpenRadiusM": 0.75,
+    "minimumHeadClearanceM": 2
+  },
+  "seating": {
+    "count": 8,
+    "idSuffixes": ["seat-01", "seat-02", "seat-03", "seat-04", "seat-05", "seat-06", "seat-07", "seat-08"],
+    "radiusRangeM": [0.35, 0.8],
+    "seatHeightRangeM": [0, 0.8],
+    "minimumCenterDistanceRadiusMultiplier": 1.5,
+    "requiresVisibleChairMatch": true,
+    "requiresSafeRouteFromEntrance": true
+  },
+  "mediaSurfaces": [
+    {
+      "surfaceId": "debug-main",
+      "required": true,
+      "targetAspectRatio": 1.7777777778,
+      "aspectToleranceRatio": 0.02
+    },
+    {
+      "surfaceId": "whiteboard-wall",
+      "required": true,
+      "targetAspectRatio": 1.92,
+      "aspectToleranceRatio": 0.02
+    }
+  ],
+  "reviewViews": [
+    { "id": "entry", "eyeHeightM": 1.6, "intent": "room-purpose-and-route-readability" },
+    { "id": "participant", "eyeHeightM": 1.6, "intent": "seated-social-and-display-readability" },
+    { "id": "presenter", "eyeHeightM": 1.6, "intent": "audience-table-and-egress-readability" },
+    { "id": "diagonal-overview", "eyeHeightM": 1.6, "intent": "architecture-layout-and-exterior-integration" }
+  ]
+}

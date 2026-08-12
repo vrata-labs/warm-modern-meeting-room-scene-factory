@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "repository-scaffolds-pinned",
+  "platformValidatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
+  "candidates": {
+    "candidate01": {
+      "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
+      "commit": "1805c148866e8aeb8d21cb827bc93968bd61769c",
+      "release": null
+    },
+    "candidate02": {
+      "repository": "vrata-labs/warm-modern-meeting-room-candidate-02",
+      "commit": "6a8ec35fca968522e8041c1034f66bca6032aa9e",
+      "release": null
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/scene-spec.schema.json",
+  "title": "Warm Modern Meeting Room Pilot Scene Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "generator", "room", "openings", "materialZones", "components", "spawn", "seats", "mediaSurfaces"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "blenderVersion", "acceptedInputSha256"],
+      "properties": {
+        "repository": { "const": "vrata-labs/warm-modern-meeting-room-scene-factory" },
+        "commit": { "$ref": "#/$defs/sha1" },
+        "blenderVersion": { "const": "4.5.12 LTS" },
+        "acceptedInputSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "uniqueItems": true }
+      }
+    },
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "depthM", "heightM", "wallThicknessM", "floorY"],
+      "properties": {
+        "widthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 80 },
+        "depthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 80 },
+        "heightM": { "type": "number", "minimum": 2.4, "maximum": 20 },
+        "wallThicknessM": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "floorY": { "type": "number", "minimum": -0.05, "maximum": 0.05 }
+      }
+    },
+    "openings": { "type": "array", "items": { "$ref": "#/$defs/opening" }, "minItems": 2 },
+    "materialZones": { "type": "array", "items": { "$ref": "#/$defs/materialZone" }, "minItems": 3 },
+    "components": { "type": "array", "items": { "$ref": "#/$defs/component" } },
+    "spawn": { "$ref": "#/$defs/anchor" },
+    "seats": { "type": "array", "items": { "$ref": "#/$defs/seat" }, "minItems": 8, "maxItems": 8 },
+    "mediaSurfaces": { "type": "array", "items": { "$ref": "#/$defs/surface" }, "minItems": 2, "maxItems": 2 }
+  },
+  "$defs": {
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position"],
+      "properties": {
+        "id": { "const": "main" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "seat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position", "yaw", "seatHeight", "radius"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
+        "seatHeight": { "type": "number", "minimum": 0, "maximum": 0.8 },
+        "radius": { "type": "number", "minimum": 0.35, "maximum": 0.8 }
+      }
+    },
+    "opening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "wall", "offsetM", "widthM", "heightM", "sillM", "profileId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "kind": { "enum": ["door", "window"] },
+        "wall": { "enum": ["north", "east", "south", "west"] },
+        "offsetM": { "type": "number", "minimum": 0 },
+        "widthM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "sillM": { "type": "number", "minimum": 0 },
+        "profileId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+      }
+    },
+    "materialZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "surface", "recipeId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "surface": { "enum": ["floor", "ceiling", "north", "east", "south", "west"] },
+        "recipeId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "family", "position", "yaw", "sourceRecordId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "family": { "enum": ["acoustic-module", "conference-av", "conference-table", "credenza", "laptop-stationery", "pendant-luminaire", "planter", "power-cable-management", "task-chair"] },
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
+        "sourceRecordId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceId", "widthM", "heightM", "position", "yaw"],
+      "properties": {
+        "surfaceId": { "enum": ["debug-main", "whiteboard-wall"] },
+        "widthM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 }
+      }
+    }
+  }
+}

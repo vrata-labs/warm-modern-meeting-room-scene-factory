@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "status": "template",
+  "equalActiveHumanTimeCapMinutes": null,
+  "candidate01": {
+    "activeHumanMinutes": 0,
+    "oneTimeSetupMinutes": 0,
+    "queueMinutes": 0,
+    "computeWallMinutes": 0,
+    "searchOrGenerationAttempts": 0,
+    "acceptedComponents": 0,
+    "rejectedComponents": 0,
+    "cleanupMinutes": []
+  },
+  "candidate02": {
+    "activeHumanMinutes": 0,
+    "oneTimeSetupMinutes": 0,
+    "queueMinutes": 0,
+    "computeWallMinutes": 0,
+    "searchOrGenerationAttempts": 0,
+    "acceptedComponents": 0,
+    "rejectedComponents": 0,
+    "cleanupMinutes": []
+  }
+}

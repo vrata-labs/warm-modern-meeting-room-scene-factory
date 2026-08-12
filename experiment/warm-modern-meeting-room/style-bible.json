@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "draft-pending-art-direction-gate",
+  "palette": {
+    "warmOakSrgb": "#A87543",
+    "mineralPlasterSrgb": "#DDD6C8",
+    "graphiteMetalSrgb": "#343A3C",
+    "sandFabricSrgb": "#B9A98E",
+    "mutedGreyGreenFabricSrgb": "#77877B"
+  },
+  "materials": {
+    "woodSpecies": "oak",
+    "woodTone": "warm-medium",
+    "woodGrainScaleM": 0.18,
+    "metalFinish": "fine-matte-powder-coat",
+    "fabricWeaveScaleM": 0.003,
+    "roughnessRange": [0.35, 0.88],
+    "metalnessRange": [0, 1]
+  },
+  "profiles": {
+    "wallThicknessM": 0.18,
+    "baseboardHeightM": 0.09,
+    "baseboardDepthM": 0.015,
+    "commonRadiusM": [0.003, 0.025],
+    "ceilingModuleM": 0.6,
+    "windowLanguage": "deep-reveal-graphite-thermal-frame",
+    "doorLanguage": "flush-warm-wood-leaf-graphite-hardware"
+  },
+  "lighting": {
+    "fixtureTemperatureK": [2700, 3000],
+    "daylightIntent": "soft-directional-with-readable-interior-contrast",
+    "firstViewDarkPixelRatioMaximum": 0.7,
+    "firstViewAverageLuminanceMinimum": 40
+  },
+  "forbidden": [
+    "branded-product-likeness",
+    "gold-decoration",
+    "mirror-symmetry",
+    "neon",
+    "random-ceiling-forms",
+    "sci-fi-language",
+    "single-material-treatment",
+    "unexplained-cube-and-tube-furniture"
+  ]
+}
