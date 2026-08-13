@@ -40,3 +40,11 @@ test("readiness keeps unresolved human decisions explicit", async () => {
   assert.ok(readiness.stageRules.stage2BlockedUntil.includes("aiRightsOwner"));
   assert.ok(readiness.stageRules.stage2BlockedUntil.includes("gpuBudgetCap"));
 });
+
+test("platform evidence distinguishes CI from optional image publication", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  assert.match(readiness.platform.planCommit, /^[0-9a-f]{40}$/);
+  assert.equal(readiness.resolved.platformPlanCiGreen, true);
+  assert.equal(readiness.platform.dockerPublish.requiredForDocsOnlyChange, false);
+  assert.equal(readiness.platform.dockerPublish.stagingDeployStarted, false);
+});
