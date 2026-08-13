@@ -14,6 +14,10 @@ async function json(relativePath) {
 const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
 assert(readiness.schemaVersion === 1, "invalid_readiness_schema");
 assert(/^[0-9a-f]{40}$/.test(readiness.platform.validatorCommit), "invalid_platform_validator_commit");
+assert(/^[0-9a-f]{40}$/.test(readiness.platform.planCommit), "invalid_platform_plan_commit");
+assert(readiness.platform.dockerPublish.requiredForDocsOnlyChange === false, "docs_only_change_must_not_require_docker_publish");
+assert(readiness.platform.dockerPublish.attempts === 2, "invalid_docker_publish_attempt_count");
+assert(readiness.platform.dockerPublish.stagingDeployStarted === false, "docs_only_change_must_not_start_staging_deploy");
 assert(readiness.repositories.experiment.repository === "vrata-labs/warm-modern-meeting-room-scene-factory", "invalid_experiment_repository");
 assert(/^[0-9a-f]{40}$/.test(readiness.repositories.experiment.initialCommit), "invalid_experiment_initial_commit");
 assert(readiness.repositories.candidate01.repository.endsWith("candidate-01"), "invalid_candidate_01_repository");
@@ -29,6 +33,8 @@ assert(readiness.resolved.blenderBinaryVerified === true, "blender_binary_not_ve
 assert(readiness.resolved.experimentRepositoryCiGreen === true, "experiment_repository_ci_not_green");
 assert(readiness.resolved.candidateRepositoryCiGreen === true, "candidate_repository_ci_not_green");
 assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_protection_not_enabled");
+assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
+assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.fullShaCdnFixture.commit === readiness.historicalAssetsRepository.commit, "cdn_fixture_commit_mismatch");
 assert(readiness.resolved.fullShaCdnFixture.accessControlAllowOrigin === "*", "cdn_fixture_cors_invalid");
 assert(readiness.resolved.fullShaCdnFixture.cacheControl.includes("immutable"), "cdn_fixture_cache_not_immutable");

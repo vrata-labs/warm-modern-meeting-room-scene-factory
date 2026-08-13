@@ -4,8 +4,18 @@
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
+    "planCommit": "ab33c6199a1b7c2710efc1689190439b037fbfd8",
+    "planPullRequest": "https://github.com/vrata-labs/platform/pull/25",
+    "planCiRun": "https://github.com/vrata-labs/platform/actions/runs/31739904826",
     "validatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
-    "validatorLockReview": "compatible-asset-pipeline-unchanged-since-lock"
+    "validatorLockReview": "compatible-asset-pipeline-unchanged-since-lock",
+    "dockerPublish": {
+      "requiredForDocsOnlyChange": false,
+      "run": "https://github.com/vrata-labs/platform/actions/runs/31739904823",
+      "attempts": 2,
+      "status": "failed-external-registry-manifest-write",
+      "stagingDeployStarted": false
+    }
   },
   "historicalAssetsRepository": {
     "repository": "vrata-labs/scene-assets",
@@ -44,6 +54,8 @@
     "candidateRepositoryCiGreen": true,
     "experimentRepositoryCiGreen": true,
     "mainBranchProtectionEnabled": true,
+    "platformPlanMerged": true,
+    "platformPlanCiGreen": true,
     "fullShaCdnShape": "https://cdn.jsdelivr.net/gh/<owner>/<repository>@<full-sha>/<path>",
     "fullShaCdnFixture": {
       "checkedAt": "2026-08-12T20:05:22Z",
