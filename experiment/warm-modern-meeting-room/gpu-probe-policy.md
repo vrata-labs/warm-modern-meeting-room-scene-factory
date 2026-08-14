@@ -71,8 +71,8 @@ All conditions are mandatory:
 3. The chosen GPU quota is nonzero.
 4. The experiment sponsor explicitly approves the quoted machine, maximum wall
    time, and 1,000 RUB campaign cap.
-5. A preflight records all experiment-labeled instances, disks, snapshots,
-   images, addresses, and KMS resources; the expected set is empty.
+5. A preflight records all experiment-labeled instances, disks, filesystems,
+   snapshots, images, addresses, and KMS resources; the expected set is empty.
 6. The input and required model artifacts are already in restricted storage and
    verified by SHA-256. The VM does not receive unrelated cloud credentials.
 7. An isolated, marked experiment folder and a provider-side scheduled janitor
@@ -90,8 +90,9 @@ All conditions are mandatory:
   janitor. Every managed resource has exact janitor ID, probe ID, and immutable
   expiry labels; an unknown or mismatched resource aborts before mutation.
 - Use one preemptible VM, one auto-delete boot disk, and one dynamic address.
-  Do not create secondary disks, static addresses, snapshots, custom images,
-  reservations, instance groups, or long-lived service-account keys.
+  Do not create secondary disks, filesystems, static addresses, snapshots,
+  custom images, reservations, instance groups, or long-lived service-account
+  keys.
 - Before VM creation, arm a provider-side timer outside both the VM and the
   operator process. Its janitor deletes only boundary-validated probe resources
   at expiry and waits for each provider delete operation to finish. Failure to
@@ -107,8 +108,9 @@ All conditions are mandatory:
   dynamic address.
 - Upload accepted outputs, logs, SBOM, cost evidence, and hashes before delete.
   A failed upload marks the run failed but does not extend VM lifetime.
-- Postflight lists all experiment-labeled instances, disks, snapshots, images,
-  and addresses. Any remainder is a teardown failure and blocks another run.
+- Postflight lists all experiment-labeled instances, disks, filesystems,
+  snapshots, images, and addresses. Any remainder is a teardown failure and
+  blocks another run.
 - Recheck billing after provider metering catches up and attach the result to
   the run record.
 - After the complete experiment, an operator deletes the timer, function,

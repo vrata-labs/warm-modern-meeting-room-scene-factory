@@ -26,11 +26,11 @@ function resource(id, overrides = {}) {
     probe_id: probeId,
     expires_at: String(Math.floor((Date.parse(actualCreatedAt) + 3600_000) / 1000))
   };
-  return { id, ...overrides, createdAt: actualCreatedAt, labels };
+  return { id, folderId: "folder-1", ...overrides, createdAt: actualCreatedAt, labels };
 }
 
 function inventory(overrides = {}) {
-  return { instances: [], disks: [], snapshots: [], images: [], addresses: [], ...overrides };
+  return { instances: [], disks: [], filesystems: [], snapshots: [], images: [], addresses: [], ...overrides };
 }
 
 function sweepOptions(client, overrides = {}) {
@@ -70,18 +70,67 @@ test("folder and inventory boundaries fail closed", () => {
   assert.doesNotThrow(() => assertFolderBoundary(folder, "folder-1", "guard-1"));
   assert.throws(() => assertFolderBoundary(folder, "folder-2", "guard-1"), /folder_id_mismatch/);
   assert.throws(() => assertFolderBoundary({ ...folder, labels: {} }, "folder-1", "guard-1"), /folder_janitor_marker_mismatch/);
-  assert.doesNotThrow(() => assertInventoryBoundary(inventory({ instances: [resource("vm-1")] }), probeId, defaultExpiry));
+  assert.doesNotThrow(() => assertInventoryBoundary(inventory({
+    instances: [resource("vm-1", { bootDisk: { diskId: "disk-vm-1" } })],
+    disks: [resource("disk-vm-1", { instanceIds: ["vm-1"] })]
+  }), "folder-1", probeId, defaultExpiry));
   assert.throws(
-    () => assertInventoryBoundary(inventory({ instances: [resource("vm-unknown", { labels: {} })] }), probeId, defaultExpiry),
+    () => assertInventoryBoundary(inventory({ instances: [resource("vm-unknown", { labels: {} })] }), "folder-1", probeId, defaultExpiry),
     /unexpected_unmanaged_resource/
   );
   assert.throws(
-    () => assertInventoryBoundary(inventory({ disks: [resource("disk-other", { labels: { janitor: "yc-gpu-probe-v1", probe_id: "other", expires_at: defaultExpiry } })] }), probeId, defaultExpiry),
+    () => assertInventoryBoundary(inventory({ disks: [resource("disk-other", { labels: { janitor: "yc-gpu-probe-v1", probe_id: "other", expires_at: defaultExpiry } })] }), "folder-1", probeId, defaultExpiry),
     /unexpected_probe_resource/
   );
   assert.throws(
-    () => assertInventoryBoundary(inventory({ disks: [resource("disk-late", { labels: { janitor: "yc-gpu-probe-v1", probe_id: probeId, expires_at: String(Number(defaultExpiry) + 60) } })] }), probeId, defaultExpiry),
+    () => assertInventoryBoundary(inventory({ disks: [resource("disk-late", { labels: { janitor: "yc-gpu-probe-v1", probe_id: probeId, expires_at: String(Number(defaultExpiry) + 60) } })] }), "folder-1", probeId, defaultExpiry),
     /unexpected_resource_expiry/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({ disks: [resource("disk-wrong-folder", { folderId: "folder-2" })] }), "folder-1", probeId, defaultExpiry),
+    /resource_folder_mismatch/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({ instances: [resource("vm-no-disk", { bootDisk: { diskId: "missing" } })] }), "folder-1", probeId, defaultExpiry),
+    /untracked_instance_disk/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({
+      instances: [resource("vm-no-filesystem", {
+        bootDisk: { diskId: "disk-vm" },
+        filesystems: [{ filesystemId: "missing" }]
+      })],
+      disks: [resource("disk-vm", { instanceIds: ["vm-no-filesystem"] })]
+    }), "folder-1", probeId, defaultExpiry),
+    /untracked_instance_filesystem/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({
+      instances: [resource("vm-bad-disks", { bootDisk: { diskId: "disk-vm" }, secondaryDisks: {} })],
+      disks: [resource("disk-vm", { instanceIds: ["vm-bad-disks"] })]
+    }), "folder-1", probeId, defaultExpiry),
+    /invalid_resource_array:instance:vm-bad-disks:secondaryDisks/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({
+      instances: [resource("vm-bad-filesystems", { bootDisk: { diskId: "disk-vm" }, filesystems: {} })],
+      disks: [resource("disk-vm", { instanceIds: ["vm-bad-filesystems"] })]
+    }), "folder-1", probeId, defaultExpiry),
+    /invalid_resource_array:instance:vm-bad-filesystems:filesystems/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({
+      instances: [resource("vm-one-way", { bootDisk: { diskId: "disk-vm" } })],
+      disks: [resource("disk-vm", { instanceIds: [] })]
+    }), "folder-1", probeId, defaultExpiry),
+    /instance_disk_reference_mismatch/
+  );
+  assert.throws(
+    () => assertInventoryBoundary(inventory({
+      instances: [resource("vm-active", { bootDisk: { diskId: "disk-vm" } })],
+      disks: [resource("disk-vm", { instanceIds: {} })]
+    }), "folder-1", probeId, defaultExpiry),
+    /invalid_resource_array:disk:disk-vm:instanceIds/
   );
 });
 
@@ -90,7 +139,7 @@ test("internal and dynamic address records are outside the destructive boundary"
     resource("internal", { labels: {}, reserved: true, internalIpv4Address: { address: "10.0.0.2" } }),
     resource("dynamic", { labels: {}, reserved: false, externalIpv4Address: { address: "198.51.100.10" } })
   ];
-  assert.doesNotThrow(() => assertInventoryBoundary(inventory({ addresses }), probeId, defaultExpiry));
+  assert.doesNotThrow(() => assertInventoryBoundary(inventory({ addresses }), "folder-1", probeId, defaultExpiry));
   const plan = planSweep(inventory({ addresses }), createdAtMs + 7300_000, hardMaxAgeSeconds);
   assert.deepEqual(plan.actions, []);
 });
@@ -103,6 +152,7 @@ test("planner orders expired resources and preserves a fresh snapshot", () => {
       resource("vm-expired", {
         bootDisk: { diskId: "disk-attached" },
         secondaryDisks: [{ diskId: "disk-detached" }],
+        filesystems: [{ filesystemId: "filesystem-attached" }],
         networkInterfaces: [{ primaryV4Address: { oneToOneNat: { address: "198.51.100.7" } } }]
       }),
       resource("vm-active", { createdAt: activeCreatedAt })
@@ -111,6 +161,10 @@ test("planner orders expired resources and preserves a fresh snapshot", () => {
       resource("disk-attached", { instanceIds: ["vm-expired"] }),
       resource("disk-detached", { instanceIds: [] }),
       resource("disk-active", { createdAt: activeCreatedAt, instanceIds: [] })
+    ],
+    filesystems: [
+      resource("filesystem-attached"),
+      resource("filesystem-unused")
     ],
     snapshots: [
       resource("snapshot-fresh", { createdAt: activeCreatedAt, sourceDiskId: "disk-attached" }),
@@ -128,12 +182,14 @@ test("planner orders expired resources and preserves a fresh snapshot", () => {
     "image:image-expired",
     "snapshot:snapshot-expired",
     "disk:disk-detached",
+    "filesystem:filesystem-unused",
     "address:address-unused"
   ]);
   assert.ok(!plan.actions.some(({ id }) => id === "snapshot-fresh"));
   assert.deepEqual(plan.deferred, [
     { type: "address", id: "address-used", reason: "still-used" },
-    { type: "disk", id: "disk-attached", reason: "still-attached" }
+    { type: "disk", id: "disk-attached", reason: "still-attached" },
+    { type: "filesystem", id: "filesystem-attached", reason: "still-attached" }
   ]);
 });
 
@@ -162,6 +218,32 @@ test("REST client consumes every inventory page", async () => {
   assert.deepEqual(result.instances.map(({ id }) => id), ["vm-1", "vm-2"]);
   assert.equal(requests.filter((url) => url.includes("/instances")).length, 2);
   assert.ok(requests.every((url) => url.includes("folderId=folder-1")));
+});
+
+test("REST client rejects malformed successful inventory responses", async () => {
+  const malformedJson = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async (input) => new URL(input).pathname.endsWith("/instances")
+      ? new Response("not-json")
+      : new Response("{}")
+  });
+  await assert.rejects(malformedJson.inventory("folder-1"), /list_instance_invalid_response:200:malformed_json/);
+
+  const missingCollection = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async (input) => new URL(input).pathname.endsWith("/instances")
+      ? new Response(JSON.stringify({ message: "not a list" }))
+      : new Response("{}")
+  });
+  await assert.rejects(missingCollection.inventory("folder-1"), /list_instance_invalid_response:200:missing_collection/);
+});
+
+test("REST client accepts provider-empty list objects", async () => {
+  const client = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => new Response("{}")
+  });
+  assert.deepEqual(await client.inventory("folder-1"), inventory());
 });
 
 test("REST delete waits for successful operation completion", async () => {
@@ -203,11 +285,70 @@ test("REST delete rejects immediate, eventual, and conflict errors", async () =>
   });
   await assert.rejects(eventual.remove({ type: "disk", id: "disk-1" }, "key-2"), /operation_failed/);
 
+  let rollbackRequests = 0;
+  const rollbackResponses = [
+    new Response(JSON.stringify({ id: "operation-rollback", done: false, error: { message: "rolling back" } })),
+    new Response(JSON.stringify({ id: "operation-rollback", done: true, error: { message: "rolled back" } }))
+  ];
+  const rollback = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => {
+      rollbackRequests += 1;
+      return rollbackResponses.shift();
+    },
+    sleep: async () => {}
+  });
+  await assert.rejects(rollback.remove({ type: "disk", id: "disk-1" }, "key-rollback"), /operation_failed/);
+  assert.equal(rollbackRequests, 2);
+
+  const invalidRecoveryResponses = [
+    new Response(JSON.stringify({ id: "operation-invalid-recovery", done: false, error: { message: "rolling back" } })),
+    new Response(JSON.stringify({ id: "operation-invalid-recovery", done: true, response: {} }))
+  ];
+  const invalidRecovery = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => invalidRecoveryResponses.shift(),
+    sleep: async () => {}
+  });
+  await assert.rejects(
+    invalidRecovery.remove({ type: "disk", id: "disk-1" }, "key-invalid-recovery"),
+    /delete_disk_invalid_operation:200:success_after_pending_error/
+  );
+
   const conflict = createYcRestClient({
     token: "test-token",
     fetchImpl: async () => new Response(JSON.stringify({ message: "still attached" }), { status: 409 })
   });
   await assert.rejects(conflict.remove({ type: "address", id: "address-1" }, "key-3"), /delete_address_failed:409/);
+});
+
+test("REST delete rejects malformed completed operations", async () => {
+  const missingResult = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => new Response(JSON.stringify({ id: "operation-1", done: true }))
+  });
+  await assert.rejects(
+    missingResult.remove({ type: "filesystem", id: "filesystem-1" }, "key-1"),
+    /delete_filesystem_invalid_operation:200:invalid_operation_result_count/
+  );
+
+  const invalidResult = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => new Response(JSON.stringify({ id: "operation-2", done: true, response: null }))
+  });
+  await assert.rejects(
+    invalidResult.remove({ type: "filesystem", id: "filesystem-1" }, "key-2"),
+    /delete_filesystem_invalid_operation:200:invalid_operation_result/
+  );
+
+  const malformedJson = createYcRestClient({
+    token: "test-token",
+    fetchImpl: async () => new Response("not-json")
+  });
+  await assert.rejects(
+    malformedJson.remove({ type: "disk", id: "disk-1" }, "key-3"),
+    /delete_disk_invalid_operation:200:malformed_json/
+  );
 });
 
 test("sweep validates complete inventory before any delete", async () => {
@@ -225,7 +366,16 @@ test("sweep validates complete inventory before any delete", async () => {
 test("sweep continues independent deletes and reports authorization failure", async () => {
   const removed = [];
   const client = {
-    inventory: async () => inventory({ instances: [resource("vm-1"), resource("vm-2")] }),
+    inventory: async () => inventory({
+      instances: [
+        resource("vm-1", { bootDisk: { diskId: "disk-vm-1" } }),
+        resource("vm-2", { bootDisk: { diskId: "disk-vm-2" } })
+      ],
+      disks: [
+        resource("disk-vm-1", { instanceIds: ["vm-1"] }),
+        resource("disk-vm-2", { instanceIds: ["vm-2"] })
+      ]
+    }),
     remove: async ({ id }) => {
       removed.push(id);
       if (id === "vm-1") throw Object.assign(new Error("forbidden"), { code: "delete_instance_failed", status: 403 });
@@ -241,7 +391,10 @@ test("sweep continues independent deletes and reports authorization failure", as
 
 test("deadline exhaustion leaves an error for trigger retry", async () => {
   const client = {
-    inventory: async () => inventory({ instances: [resource("vm-1")] }),
+    inventory: async () => inventory({
+      instances: [resource("vm-1", { bootDisk: { diskId: "disk-vm-1" } })],
+      disks: [resource("disk-vm-1", { instanceIds: ["vm-1"] })]
+    }),
     remove: async () => assert.fail("delete must not start without its retry budget")
   };
   const nowMs = createdAtMs + 7300_000;
