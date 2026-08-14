@@ -1,0 +1,9 @@
+{
+  "name": "vrata-wmmr-gpu-probe-janitor",
+  "private": true,
+  "version": "0.1.0",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  }
+}

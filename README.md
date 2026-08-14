@@ -42,8 +42,10 @@ style bible and `style-sheet.md` remain pending the art-direction gate.
 AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
 path and records the evidence still required for a pruned mesh-only probe.
 `gpu-probe-policy.md` records the proposed disposable machine, exact cost
-boundary, zero account GPU quota, and mandatory teardown behavior. No
-experiment GPU resource has been created.
+boundary, zero account GPU quota, and mandatory teardown behavior. The
+provider-side reconciler in `scripts/gpu-probe-janitor/` is locally tested but
+not deployed or provider-fixture-verified. No experiment GPU resource has been
+created.
 
 ## Validation
 

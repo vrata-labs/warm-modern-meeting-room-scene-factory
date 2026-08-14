@@ -75,24 +75,26 @@ All conditions are mandatory:
    images, addresses, and KMS resources; the expected set is empty.
 6. The input and required model artifacts are already in restricted storage and
    verified by SHA-256. The VM does not receive unrelated cloud credentials.
-7. An isolated, short-lived run folder and a provider-side scheduled janitor are
-   active before VM creation. The janitor identity has cleanup rights only in
-   that run folder and deletes its resources after the recorded expiry even if
-   the operator machine disappears.
+7. An isolated, marked experiment folder and a provider-side scheduled janitor
+   are active before VM creation. Its runtime identity has cleanup rights only
+   in that folder; a separate invocation identity can invoke only the janitor
+   function. Neither identity uses static keys.
 8. The local wrapper, in-guest watchdog, and provider-side janitor have passed a
-   no-GPU fixture test that verifies instance, disk, address, and folder cleanup.
+   no-GPU fixture test that verifies folder/resource boundary rejection,
+   completed instance/disk deletion, and dynamic-address release.
 
 ## Teardown Contract
 
-- Create every run in a dedicated folder. Assign labels `managed-by=opencode`,
-  `purpose=wmmr-ai-probe`, the unique run ID, and an immutable expiry time to
-  every created resource.
+- Use one dedicated experiment folder containing no unrelated Compute or VPC
+  resources. The folder has an immutable random guard marker checked by the
+  janitor. Every managed resource has exact janitor ID, probe ID, and immutable
+  expiry labels; an unknown or mismatched resource aborts before mutation.
 - Use one preemptible VM, one auto-delete boot disk, and one dynamic address.
   Do not create secondary disks, static addresses, snapshots, custom images,
   reservations, instance groups, or long-lived service-account keys.
 - Before VM creation, arm a provider-side timer outside both the VM and the
-  operator process. Its janitor deletes all compute/network resources in the
-  dedicated run folder at expiry and then deletes the run folder. Failure to
+  operator process. Its janitor deletes only boundary-validated probe resources
+  at expiry and waits for each provider delete operation to finish. Failure to
   arm or verify this timer blocks VM creation.
 - Start an in-guest shutdown watchdog before dependency or model work. It must
   stop the VM no later than 110 minutes after boot.
@@ -109,8 +111,12 @@ All conditions are mandatory:
   and addresses. Any remainder is a teardown failure and blocks another run.
 - Recheck billing after provider metering catches up and attach the result to
   the run record.
+- After the complete experiment, an operator deletes the timer, function,
+  service accounts, network, and empty folder. The janitor intentionally has no
+  control-plane permission to delete itself or the folder.
 
 Preemptible instances have no SLA and can stop at any time. Their provider
 maximum lifetime of 24 hours is not a substitute for the 110-minute watchdog or
-the independent deletion guard. That guard is not implemented yet, so launch
-remains blocked even if GPU quota becomes available.
+the independent deletion guard. The guard is implemented and locally tested but
+is not deployed or provider-fixture-verified, so launch remains blocked even if
+GPU quota becomes available.

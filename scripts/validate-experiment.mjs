@@ -60,7 +60,7 @@ assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quot
 assert(readiness.compute.quotaRequestCreated === false, "gpu_quota_request_unexpectedly_created");
 assert(readiness.compute.quotaRequestBlocker === "quota-manager-api-alpha-flag-not-enabled", "gpu_quota_request_blocker_invalid");
 assert(readiness.compute.budgetApproval === "pending-explicit-launch-approval", "gpu_budget_must_require_approval");
-assert(readiness.compute.independentTeardownGuard === "blocked-pending-folder-scoped-provider-janitor", "gpu_teardown_guard_invalid");
+assert(readiness.compute.independentTeardownGuard === "implementation-ready-pending-provider-fixture", "gpu_teardown_guard_invalid");
 assert(readiness.stageRules.stage1WorkBlockedUntil.length === 0, "stage_1_work_must_be_unblocked");
 assert(readiness.stageRules.stage1ExitBlockedUntil.includes("styleBibleApproval"), "stage_1_exit_missing_style_gate");
 assert(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil.length === 0, "stage_2_preparation_must_be_unblocked");

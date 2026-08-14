@@ -125,7 +125,7 @@
     "quotaRequestCreated": false,
     "quotaRequestBlocker": "quota-manager-api-alpha-flag-not-enabled",
     "quotaRequestNextPath": "yandex-console-or-support",
-    "independentTeardownGuard": "blocked-pending-folder-scoped-provider-janitor",
+    "independentTeardownGuard": "implementation-ready-pending-provider-fixture",
     "experimentGpuResourcesCreated": false,
     "policyPath": "experiment/warm-modern-meeting-room/gpu-probe-policy.md"
   },
