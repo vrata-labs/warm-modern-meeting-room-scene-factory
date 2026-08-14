@@ -37,7 +37,9 @@ curated/AI track or the later random `Alpha`/`Beta` review mapping.
 Restricted reference storage is private, bounded, encrypted, and ready.
 `reference-ledger.json` contains metadata for 16 reviewed sources, with 12
 human-only selections and no retrieved files or approved model inputs. The
-style bible and `style-sheet.md` remain pending the art-direction gate.
+style bible and `style-sheet.md` were approved at the art-direction gate on
+2026-08-14. The approval covers principles and measurable rules only; it does
+not license reference images or approve model inputs.
 
 AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
 path and records the evidence still required for a pruned mesh-only probe.

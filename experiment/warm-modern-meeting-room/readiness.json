@@ -130,13 +130,23 @@
     "policyPath": "experiment/warm-modern-meeting-room/gpu-probe-policy.md"
   },
   "stage1": {
-    "referenceLedgerStatus": "draft-ready-for-art-direction-review",
+    "referenceLedgerStatus": "complete-for-approved-art-direction",
     "referenceRecordCount": 16,
     "selectedReferenceCount": 12,
     "rejectedReferenceCount": 4,
     "retrievedReferenceCount": 0,
     "approvedModelInputCount": 0,
-    "styleBibleStatus": "draft-pending-art-direction-gate"
+    "styleBibleStatus": "approved-art-direction-gate",
+    "artDirectionApproval": {
+      "status": "approved",
+      "approvedOn": "2026-08-14",
+      "ownerRole": "experiment-sponsor",
+      "scope": "principles-and-measurable-rules-only",
+      "referenceImagesLicensed": false,
+      "modelInputsApproved": false,
+      "aiGenerationAllowed": false,
+      "evidence": "interactive-user-approval"
+    }
   },
   "resolved": {
     "githubAdminAccess": true,
@@ -165,10 +175,11 @@
     "aiRightsOwnerAssigned": true,
     "gpuProviderAssessed": true,
     "gpuTeardownRuleDefined": true,
-    "stage1ReferenceCollectionUnblocked": true
+    "stage1ReferenceCollectionUnblocked": true,
+    "styleBibleApproved": true,
+    "stage1ArtDirectionGateGreen": true
   },
   "blocked": {
-    "styleBibleApproval": null,
     "aiRightsFinalApproval": null,
     "gpuQuotaApproval": null,
     "gpuBudgetApproval": null,
@@ -183,10 +194,9 @@
   },
   "stageRules": {
     "stage1WorkBlockedUntil": [],
-    "stage1ExitBlockedUntil": ["styleBibleApproval"],
+    "stage1ExitBlockedUntil": [],
     "stage2RightsAndComputePreparationBlockedUntil": [],
     "probeExecutionBlockedUntil": [
-      "styleBibleApproval",
       "aiRightsFinalApproval",
       "gpuQuotaApproval",
       "gpuBudgetApproval",
