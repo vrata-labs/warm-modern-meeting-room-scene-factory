@@ -1,8 +1,8 @@
 # Warm Modern Meeting Room Style Sheet
 
-Status: draft for the art-direction gate. No source image has been downloaded,
-copied, or committed. Reference IDs resolve to metadata-only source-page links
-in `reference-ledger.json` and are never model inputs.
+Status: approved at the art-direction gate on 2026-08-14. No source image has
+been downloaded, copied, or committed. Reference IDs resolve to metadata-only
+source-page links in `reference-ledger.json` and are not model inputs.
 
 ## Composition
 
@@ -90,3 +90,9 @@ in `reference-ledger.json` and are never model inputs.
 Approval of this sheet approves principles and measurable rules only. It does
 not license source photography, approve any source as model input, or assign a
 candidate repository to a production track.
+
+## Approval Record
+
+The experiment sponsor approved the current direction in an interactive session
+on 2026-08-14. This closes the Stage 1 art-direction gate only. AI rights,
+model-input, compute, and launch approvals remain separate blocked gates.

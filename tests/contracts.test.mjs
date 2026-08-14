@@ -36,10 +36,18 @@ test("readiness opens metadata reference work but blocks generation", async () =
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   assert.equal(readiness.storage.status, "ready");
   assert.deepEqual(readiness.stageRules.stage1WorkBlockedUntil, []);
+  assert.deepEqual(readiness.stageRules.stage1ExitBlockedUntil, []);
   assert.deepEqual(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil, []);
+  assert.equal(readiness.resolved.styleBibleApproved, true);
+  assert.equal(readiness.resolved.stage1ArtDirectionGateGreen, true);
+  assert.equal(readiness.stage1.artDirectionApproval.scope, "principles-and-measurable-rules-only");
+  assert.equal(readiness.stage1.artDirectionApproval.modelInputsApproved, false);
+  assert.equal(readiness.stage1.artDirectionApproval.aiGenerationAllowed, false);
   assert.equal(readiness.aiRights.verdict, "blocked");
   assert.equal(readiness.aiRights.generationAllowed, false);
   assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"));
+  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuQuotaApproval"));
+  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuBudgetApproval"));
   assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuLaunchApproval"));
 });
 
@@ -65,6 +73,7 @@ test("reference ledger summaries match policy classifications", async () => {
   assert.equal(new Set(ledger.records.filter(({ selected }) => selected).map(({ category }) => category)).size, 8);
   assert.ok(ledger.records.every(({ retrieved, classification, restrictedStorageRecord }) => !retrieved || (["human-only", "model-input"].includes(classification) && restrictedStorageRecord === "recorded-out-of-band")));
   assert.ok(modelInputs.every(({ classification }) => classification === "model-input"));
+  assert.equal(modelInputs.length, 0);
   assert.equal(ledger.selectedCount, ledger.records.filter(({ selected }) => selected).length);
   assert.equal(ledger.rejectedCount, ledger.records.filter(({ classification }) => classification === "rejected").length);
   assert.equal(ledger.modelInputCount, modelInputs.length);

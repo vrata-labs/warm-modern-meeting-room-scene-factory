@@ -62,9 +62,15 @@ assert(readiness.compute.quotaRequestBlocker === "quota-manager-api-alpha-flag-n
 assert(readiness.compute.budgetApproval === "pending-explicit-launch-approval", "gpu_budget_must_require_approval");
 assert(readiness.compute.independentTeardownGuard === "implementation-ready-pending-provider-fixture", "gpu_teardown_guard_invalid");
 assert(readiness.stageRules.stage1WorkBlockedUntil.length === 0, "stage_1_work_must_be_unblocked");
-assert(readiness.stageRules.stage1ExitBlockedUntil.includes("styleBibleApproval"), "stage_1_exit_missing_style_gate");
+assert(readiness.stageRules.stage1ExitBlockedUntil.length === 0, "stage_1_exit_must_be_unblocked");
 assert(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil.length === 0, "stage_2_preparation_must_be_unblocked");
+assert(readiness.resolved.styleBibleApproved === true, "style_bible_not_approved");
+assert(readiness.resolved.stage1ArtDirectionGateGreen === true, "stage_1_art_direction_gate_not_green");
+assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
+assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");
+assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuQuotaApproval"), "probe_missing_gpu_quota_gate");
+assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuBudgetApproval"), "probe_missing_gpu_budget_gate");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuLaunchApproval"), "probe_missing_launch_gate");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("independentTeardownGuard"), "probe_missing_teardown_gate");
 
@@ -87,6 +93,7 @@ assert(readiness.stage1.rejectedReferenceCount === rejectedReferences.length, "r
 assert(readiness.stage1.retrievedReferenceCount === retrievedReferences.length, "readiness_retrieved_reference_count_mismatch");
 assert(readiness.stage1.approvedModelInputCount === modelInputReferences.length, "readiness_model_input_count_mismatch");
 assert(readiness.aiRights.modelInputCount === modelInputReferences.length, "ai_rights_model_input_count_mismatch");
+assert(modelInputReferences.length === 0, "model_inputs_must_remain_unapproved");
 assert(new Set(referenceLedger.records.map(({ id }) => id)).size === referenceLedger.records.length, "duplicate_reference_id");
 assert(referenceLedger.records.every(({ url }) => /^https:\/\//.test(url)), "reference_url_must_be_https");
 assert(referenceLedger.records.every(({ classification }) => allowedReferenceClassifications.has(classification)), "unknown_reference_classification");
@@ -99,7 +106,14 @@ assert(referenceLedger.records.every(({ retrieved, classification, restrictedSto
 
 const styleBible = await json("experiment/warm-modern-meeting-room/style-bible.json");
 assert(styleBible.schemaVersion === 1, "invalid_style_bible_schema");
-assert(styleBible.status === "draft-pending-art-direction-gate", "unexpected_style_bible_status");
+assert(styleBible.status === "approved-art-direction-gate", "unexpected_style_bible_status");
+assert(styleBible.approval.status === "approved", "style_bible_approval_missing");
+assert(styleBible.approval.ownerRole === "experiment-sponsor", "style_bible_approval_owner_invalid");
+assert(styleBible.approval.scope === "principles-and-measurable-rules-only", "style_bible_approval_scope_invalid");
+assert(styleBible.approval.referenceImagesLicensed === false, "style_bible_must_not_license_references");
+assert(styleBible.approval.modelInputsApproved === false, "style_bible_must_not_approve_model_inputs");
+assert(styleBible.approval.aiGenerationAllowed === false, "style_bible_must_not_allow_generation");
+assert(JSON.stringify(readiness.stage1.artDirectionApproval) === JSON.stringify(styleBible.approval), "style_bible_readiness_approval_mismatch");
 assert(styleBible.materials.roughnessRange[0] >= 0 && styleBible.materials.roughnessRange[1] <= 1, "invalid_roughness_range");
 assert(styleBible.lighting.fixtureTemperatureK[0] >= 2700 && styleBible.lighting.fixtureTemperatureK[1] <= 3000, "invalid_fixture_temperature");
 assert(new Set(styleBible.forbidden).size === styleBible.forbidden.length, "duplicate_forbidden_style_rule");

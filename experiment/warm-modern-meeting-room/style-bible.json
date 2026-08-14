@@ -1,6 +1,16 @@
 {
   "schemaVersion": 1,
-  "status": "draft-pending-art-direction-gate",
+  "status": "approved-art-direction-gate",
+  "approval": {
+    "status": "approved",
+    "approvedOn": "2026-08-14",
+    "ownerRole": "experiment-sponsor",
+    "scope": "principles-and-measurable-rules-only",
+    "referenceImagesLicensed": false,
+    "modelInputsApproved": false,
+    "aiGenerationAllowed": false,
+    "evidence": "interactive-user-approval"
+  },
   "palette": {
     "warmOakSrgb": "#A87543",
     "mineralPlasterSrgb": "#DDD6C8",
