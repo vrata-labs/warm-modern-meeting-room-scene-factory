@@ -82,6 +82,24 @@ test("reference ledger summaries match policy classifications", async () => {
   assert.equal(readiness.aiRights.modelInputCount, modelInputs.length);
 });
 
+test("TRELLIS source selection narrows evidence without allowing generation", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const lock = await json(readiness.aiRights.sourceSelectionLock.policyPath);
+  assert.equal(lock.status, "selection-locked-runtime-blocked");
+  assert.equal(lock.source.commit, readiness.aiRights.sourceSelectionLock.sourceCommit);
+  assert.equal(lock.source.submodules[0].commit, readiness.aiRights.sourceSelectionLock.flexiCubesCommit);
+  assert.equal(lock.selection.fileCount, 53);
+  assert.equal(lock.selection.selectionSha256, readiness.aiRights.sourceSelectionLock.selectionSha256);
+  assert.equal(lock.policySha256, readiness.aiRights.sourceSelectionLock.policySha256);
+  assert.equal(readiness.aiRights.sourceSelectionLock.status, "selection-lock-recorded-local-verification-pass-runtime-blocked");
+  assert.equal(readiness.aiRights.sourceSelectionLock.ciReproducible, false);
+  assert.equal(lock.generationAllowed, false);
+  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.ok(lock.openGates.includes("patchedSourceTreeDigest"));
+  assert.ok(lock.openGates.includes("thirdPartyNoticeBundle"));
+  assert.ok(lock.openGates.includes("humanRightsSignoff"));
+});
+
 test("GPU policy has a hard timeout and no created experiment resource", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   assert.equal(readiness.compute.primaryPreemptible, true);

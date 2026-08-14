@@ -69,6 +69,37 @@ A future probe may be reconsidered only if a separately hashed source package:
    Syft SBOM, vulnerability scan, third-party notices, peak VRAM, and output
    hashes.
 
+## Locked Upstream Source Selection
+
+`trellis-source-selection-lock.json` now pins the reviewed TRELLIS commit, the
+modified FlexiCubes submodule commit, and SHA-256 for 53 upstream source,
+provenance, and license files selected for patch review. Its canonical selection
+digest is
+`5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348`.
+The complete policy semantics are bound by SHA-256
+`d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea`.
+
+The verifier rejects a nested repository root, remote mismatch, changed commit,
+dirty or untracked checkout, changed gitlink/submodule, untracked selected file,
+missing file, symlinked path, committed-blob/worktree hash drift, duplicate path,
+or inconsistent selection digest. A local operator run passed against clean
+checkouts of the reviewed revisions; this external checkout is not reproduced by
+normal repository CI:
+
+```bash
+node scripts/verify-trellis-source-selection.mjs <trellis-checkout>
+```
+
+This lock narrows the auditable patch surface; it is not an approved source
+package. The selected upstream files still contain broad initializers, remote
+loaders, prohibited imports, and dormant training paths listed as mandatory
+patches in the lock. Patched-tree, dependency, DINO/model artifact, OCI, SBOM,
+offline runtime, GPU parity, provider evidence, third-party notice bundle, and
+human-signoff gates remain open. FlexiCubes `DCO.txt` is retained as
+provenance-only evidence under its verbatim-copy terms and is not classified as
+Apache-2.0 shipping code. No weights, input images, or generated outputs were
+added.
+
 The four reviewed TRELLIS weight hashes are:
 
 | Artifact | SHA-256 |

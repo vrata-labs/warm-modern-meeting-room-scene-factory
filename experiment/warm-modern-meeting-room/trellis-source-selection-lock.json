@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "policySha256": "d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea",
+  "status": "selection-locked-runtime-blocked",
+  "asOf": "2026-08-14",
+  "generationAllowed": false,
+  "source": {
+    "repository": "https://github.com/microsoft/TRELLIS.git",
+    "commit": "442aa1e1afb9014e80681d3bf604e8d728a86ee7",
+    "declaredLicense": "MIT",
+    "submodules": [
+      {
+        "path": "trellis/representations/mesh/flexicubes",
+        "repository": "https://github.com/MaxtirError/FlexiCubes.git",
+        "commit": "815e075a2a400d06c48d94c347674344ed6ae5c5",
+        "declaredLicense": "Apache-2.0"
+      }
+    ]
+  },
+  "selection": {
+    "purpose": "candidate-upstream-files-for-image-to-raw-mesh-prune",
+    "canonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, lowercase SHA-256, and LF",
+    "fileCount": 53,
+    "selectionSha256": "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
+    "files": [
+      {
+        "path": "trellis/__init__.py",
+        "sha256": "6eb340add1370ec95a8c19c36d5e7deb96e5950f1ffd2464e988fd77b813c130"
+      },
+      {
+        "path": "trellis/pipelines/__init__.py",
+        "sha256": "481154bace0520887b62966357a63d07db41ad35bbc037ece67c9329750e67e3"
+      },
+      {
+        "path": "trellis/pipelines/base.py",
+        "sha256": "2b06cdf54571576247bd6601adda7b3772dc23106a4973c35bfc42c4e9253c0c"
+      },
+      {
+        "path": "trellis/pipelines/trellis_image_to_3d.py",
+        "sha256": "a9a6eab500dd0693f6f5aa86d42291a4921596988c5c6460aa17fad6fe66b833"
+      },
+      {
+        "path": "trellis/pipelines/samplers/__init__.py",
+        "sha256": "438e0d327767c4ed05b167347e306f3ed80b4956add8f506126937feba0989ad"
+      },
+      {
+        "path": "trellis/pipelines/samplers/base.py",
+        "sha256": "be8530b55ea66ac58e8ab23d650f463636dd52cf7e39c7c9c66f69bf72e6a0d1"
+      },
+      {
+        "path": "trellis/pipelines/samplers/flow_euler.py",
+        "sha256": "77060b663ac731699249bbb3b54647cbce2f85ccf7a120bd123b22012a38bba4"
+      },
+      {
+        "path": "trellis/pipelines/samplers/classifier_free_guidance_mixin.py",
+        "sha256": "28af94747319a29d68f1dba864e103fcea906a24827646532d5915109de1098d"
+      },
+      {
+        "path": "trellis/pipelines/samplers/guidance_interval_mixin.py",
+        "sha256": "6d290aef03b58b2967e5edaaee3578cdde39e4471689dca3429ffb08ff632c21"
+      },
+      {
+        "path": "trellis/models/__init__.py",
+        "sha256": "afb0321d3b8212be4efdebe16bc80f317135e2c106de3d044896df1d8f46f9ab"
+      },
+      {
+        "path": "trellis/models/sparse_structure_flow.py",
+        "sha256": "cb5c67ec40a97587b55d63809eb51ebc320a7d79d06b55f170f16567eeb24eda"
+      },
+      {
+        "path": "trellis/models/sparse_structure_vae.py",
+        "sha256": "d32e4490b2f5356b72229ee7c8fb25702238b4f0877c49f1cae15ddc9ca615bc"
+      },
+      {
+        "path": "trellis/models/structured_latent_flow.py",
+        "sha256": "73cec44bda33c70ebecd2c88bf70fad857a25769a2994e9a9bb6c0ed9e442b33"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/__init__.py",
+        "sha256": "7ff6602d44207b58c4dce103b136219b78b98a3a424368a7fb219a2ea2dd41bf"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/base.py",
+        "sha256": "bdbfc21143bfde3de9346339986bf42574211f74b028fc8ab646858c87c9fd2e"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/decoder_mesh.py",
+        "sha256": "872906263d86e9799ed58528f82520045e90762da23e4f47a77bfb9531daf8ab"
+      },
+      {
+        "path": "trellis/modules/utils.py",
+        "sha256": "acfdc3769ce510f79f1762638063ff796481947d33d26a04f7c061f2eccdbf09"
+      },
+      {
+        "path": "trellis/modules/spatial.py",
+        "sha256": "cfab71d7106b4fdf6cbdd2885646b5590d13439f9308c5b924c069afcdbf185d"
+      },
+      {
+        "path": "trellis/modules/norm.py",
+        "sha256": "dffc3a789ddcab606186326ce581345bfe848912f3e590753b967f9451e5a9d7"
+      },
+      {
+        "path": "trellis/modules/attention/__init__.py",
+        "sha256": "163edbd14e9b602922dc83f0e3e1d1a217296ea94e7f9f5ba04a9af3fe96d760"
+      },
+      {
+        "path": "trellis/modules/attention/full_attn.py",
+        "sha256": "18f6fe3168efff666ad7ef5321ff493280eafc95d69bc24a47938b9febbb8551"
+      },
+      {
+        "path": "trellis/modules/attention/modules.py",
+        "sha256": "6d3b110e91003c8730f5a87922a133db596dc2fbc47272fe6f3b19443589132c"
+      },
+      {
+        "path": "trellis/modules/transformer/__init__.py",
+        "sha256": "debb94976ce5c7fbf196012d9dbd1c6aa70acbc37c8f97cb3ffc94ef90730bfb"
+      },
+      {
+        "path": "trellis/modules/transformer/blocks.py",
+        "sha256": "3c03f97d24b462bcfd54f33f97dfe056b896f76e77dd391b197c5f576b2a94b9"
+      },
+      {
+        "path": "trellis/modules/transformer/modulated.py",
+        "sha256": "1e03f9b0e9141782678bd59421b9cec79df6e2f64296dc920c8d160e3e74ab0c"
+      },
+      {
+        "path": "trellis/modules/sparse/__init__.py",
+        "sha256": "f01025f71781973767aa7c8c55ec61f7c44a045b1a61592e143e5666190dbdf1"
+      },
+      {
+        "path": "trellis/modules/sparse/basic.py",
+        "sha256": "215dca48d25f1e4640622c33b7f899ceb4211b96a1c04e0374f37a72da724118"
+      },
+      {
+        "path": "trellis/modules/sparse/linear.py",
+        "sha256": "8a3dc106ecc875e6ad13bbef2b543846c71c8b61bb7f8db889cbd94c56a46747"
+      },
+      {
+        "path": "trellis/modules/sparse/nonlinearity.py",
+        "sha256": "b686ec25498fff4a1f14c53db05a33747faed6b2dafd4d2f63be0ada26e7b082"
+      },
+      {
+        "path": "trellis/modules/sparse/norm.py",
+        "sha256": "04f963d39fdbbd9a7f118b6291a94abd0264a6fa947f216da46a0b502d8af226"
+      },
+      {
+        "path": "trellis/modules/sparse/spatial.py",
+        "sha256": "d38197d35faaf55def3b0b0b279380c4ff2f62f0d78e620f6ed8fb1d72449440"
+      },
+      {
+        "path": "trellis/modules/sparse/conv/__init__.py",
+        "sha256": "65bdef30f1cb4feb77c4d00b3a27f04c2ed8748779ed09e5f4535cfa396ad102"
+      },
+      {
+        "path": "trellis/modules/sparse/conv/conv_spconv.py",
+        "sha256": "69174887a0b378851ced8fd35fe52f5a37c4c7ef2067daac80ad2980bdddb1b1"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/__init__.py",
+        "sha256": "78a2d717c82a6b63f39e82272e94c309befc355e4fbf38dbcfc044b7578e46f4"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/full_attn.py",
+        "sha256": "cfed8f6d72223a44433f9a38f3a0eb89d114ac77f710306b3e6ec1acfc12b432"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/serialized_attn.py",
+        "sha256": "57f0a6a1a79fb6fa3ad153769226c8f7f36d122b64017a3b029c880385b5f306"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/windowed_attn.py",
+        "sha256": "b6730399cbe6dff15f9f3863a06c6076758f9b45377d07a31b54c8994afdf344"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/modules.py",
+        "sha256": "2d35dcfb32d8fed7a7da71c0754a0463a4251f98d5a08bdb430552926babcbd7"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/__init__.py",
+        "sha256": "debb94976ce5c7fbf196012d9dbd1c6aa70acbc37c8f97cb3ffc94ef90730bfb"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/blocks.py",
+        "sha256": "d061125f84805347e782e230c1e612dc5453145aae1a6289c5035e60d40ac266"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/modulated.py",
+        "sha256": "83aaab23aeae47df478dc38702ed4c7707b25e0771e3b4c89f8ac621077db28b"
+      },
+      {
+        "path": "trellis/representations/__init__.py",
+        "sha256": "9a927094c556265a0e346d3a288ef5909011f2bd1422416bbf55e631848a96ea"
+      },
+      {
+        "path": "trellis/representations/mesh/__init__.py",
+        "sha256": "c79f790288c93d43afbb44a946dd005da003eb6fcb1517a0caeca4505cbee61d"
+      },
+      {
+        "path": "trellis/representations/mesh/cube2mesh.py",
+        "sha256": "dbf51b69a23200e029d2f78e3c741485767fd3d745ec06b83b8c754c6c9371b0"
+      },
+      {
+        "path": "trellis/representations/mesh/utils_cube.py",
+        "sha256": "3153e11dab5f0794caf3541ec6ba8b06e041dac26e4193ecf821d4e146336c35"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/flexicubes.py",
+        "sha256": "fe443b5225680969c706644931a4f723e7137ce8007758c1870b6841af2d4238"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/tables.py",
+        "sha256": "de9535d097dc7df266a8e8098efbe6f46d923287536d5f7f7ee924171267c442"
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+      },
+      {
+        "path": "README.md",
+        "sha256": "675a1bab7837d22972a776dec8e2a2eb01f9211bd40b4c57112a8335ccb9ec3e"
+      },
+      {
+        "path": ".gitmodules",
+        "sha256": "2f3125be0ea0ca56975ae1f58f3e08f12015b8e3b704f36426ec20f7833798ea"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/LICENSE.txt",
+        "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/README.md",
+        "sha256": "1df7926263633567e95c805d336d10c73c9641ace3826bbf252f88de76a6f886"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/DCO.txt",
+        "sha256": "e2d4e3a3e38f7bd60cbafd7c075cafcdc588efcfdf7bc26ee3c14f7408b10ed2"
+      }
+    ]
+  },
+  "licenseCoverage": [
+    {
+      "scope": "TRELLIS selection excluding the FlexiCubes submodule",
+      "license": "MIT",
+      "licensePath": "LICENSE"
+    },
+    {
+      "scope": "FlexiCubes Python source, README.md, and LICENSE.txt excluding DCO.txt",
+      "license": "Apache-2.0",
+      "licensePath": "trellis/representations/mesh/flexicubes/LICENSE.txt",
+      "modificationNoticesRequired": true
+    },
+    {
+      "scope": "trellis/representations/mesh/flexicubes/DCO.txt",
+      "classification": "provenance-only-non-shipping",
+      "terms": "verbatim-copy-only",
+      "modificationAllowed": false
+    }
+  ],
+  "requiredPatches": [
+    {
+      "path": "trellis/__init__.py",
+      "requirements": ["remove broad renderer, representation, and utility imports"]
+    },
+    {
+      "path": "trellis/pipelines/__init__.py",
+      "requirements": ["export only the local single-image mesh pipeline", "remove Hugging Face fallback"]
+    },
+    {
+      "path": "trellis/pipelines/base.py",
+      "requirements": ["load exactly four local TRELLIS model families", "fail closed without network fallback"]
+    },
+    {
+      "path": "trellis/pipelines/trellis_image_to_3d.py",
+      "requirements": ["remove rembg and torch.hub", "accept one pre-cleared RGBA input", "emit mesh only", "remove multi-image path"]
+    },
+    {
+      "path": "trellis/models/__init__.py",
+      "requirements": ["allowlist four inference classes", "load local JSON and safetensors only", "require a strict state dict"]
+    },
+    {
+      "path": "trellis/models/structured_latent_flow.py",
+      "requirements": ["remove elastic training dependencies while preserving checkpoint-compatible class naming"]
+    },
+    {
+      "path": "trellis/models/structured_latent_vae/__init__.py",
+      "requirements": ["export only the mesh decoder"]
+    },
+    {
+      "path": "trellis/models/structured_latent_vae/base.py",
+      "requirements": ["remove serialized-attention modes from inference dispatch"]
+    },
+    {
+      "path": "trellis/models/structured_latent_vae/decoder_mesh.py",
+      "requirements": ["remove elastic training dependencies while preserving checkpoint-compatible class naming"]
+    },
+    {
+      "path": "trellis/modules/sparse/__init__.py",
+      "requirements": ["fix the backend contract to spconv and xFormers only", "remove torchsparse and flash-attn branches"]
+    },
+    {
+      "path": "trellis/modules/sparse/basic.py",
+      "requirements": ["remove the dynamic torchsparse import branch"]
+    },
+    {
+      "path": "trellis/modules/sparse/conv/__init__.py",
+      "requirements": ["export the spconv backend only"]
+    },
+    {
+      "path": "trellis/modules/sparse/transformer/blocks.py",
+      "requirements": ["remove SerializeMode imports and unsupported serialized-attention type options"]
+    },
+    {
+      "path": "trellis/modules/sparse/transformer/modulated.py",
+      "requirements": ["remove SerializeMode imports and unsupported serialized-attention type options"]
+    },
+    {
+      "path": "trellis/representations/__init__.py",
+      "requirements": ["export only mesh representation symbols"]
+    },
+    {
+      "path": "trellis/modules/sparse/attention/__init__.py",
+      "requirements": ["export only full and windowed attention"]
+    },
+    {
+      "path": "trellis/modules/sparse/attention/modules.py",
+      "requirements": ["remove serialized-attention dispatch and vox2seq references"]
+    },
+    {
+      "path": "trellis/modules/sparse/attention/serialized_attn.py",
+      "requirements": ["omit this upstream review file from the patched runtime tree"]
+    },
+    {
+      "path": "trellis/representations/mesh/cube2mesh.py",
+      "requirements": ["remove EasyDict dependency and dormant training result paths"]
+    },
+    {
+      "path": "trellis/representations/mesh/flexicubes/flexicubes.py",
+      "requirements": ["replace Kaolin-only tensor validation", "remove dormant training-only paths", "retain Apache-2.0 notices and add a modification notice"]
+    }
+  ],
+  "requiredExclusions": [
+    "trellis.datasets",
+    "trellis.models.sparse_elastic_mixin",
+    "trellis.models.structured_latent_vae.decoder_gs",
+    "trellis.models.structured_latent_vae.decoder_rf",
+    "trellis.models.structured_latent_vae.encoder",
+    "trellis.modules.sparse.conv.conv_torchsparse",
+    "trellis.pipelines.trellis_text_to_3d",
+    "trellis.renderers",
+    "trellis.representations.gaussian",
+    "trellis.representations.octree",
+    "trellis.representations.radiance_field",
+    "trellis.trainers",
+    "trellis.utils"
+  ],
+  "prohibitedRuntimeDependencies": [
+    "diffoctreerast",
+    "diff-gaussian-rasterization",
+    "huggingface_hub",
+    "kaolin",
+    "nvdiffrast",
+    "open3d",
+    "plyfile",
+    "rembg",
+    "torch.hub",
+    "torchsparse",
+    "vox2seq"
+  ],
+  "knownAttributionQuestions": [
+    {
+      "path": "trellis/models/sparse_structure_flow.py",
+      "reference": "The timestep embedding cites OpenAI GLIDE source without a bundled third-party notice.",
+      "status": "pending-third-party-notice-review"
+    }
+  ],
+  "openGates": [
+    "patchedSourceTreeDigest",
+    "dinoSourceAndArtifactLock",
+    "trellisModelArtifactLock",
+    "dependencyWheelHashLock",
+    "patchedPytorchQualification",
+    "ociImageDigest",
+    "sbomAndVulnerabilityReport",
+    "offlineImportRuntimeTest",
+    "gpuParityAndVramTest",
+    "providerTermsSnapshot",
+    "thirdPartyNoticeBundle",
+    "humanRightsSignoff"
+  ],
+  "evidenceBoundary": {
+    "weightsDownloaded": false,
+    "modelInputsDownloaded": false,
+    "generationRun": false,
+    "cloudResourcesCreated": false,
+    "localVerificationCiReproducible": false,
+    "claim": "This locks reviewed upstream bytes and a candidate selection only. It is not a patched source tree, dependency lock, runnable image, or rights approval."
+  }
+}

@@ -93,10 +93,22 @@
     "verdict": "blocked",
     "verdictDate": "2026-08-14",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "conditional-pending-immutable-runtime-lock-and-human-signoff",
+    "prunedMeshPath": "source-selection-locked-patched-runtime-and-human-signoff-pending",
     "modelInputCount": 0,
     "generationAllowed": false,
-    "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md"
+    "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
+    "sourceSelectionLock": {
+      "status": "selection-lock-recorded-local-verification-pass-runtime-blocked",
+      "policyPath": "experiment/warm-modern-meeting-room/trellis-source-selection-lock.json",
+      "sourceCommit": "442aa1e1afb9014e80681d3bf604e8d728a86ee7",
+      "flexiCubesCommit": "815e075a2a400d06c48d94c347674344ed6ae5c5",
+      "fileCount": 53,
+      "selectionSha256": "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
+      "policySha256": "d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea",
+      "localVerifiedAt": "2026-08-14T21:32:40Z",
+      "ciReproducible": false,
+      "generationAllowed": false
+    }
   },
   "compute": {
     "provider": "Yandex Cloud Compute",

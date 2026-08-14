@@ -42,7 +42,10 @@ style bible and `style-sheet.md` were approved at the art-direction gate on
 not license reference images or approve model inputs.
 
 AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
-path and records the evidence still required for a pruned mesh-only probe.
+path and records the evidence still required for a pruned mesh-only probe. The
+source-selection lock pins 53 upstream TRELLIS/FlexiCubes source, provenance,
+and license files for patch review, but it is not a patched runtime, dependency
+lock, model approval, or generation approval.
 `gpu-probe-policy.md` records the proposed disposable machine, exact cost
 boundary, zero account GPU quota, and mandatory teardown behavior. The
 provider-side reconciler in `scripts/gpu-probe-janitor/` is locally tested but
