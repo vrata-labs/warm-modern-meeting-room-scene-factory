@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 
@@ -54,6 +55,18 @@ assert(readiness.storage.approval.ownerRole === readiness.storage.ownerRole, "re
 assert(readiness.aiRights.ownerRole === "experiment-sponsor", "ai_rights_owner_missing");
 assert(readiness.aiRights.verdict === "blocked", "ai_generation_must_remain_blocked");
 assert(readiness.aiRights.generationAllowed === false, "ai_generation_unexpectedly_allowed");
+const sourceSelection = validateWmmrSelectionContract(await json(readiness.aiRights.sourceSelectionLock.policyPath));
+assert(readiness.aiRights.sourceSelectionLock.status === "selection-lock-recorded-local-verification-pass-runtime-blocked", "source_selection_status_invalid");
+assert(readiness.aiRights.sourceSelectionLock.sourceCommit === sourceSelection.source.commit, "source_selection_commit_mismatch");
+assert(readiness.aiRights.sourceSelectionLock.flexiCubesCommit === sourceSelection.source.submodules[0].commit, "source_selection_submodule_mismatch");
+assert(readiness.aiRights.sourceSelectionLock.fileCount === sourceSelection.selection.fileCount, "source_selection_file_count_mismatch");
+assert(readiness.aiRights.sourceSelectionLock.selectionSha256 === sourceSelection.selection.selectionSha256, "source_selection_digest_mismatch");
+assert(readiness.aiRights.sourceSelectionLock.policySha256 === sourceSelection.policySha256, "source_selection_policy_digest_mismatch");
+assert(readiness.aiRights.sourceSelectionLock.ciReproducible === false, "source_selection_ci_claim_invalid");
+assert(readiness.aiRights.sourceSelectionLock.generationAllowed === false, "source_selection_must_not_allow_generation");
+assert(sourceSelection.openGates.includes("patchedSourceTreeDigest"), "source_selection_missing_patched_tree_gate");
+assert(sourceSelection.openGates.includes("thirdPartyNoticeBundle"), "source_selection_missing_notice_gate");
+assert(sourceSelection.openGates.includes("humanRightsSignoff"), "source_selection_missing_human_signoff_gate");
 assert(readiness.compute.primaryPreemptible === true, "gpu_probe_must_be_preemptible");
 assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_resource_created_before_gate");
 assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quota_evidence_invalid");
