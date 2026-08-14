@@ -82,7 +82,7 @@ test("GPU policy has a hard timeout and no created experiment resource", async (
   assert.equal(readiness.compute.gpuQuota, "zero-all-exposed-gpu-families");
   assert.equal(readiness.compute.quotaRequestCreated, false);
   assert.equal(readiness.compute.quotaRequestBlocker, "quota-manager-api-alpha-flag-not-enabled");
-  assert.equal(readiness.compute.independentTeardownGuard, "blocked-pending-folder-scoped-provider-janitor");
+  assert.equal(readiness.compute.independentTeardownGuard, "implementation-ready-pending-provider-fixture");
   assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("independentTeardownGuard"));
   assert.equal(readiness.compute.experimentGpuResourcesCreated, false);
 });
