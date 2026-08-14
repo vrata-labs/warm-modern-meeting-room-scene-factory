@@ -14,9 +14,14 @@ function externalAddressValues(instance) {
     .filter(Boolean);
 }
 
+function filesystemIds(instance) {
+  return values(instance.filesystems).map(({ filesystemId }) => filesystemId).filter(Boolean);
+}
+
 export function planSweep(inventory, nowMs, hardMaxAgeSeconds) {
   const instances = values(inventory.instances);
   const disks = values(inventory.disks);
+  const filesystems = values(inventory.filesystems);
   const snapshots = values(inventory.snapshots);
   const images = values(inventory.images);
   const addresses = values(inventory.addresses);
@@ -27,6 +32,8 @@ export function planSweep(inventory, nowMs, hardMaxAgeSeconds) {
     ...values(instance.secondaryDisks).map(({ diskId }) => diskId)
   ].filter(Boolean)));
   const dependentAddressValues = new Set(expiredInstances.flatMap(externalAddressValues));
+  const dependentFilesystemIds = new Set(expiredInstances.flatMap(filesystemIds));
+  const attachedFilesystemIds = new Set(instances.flatMap(filesystemIds));
 
   const expiredDiskIds = new Set(disks
     .filter((resource) => dependentDiskIds.has(resource.id) || isResourceExpired(resource, nowMs, hardMaxAgeSeconds))
@@ -52,6 +59,15 @@ export function planSweep(inventory, nowMs, hardMaxAgeSeconds) {
     }
   }
 
+  for (const resource of filesystems) {
+    if (!dependentFilesystemIds.has(resource.id) && !isResourceExpired(resource, nowMs, hardMaxAgeSeconds)) continue;
+    if (attachedFilesystemIds.has(resource.id)) {
+      deferred.push({ type: "filesystem", id: resource.id, reason: "still-attached" });
+    } else {
+      actions.push(action(2, "filesystem", resource, dependentFilesystemIds.has(resource.id) ? "expired-instance-filesystem" : "expired"));
+    }
+  }
+
   for (const resource of addresses) {
     if (!resource.externalIpv4Address || !resource.reserved) continue;
     const addressValue = resource.externalIpv4Address?.address;
@@ -73,6 +89,7 @@ export function planSweep(inventory, nowMs, hardMaxAgeSeconds) {
     inventoryCounts: {
       instances: instances.length,
       disks: disks.length,
+      filesystems: filesystems.length,
       snapshots: snapshots.length,
       images: images.length,
       addresses: addresses.length

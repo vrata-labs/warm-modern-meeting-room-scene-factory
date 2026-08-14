@@ -25,7 +25,7 @@ export async function sweep({
   logger = () => {}
 }) {
   const inventory = await client.inventory(folderId, { deadlineMs });
-  assertInventoryBoundary(inventory, expectedProbeId, expectedExpiresAt);
+  assertInventoryBoundary(inventory, folderId, expectedProbeId, expectedExpiresAt);
   const plan = planSweep(inventory, nowMs, hardMaxAgeSeconds);
   const deleted = [];
   const gone = [];

@@ -9,6 +9,11 @@ const RESOURCES = Object.freeze({
     listUrl: "https://compute.api.cloud.yandex.net/compute/v1/disks",
     deleteUrl: "https://compute.api.cloud.yandex.net/compute/v1/disks"
   },
+  filesystem: {
+    collection: "filesystems",
+    listUrl: "https://compute.api.cloud.yandex.net/compute/v1/filesystems",
+    deleteUrl: "https://compute.api.cloud.yandex.net/compute/v1/filesystems"
+  },
   snapshot: {
     collection: "snapshots",
     listUrl: "https://compute.api.cloud.yandex.net/compute/v1/snapshots",
@@ -38,14 +43,27 @@ export class YcApiError extends Error {
   }
 }
 
-async function responseBody(response) {
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+async function responseBody(response, invalidResponseCode) {
   const text = await response.text();
-  if (!text) return {};
+  if (!text) {
+    if (invalidResponseCode) throw new YcApiError(invalidResponseCode, response.status, "empty_body");
+    return {};
+  }
+  let body;
   try {
-    return JSON.parse(text);
+    body = JSON.parse(text);
   } catch {
+    if (invalidResponseCode) throw new YcApiError(invalidResponseCode, response.status, "malformed_json");
     return { message: text.slice(0, 300) };
   }
+  if (invalidResponseCode && !isRecord(body)) {
+    throw new YcApiError(invalidResponseCode, response.status, "non_object_body");
+  }
+  return body;
 }
 
 function wait(milliseconds) {
@@ -116,9 +134,19 @@ export function createYcRestClient({
       url.searchParams.set("pageSize", "1000");
       if (pageToken) url.searchParams.set("pageToken", pageToken);
       const response = await request(url, {}, deadlineMs);
-      const body = await responseBody(response);
+      const body = await responseBody(response, response.ok ? `list_${type}_invalid_response` : undefined);
       if (!response.ok) throw new YcApiError(`list_${type}_failed`, response.status, errorDetail(body));
-      result.push(...(body[definition.collection] ?? []));
+      const collection = body[definition.collection];
+      if (collection !== undefined && !Array.isArray(collection)) {
+        throw new YcApiError(`list_${type}_invalid_response`, response.status, "invalid_collection");
+      }
+      if (collection === undefined && Object.keys(body).length > 0) {
+        throw new YcApiError(`list_${type}_invalid_response`, response.status, "missing_collection");
+      }
+      if (body.nextPageToken !== undefined && typeof body.nextPageToken !== "string") {
+        throw new YcApiError(`list_${type}_invalid_response`, response.status, "invalid_page_token");
+      }
+      result.push(...(collection ?? []));
       pageToken = body.nextPageToken || undefined;
       if (pageToken && seenTokens.has(pageToken)) throw new Error(`repeated_page_token:${type}`);
       if (pageToken) seenTokens.add(pageToken);
@@ -127,21 +155,48 @@ export function createYcRestClient({
     return result;
   }
 
-  function completedOperation(body, action) {
-    if (body.error) throw new YcApiError(`delete_${action.type}_operation_failed`, 200, errorDetail(body));
-    return { status: "deleted", operationId: body.id ?? null };
+  function inspectOperation(body, action, expectedOperationId) {
+    const invalidCode = `delete_${action.type}_invalid_operation`;
+    if (!isRecord(body) || typeof body.id !== "string" || !body.id) {
+      throw new YcApiError(invalidCode, 200, "missing_operation_id");
+    }
+    if (expectedOperationId && body.id !== expectedOperationId) {
+      throw new YcApiError(invalidCode, 200, "operation_id_mismatch");
+    }
+    if (body.done !== undefined && typeof body.done !== "boolean") {
+      throw new YcApiError(invalidCode, 200, "invalid_done_flag");
+    }
+
+    const hasError = Object.hasOwn(body, "error");
+    const hasResponse = Object.hasOwn(body, "response");
+    if (body.done === true) {
+      if (hasError === hasResponse) throw new YcApiError(invalidCode, 200, "invalid_operation_result_count");
+      if (hasError) throw new YcApiError(`delete_${action.type}_operation_failed`, 200, errorDetail(body));
+      if (!isRecord(body.response)) throw new YcApiError(invalidCode, 200, "invalid_operation_result");
+      return { status: "deleted", operationId: body.id };
+    }
+    if (hasResponse) throw new YcApiError(invalidCode, 200, "result_before_completion");
+    if (hasError && !isRecord(body.error)) throw new YcApiError(invalidCode, 200, "invalid_pending_error");
+    return null;
   }
 
   async function waitForOperation(body, action, deadlineMs) {
-    if (body.done === true) return completedOperation(body, action);
-    if (!body.id) throw new YcApiError(`delete_${action.type}_invalid_operation`, 200);
+    let failureObserved = Object.hasOwn(body, "error");
+    const immediate = inspectOperation(body, action);
+    if (immediate) return immediate;
+    const operationId = body.id;
 
     while (remainingMs(deadlineMs) > 0) {
       await boundedSleep(operationPollMs, deadlineMs);
-      const response = await request(`${OPERATION_URL}/${encodeURIComponent(body.id)}`, {}, deadlineMs);
-      const current = await responseBody(response);
+      const response = await request(`${OPERATION_URL}/${encodeURIComponent(operationId)}`, {}, deadlineMs);
+      const current = await responseBody(response, response.ok ? `delete_${action.type}_invalid_operation` : undefined);
       if (!response.ok) throw new YcApiError("operation_get_failed", response.status, errorDetail(current));
-      if (current.done === true) return completedOperation(current, action);
+      const completed = inspectOperation(current, action, operationId);
+      if (completed && failureObserved) {
+        throw new YcApiError(`delete_${action.type}_invalid_operation`, 200, "success_after_pending_error");
+      }
+      if (completed) return completed;
+      failureObserved ||= Object.hasOwn(current, "error");
     }
 
     throw new YcApiError(`delete_${action.type}_operation_pending`, 408);
@@ -154,8 +209,8 @@ export function createYcRestClient({
       method: "DELETE",
       headers: { "Idempotency-Key": idempotencyKey }
     }, deadlineMs);
-    const body = await responseBody(response);
     if (response.status === 404) return { status: "gone", operationId: null };
+    const body = await responseBody(response, response.ok ? `delete_${action.type}_invalid_operation` : undefined);
     if (!response.ok) throw new YcApiError(`delete_${action.type}_failed`, response.status, errorDetail(body));
     return waitForOperation(body, action, deadlineMs);
   }
@@ -163,19 +218,20 @@ export function createYcRestClient({
   return {
     async folder(folderId, { deadlineMs } = {}) {
       const response = await request(`${FOLDER_URL}/${encodeURIComponent(folderId)}`, {}, deadlineMs);
-      const body = await responseBody(response);
+      const body = await responseBody(response, response.ok ? "folder_get_invalid_response" : undefined);
       if (!response.ok) throw new YcApiError("folder_get_failed", response.status, errorDetail(body));
       return body;
     },
     async inventory(folderId, { deadlineMs } = {}) {
-      const [instances, disks, snapshots, images, addresses] = await Promise.all([
+      const [instances, disks, filesystems, snapshots, images, addresses] = await Promise.all([
         listAll("instance", folderId, deadlineMs),
         listAll("disk", folderId, deadlineMs),
+        listAll("filesystem", folderId, deadlineMs),
         listAll("snapshot", folderId, deadlineMs),
         listAll("image", folderId, deadlineMs),
         listAll("address", folderId, deadlineMs)
       ]);
-      return { instances, disks, snapshots, images, addresses };
+      return { instances, disks, filesystems, snapshots, images, addresses };
     },
     remove
   };
