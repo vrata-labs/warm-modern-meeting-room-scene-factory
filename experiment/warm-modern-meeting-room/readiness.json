@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "asOf": "2026-08-12",
+  "schemaVersion": 2,
+  "asOf": "2026-08-14",
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
@@ -48,6 +48,96 @@
     "nodeVersion": "22",
     "pnpmVersion": "10.0.0"
   },
+  "storage": {
+    "status": "ready",
+    "provider": "Yandex Cloud Object Storage",
+    "region": "Russia",
+    "locator": "restricted-operator-record-not-public-git",
+    "createdAt": "2026-08-13T20:59:35Z",
+    "verifiedAt": "2026-08-14T07:35:00Z",
+    "ownerRole": "experiment-sponsor",
+    "approval": {
+      "status": "approved-for-stage1-reference-handling",
+      "ownerRole": "experiment-sponsor",
+      "approvedOn": "2026-08-13",
+      "evidence": "restricted-interactive-session-record"
+    },
+    "hardQuotaBytes": 10737418240,
+    "objectCountAtActivation": 0,
+    "anonymousAccess": {
+      "read": false,
+      "list": false,
+      "configRead": false
+    },
+    "staticKeyAuthEnabled": false,
+    "versioning": "disabled",
+    "encryption": {
+      "mode": "SSE-KMS",
+      "algorithm": "AES-256",
+      "dedicatedKey": true,
+      "keyDeletionProtection": true,
+      "activeKeyVersions": 1,
+      "rubPerKeyVersionHour": 0.00439
+    },
+    "retention": {
+      "temporaryDays": 30,
+      "rejectedDays": 30,
+      "incompleteMultipartDays": 1,
+      "humanOnlyAfterTerminalOutcomeDays": 90,
+      "accepted": "release-lifetime-plus-90-days-after-retirement"
+    }
+  },
+  "aiRights": {
+    "ownerRole": "experiment-sponsor",
+    "ownerIdentityRecord": "restricted-operator-record",
+    "verdict": "blocked",
+    "verdictDate": "2026-08-14",
+    "stockTrellisPath": "blocked-restricted-eager-imports",
+    "prunedMeshPath": "conditional-pending-immutable-runtime-lock-and-human-signoff",
+    "modelInputCount": 0,
+    "generationAllowed": false,
+    "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md"
+  },
+  "compute": {
+    "provider": "Yandex Cloud Compute",
+    "region": "Russia",
+    "primaryZone": "ru-central1-d",
+    "primaryPlatform": "standard-v3-t4i",
+    "primaryGpuCount": 1,
+    "primaryGpuMemoryGiB": 24,
+    "primaryPreemptible": true,
+    "primaryVcpu": 4,
+    "primaryMemoryGiB": 16,
+    "bootDiskType": "network-ssd",
+    "bootDiskGiB": 100,
+    "baseImageId": "fd8qb5sstf8h1lk8pmb8",
+    "baseImageName": "ubuntu-2204-lts-cuda-12-2-v20260813",
+    "quotedRubPerHour": 32.86192,
+    "firstRunMaximumMinutes": 120,
+    "firstRunMaximumRub": 65.72384,
+    "proposedCampaignHardCapRub": 1000,
+    "budgetApproval": "pending-explicit-launch-approval",
+    "billingOwnerRole": "experiment-sponsor",
+    "teardownOwnerRole": "experiment-sponsor",
+    "quotaCheckedAt": "2026-08-14T07:20:00Z",
+    "gpuQuota": "zero-all-exposed-gpu-families",
+    "quotaRequestAttemptedAt": "2026-08-14T07:42:00Z",
+    "quotaRequestCreated": false,
+    "quotaRequestBlocker": "quota-manager-api-alpha-flag-not-enabled",
+    "quotaRequestNextPath": "yandex-console-or-support",
+    "independentTeardownGuard": "blocked-pending-folder-scoped-provider-janitor",
+    "experimentGpuResourcesCreated": false,
+    "policyPath": "experiment/warm-modern-meeting-room/gpu-probe-policy.md"
+  },
+  "stage1": {
+    "referenceLedgerStatus": "draft-ready-for-art-direction-review",
+    "referenceRecordCount": 16,
+    "selectedReferenceCount": 12,
+    "rejectedReferenceCount": 4,
+    "retrievedReferenceCount": 0,
+    "approvedModelInputCount": 0,
+    "styleBibleStatus": "draft-pending-art-direction-gate"
+  },
   "resolved": {
     "githubAdminAccess": true,
     "publicRepositoriesCreated": true,
@@ -70,17 +160,20 @@
       "sceneGlbSha256": "6fe8c7106a8640af96cc5224b45ac4f0f293c89109f88c56ac65fdf20acae117"
     },
     "repositoryIsolationDefined": true,
-    "blenderBinaryVerified": true
+    "blenderBinaryVerified": true,
+    "restrictedStorageReady": true,
+    "aiRightsOwnerAssigned": true,
+    "gpuProviderAssessed": true,
+    "gpuTeardownRuleDefined": true,
+    "stage1ReferenceCollectionUnblocked": true
   },
   "blocked": {
-    "aiRightsOwner": null,
-    "gpuProvider": null,
-    "gpuRegion": null,
-    "gpuMachine": null,
-    "gpuBudgetCap": null,
-    "gpuBillingOwner": null,
-    "gpuTeardownOwner": null,
-    "restrictedStorage": null,
+    "styleBibleApproval": null,
+    "aiRightsFinalApproval": null,
+    "gpuQuotaApproval": null,
+    "gpuBudgetApproval": null,
+    "gpuLaunchApproval": null,
+    "independentTeardownGuard": null,
     "reviewCoordinator": null,
     "reviewers": [],
     "androidQaOwner": null,
@@ -89,8 +182,17 @@
     "stagingAccessReverifiedAt": "2026-08-12T20:10:00Z"
   },
   "stageRules": {
-    "stage1BlockedUntil": ["restrictedStorage"],
-    "stage2BlockedUntil": ["aiRightsOwner", "gpuProvider", "gpuBudgetCap", "restrictedStorage"],
+    "stage1WorkBlockedUntil": [],
+    "stage1ExitBlockedUntil": ["styleBibleApproval"],
+    "stage2RightsAndComputePreparationBlockedUntil": [],
+    "probeExecutionBlockedUntil": [
+      "styleBibleApproval",
+      "aiRightsFinalApproval",
+      "gpuQuotaApproval",
+      "gpuBudgetApproval",
+      "gpuLaunchApproval",
+      "independentTeardownGuard"
+    ],
     "stage3BlockedUntil": ["greenAiFeasibilityGate"],
     "shippingBlockedUntil": ["androidQaOwner", "iosQaOwner", "questQaOwner"]
   }
