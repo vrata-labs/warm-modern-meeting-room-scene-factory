@@ -32,13 +32,59 @@ test("functional contract reserves neutral anchors and semantic views", async ()
   assert.deepEqual(contract.reviewViews.map(({ id }) => id), ["entry", "participant", "presenter", "diagonal-overview"]);
 });
 
-test("readiness keeps unresolved human decisions explicit", async () => {
+test("readiness opens metadata reference work but blocks generation", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
-  assert.equal(readiness.blocked.aiRightsOwner, null);
-  assert.equal(readiness.blocked.gpuBudgetCap, null);
-  assert.equal(readiness.blocked.restrictedStorage, null);
-  assert.ok(readiness.stageRules.stage2BlockedUntil.includes("aiRightsOwner"));
-  assert.ok(readiness.stageRules.stage2BlockedUntil.includes("gpuBudgetCap"));
+  assert.equal(readiness.storage.status, "ready");
+  assert.deepEqual(readiness.stageRules.stage1WorkBlockedUntil, []);
+  assert.deepEqual(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil, []);
+  assert.equal(readiness.aiRights.verdict, "blocked");
+  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"));
+  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuLaunchApproval"));
+});
+
+test("restricted storage is private, encrypted, and bounded", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  assert.equal(readiness.storage.hardQuotaBytes, 10 * 1024 * 1024 * 1024);
+  assert.deepEqual(readiness.storage.anonymousAccess, { read: false, list: false, configRead: false });
+  assert.equal(readiness.storage.staticKeyAuthEnabled, false);
+  assert.equal(readiness.storage.encryption.mode, "SSE-KMS");
+  assert.equal(readiness.storage.encryption.algorithm, "AES-256");
+  assert.equal(readiness.storage.encryption.keyDeletionProtection, true);
+  assert.equal(readiness.storage.approval.status, "approved-for-stage1-reference-handling");
+});
+
+test("reference ledger summaries match policy classifications", async () => {
+  const ledger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const modelInputs = ledger.records.filter(({ modelInputAllowed }) => modelInputAllowed);
+  const retrieved = ledger.records.filter(({ retrieved }) => retrieved);
+  assert.equal(ledger.records.length, 16);
+  assert.equal(ledger.records.filter(({ selected }) => selected).length, 12);
+  assert.equal(ledger.records.filter(({ classification }) => classification === "rejected").length, 4);
+  assert.equal(new Set(ledger.records.filter(({ selected }) => selected).map(({ category }) => category)).size, 8);
+  assert.ok(ledger.records.every(({ retrieved, classification, restrictedStorageRecord }) => !retrieved || (["human-only", "model-input"].includes(classification) && restrictedStorageRecord === "recorded-out-of-band")));
+  assert.ok(modelInputs.every(({ classification }) => classification === "model-input"));
+  assert.equal(ledger.selectedCount, ledger.records.filter(({ selected }) => selected).length);
+  assert.equal(ledger.rejectedCount, ledger.records.filter(({ classification }) => classification === "rejected").length);
+  assert.equal(ledger.modelInputCount, modelInputs.length);
+  assert.equal(readiness.stage1.retrievedReferenceCount, retrieved.length);
+  assert.equal(readiness.stage1.approvedModelInputCount, modelInputs.length);
+  assert.equal(readiness.aiRights.modelInputCount, modelInputs.length);
+});
+
+test("GPU policy has a hard timeout and no created experiment resource", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  assert.equal(readiness.compute.primaryPreemptible, true);
+  assert.equal(readiness.compute.firstRunMaximumMinutes, 120);
+  assert.equal(readiness.compute.proposedCampaignHardCapRub, 1000);
+  assert.equal(readiness.compute.budgetApproval, "pending-explicit-launch-approval");
+  assert.equal(readiness.compute.gpuQuota, "zero-all-exposed-gpu-families");
+  assert.equal(readiness.compute.quotaRequestCreated, false);
+  assert.equal(readiness.compute.quotaRequestBlocker, "quota-manager-api-alpha-flag-not-enabled");
+  assert.equal(readiness.compute.independentTeardownGuard, "blocked-pending-folder-scoped-provider-janitor");
+  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("independentTeardownGuard"));
+  assert.equal(readiness.compute.experimentGpuResourcesCreated, false);
 });
 
 test("platform evidence distinguishes CI from optional image publication", async () => {

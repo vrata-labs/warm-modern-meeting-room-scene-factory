@@ -32,6 +32,19 @@ Scene artifacts live separately in:
 Candidate numbers are neutral production identifiers. They do not encode the
 curated/AI track or the later random `Alpha`/`Beta` review mapping.
 
+## Current Gate
+
+Restricted reference storage is private, bounded, encrypted, and ready.
+`reference-ledger.json` contains metadata for 16 reviewed sources, with 12
+human-only selections and no retrieved files or approved model inputs. The
+style bible and `style-sheet.md` remain pending the art-direction gate.
+
+AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
+path and records the evidence still required for a pruned mesh-only probe.
+`gpu-probe-policy.md` records the proposed disposable machine, exact cost
+boundary, zero account GPU quota, and mandatory teardown behavior. No
+experiment GPU resource has been created.
+
 ## Validation
 
 ```bash
