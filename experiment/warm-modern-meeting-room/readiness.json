@@ -93,7 +93,7 @@
     "verdict": "blocked",
     "verdictDate": "2026-08-15",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "patched-source-materialized-static-verification-green-runtime-and-human-signoff-pending",
+    "prunedMeshPath": "patched-source-materialized-trellis-and-dino-source-identity-locked-payload-runtime-and-human-signoff-pending",
     "modelInputCount": 0,
     "generationAllowed": false,
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
@@ -157,6 +157,7 @@
       "payloadsDownloadedDuringLockPreparation": false,
       "payloadBytesVerified": false,
       "generationAllowed": false,
+      "gateSnapshot": "historical-at-model-artifact-lock",
       "localVerification": {
         "status": "pass",
         "method": "git-object-only-no-checkout",
@@ -169,11 +170,81 @@
         "payloadBytesReadByVerifier": false,
         "runtimeExecutedByVerifier": false
       },
-      "resolvedGates": [
+      "resolvedGatesAtLock": [
         "trellisModelArtifactLock"
       ],
-      "openGates": [
+      "openGatesAtLock": [
         "dependencyWheelHashLock",
+        "dinoSourceAndArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle",
+        "trellisModelPayloadBytesVerification"
+      ]
+    },
+    "dinoSourceArtifactMetadata": {
+      "status": "source-git-object-locked-publisher-head-recorded-payload-unverified-runtime-blocked",
+      "lockPath": "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+      "sourceRepository": "https://github.com/facebookresearch/dinov2.git",
+      "sourceCommit": "b8931f7bf91576930313be2c6d6af376033b35f0",
+      "treeOid": "39a04d481b50b484f72b1c43251efc0b2bcb5dd7",
+      "objectFormat": "sha1",
+      "fileCount": 174,
+      "directoryCount": 57,
+      "sourceContentSha256": "8615fa3237c4123e4fe7fbb24511fa89ffc1bab74277f78134b6c27ee2971d57",
+      "sourceObjectGraphSha256": "e753c5e96b58032fa597d6d8b4e28163c376a244240fa793b2047a280b919848",
+      "runtimeClosureFileCount": 12,
+      "runtimeClosureBytes": 43510,
+      "runtimeSelectionSha256": "5d9fe22b05aad04a77e33b20faecf72a176fb0de5d977128127415196f87fd4d",
+      "evidenceFileCount": 8,
+      "evidenceSha256": "28da67862b8050424b7652602312ae989757029167a2ff2fc89dd1d19548cc97",
+      "lockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+      "publisherArtifactUrl": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitl14/dinov2_vitl14_reg4_pretrain.pth",
+      "publisherContentLength": 1217607321,
+      "publisherSha256": null,
+      "observedSha256": null,
+      "payloadBytesDownloaded": false,
+      "payloadBytesVerified": false,
+      "runtimeExecuted": false,
+      "generationAllowed": false,
+      "licenseReviewStatus": "unresolved-human-review-repository-scope-caveat",
+      "sourceLicenseEvidenceStatus": "root-apache-2.0-with-conflicting-repository-readme-human-review",
+      "weightRightsReviewStatus": "model-card-apache-evidence-only-payload-and-redistribution-unresolved",
+      "normalCiScope": "canonical-lock-semantics-only-no-external-source-or-head",
+      "approvalClaims": {
+        "payloadApproved": false,
+        "runtimeApproved": false,
+        "sourceLicenseApproved": false,
+        "weightLicenseApproved": false
+      },
+      "localVerification": {
+        "status": "pass",
+        "method": "git-object-only-no-checkout-plus-head-only",
+        "verifiedAt": "2026-08-15T09:59:50Z",
+        "ciReproducible": false,
+        "sourceWorktreeRequired": false,
+        "sourceNetworkFallbackAllowed": false,
+        "sourceNetworkProtocolsAllowedByVerifier": [],
+        "publisherRequestMethod": "HEAD",
+        "publisherRedirectsAllowed": false,
+        "publisherGetFallbackAllowed": false,
+        "publisherRangeFallbackAllowed": false,
+        "publisherResponseBodyBytesDeliveredToVerifier": false,
+        "runtimeExecutedByVerifier": false
+      },
+      "gateSnapshot": "historical-at-dino-metadata-lock",
+      "resolvedGatesAtLock": [
+        "dinoSourceGitObjectLock"
+      ],
+      "openGatesAtLock": [
+        "dependencyWheelHashLock",
+        "dinoArtifactPayloadBytesVerification",
+        "dinoDerivedRuntimeArtifactLock",
         "dinoSourceAndArtifactLock",
         "gpuParityAndVramTest",
         "humanRightsSignoff",
@@ -188,11 +259,14 @@
     },
     "currentGateState": {
       "resolvedGates": [
+        "dinoSourceGitObjectLock",
         "patchedSourceTreeDigest",
         "trellisModelArtifactLock"
       ],
       "openGates": [
         "dependencyWheelHashLock",
+        "dinoArtifactPayloadBytesVerification",
+        "dinoDerivedRuntimeArtifactLock",
         "dinoSourceAndArtifactLock",
         "gpuParityAndVramTest",
         "humanRightsSignoff",
@@ -288,7 +362,8 @@
     "stage1ArtDirectionGateGreen": true,
     "trellisPatchedSourceTreeDigest": true,
     "trellisStaticPolicySyntaxVerificationCiReproducible": true,
-    "trellisModelArtifactLock": true
+    "trellisModelArtifactLock": true,
+    "dinoSourceGitObjectLock": true
   },
   "blocked": {
     "aiRightsFinalApproval": null,
