@@ -1,0 +1,694 @@
+{
+  "schemaVersion": 1,
+  "artifactSha256": "816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51",
+  "status": "materialized-static-verified-runtime-blocked",
+  "source": {
+    "repository": "https://github.com/microsoft/TRELLIS.git",
+    "commit": "442aa1e1afb9014e80681d3bf604e8d728a86ee7",
+    "submodules": [
+      {
+        "path": "trellis/representations/mesh/flexicubes",
+        "repository": "https://github.com/MaxtirError/FlexiCubes.git",
+        "commit": "815e075a2a400d06c48d94c347674344ed6ae5c5",
+        "declaredLicense": "Apache-2.0"
+      }
+    ],
+    "selectionLockPath": "experiment/warm-modern-meeting-room/trellis-source-selection-lock.json",
+    "selectionSha256": "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
+    "policySha256": "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c"
+  },
+  "artifact": {
+    "path": "experiment/warm-modern-meeting-room/trellis-patched-tree",
+    "canonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, mode, NUL, decimal size, NUL, lowercase SHA-256, and LF",
+    "fileCount": 50,
+    "treeSha256": "e1f2d1caeabc0a9dc795ef9d7c72cffd1ee7ed5501d04a7f70743983ccdcd575",
+    "files": [
+      {
+        "path": "LICENSE",
+        "mode": "100644",
+        "size": 1141,
+        "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+      },
+      {
+        "path": "THIRD_PARTY_NOTICES.txt",
+        "mode": "100644",
+        "size": 779,
+        "sha256": "35ad6ac7c9711d9e0c85d85ba6cccd2b8b3f3ddb63d720cecdfb47e0a041df0c"
+      },
+      {
+        "path": "third_party/openai-glide/LICENSE.txt",
+        "mode": "100644",
+        "size": 1062,
+        "sha256": "86bbb73e855821d7c401912fd4bf82e34313e6e3b6fd6f909f2b6cc9e209a53b"
+      },
+      {
+        "path": "trellis/__init__.py",
+        "mode": "100644",
+        "size": 60,
+        "sha256": "4384391c80cf9fab6996a9344a31ea244bcee600e77f7c1231c2a36f833a1e4f"
+      },
+      {
+        "path": "trellis/models/__init__.py",
+        "mode": "100644",
+        "size": 1645,
+        "sha256": "0c1d10dbeb55ec67d252c0d7776a39c139f4a6a23f050bfa59e47cb857ec516c"
+      },
+      {
+        "path": "trellis/models/sparse_structure_flow.py",
+        "mode": "100644",
+        "size": 7559,
+        "sha256": "d034613166fc09ea4b81dde69ea771ee90163df2a889c65b744b6c6ef35fb443"
+      },
+      {
+        "path": "trellis/models/sparse_structure_vae.py",
+        "mode": "100644",
+        "size": 9886,
+        "sha256": "d32e4490b2f5356b72229ee7c8fb25702238b4f0877c49f1cae15ddc9ca615bc"
+      },
+      {
+        "path": "trellis/models/structured_latent_flow.py",
+        "mode": "100644",
+        "size": 10132,
+        "sha256": "e7e50b5acbb8f76a9a9713d7c8f4ac221060e8dbd37b549de6b69563efd2d64e"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/__init__.py",
+        "mode": "100644",
+        "size": 73,
+        "sha256": "6629d36f2922dd8ad8bce6cde2649ada9c25adc9c4485afd404169c29cbc3a0c"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/base.py",
+        "mode": "100644",
+        "size": 3778,
+        "sha256": "bf1680ed92dcfab8c4be5db1f356ee86f695ebb16b6c25bfe6dffdf81af78c0c"
+      },
+      {
+        "path": "trellis/models/structured_latent_vae/decoder_mesh.py",
+        "mode": "100644",
+        "size": 5641,
+        "sha256": "09066a637cbf4f94cc63baf7cc79ae4e3bf8028d58a0bdfb621f3edea25c4252"
+      },
+      {
+        "path": "trellis/modules/attention/__init__.py",
+        "mode": "100644",
+        "size": 84,
+        "sha256": "ba0e44581cb60daa2cd2a404d6b19108694bf9578ed25d49ffe1bd78f1b46018"
+      },
+      {
+        "path": "trellis/modules/attention/full_attn.py",
+        "mode": "100644",
+        "size": 2958,
+        "sha256": "a38021a2f3175a65d22b4607bc66e69897f4c1f2e5203f5424afe3c92834e59f"
+      },
+      {
+        "path": "trellis/modules/attention/modules.py",
+        "mode": "100644",
+        "size": 6231,
+        "sha256": "6d3b110e91003c8730f5a87922a133db596dc2fbc47272fe6f3b19443589132c"
+      },
+      {
+        "path": "trellis/modules/norm.py",
+        "mode": "100644",
+        "size": 720,
+        "sha256": "dffc3a789ddcab606186326ce581345bfe848912f3e590753b967f9451e5a9d7"
+      },
+      {
+        "path": "trellis/modules/sparse/__init__.py",
+        "mode": "100644",
+        "size": 1353,
+        "sha256": "630bedc7013232e269bb1efe5af8ce671d6cbf50da9649313826b5653643704d"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/__init__.py",
+        "mode": "100644",
+        "size": 77,
+        "sha256": "0fa34c6648e02a53b2904e80e0afad625914433a777bb0e8968c09d7418d4068"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/full_attn.py",
+        "mode": "100644",
+        "size": 8099,
+        "sha256": "9b99c2a6d18c5d21ada843eb8272293c2bb2a934845ef72df95ce1d923de7378"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/modules.py",
+        "mode": "100644",
+        "size": 5501,
+        "sha256": "138c1d7beaa53713e1b971701fdbc5069846875a14511d3a65985315bccdc434"
+      },
+      {
+        "path": "trellis/modules/sparse/attention/windowed_attn.py",
+        "mode": "100644",
+        "size": 5344,
+        "sha256": "78bdd9073c164191f2362f27289a6824f33603eb9b345c73b70ad06a85e2c677"
+      },
+      {
+        "path": "trellis/modules/sparse/basic.py",
+        "mode": "100644",
+        "size": 15946,
+        "sha256": "a2d89e458221d107b821997a510653179d06bdc9c5ed6609d8ac2e22afc03da8"
+      },
+      {
+        "path": "trellis/modules/sparse/conv/__init__.py",
+        "mode": "100644",
+        "size": 49,
+        "sha256": "d3fe7678fa71bdb6889f99484e50913dcdeae92ad3cb3e380f3d056f508cf587"
+      },
+      {
+        "path": "trellis/modules/sparse/conv/conv_spconv.py",
+        "mode": "100644",
+        "size": 3824,
+        "sha256": "c0707655f8b6e6ab8241de816ae24854b429473ea105d59614732f1fd5d5ac9f"
+      },
+      {
+        "path": "trellis/modules/sparse/linear.py",
+        "mode": "100644",
+        "size": 387,
+        "sha256": "8a3dc106ecc875e6ad13bbef2b543846c71c8b61bb7f8db889cbd94c56a46747"
+      },
+      {
+        "path": "trellis/modules/sparse/nonlinearity.py",
+        "mode": "100644",
+        "size": 875,
+        "sha256": "b686ec25498fff4a1f14c53db05a33747faed6b2dafd4d2f63be0ada26e7b082"
+      },
+      {
+        "path": "trellis/modules/sparse/norm.py",
+        "mode": "100644",
+        "size": 2151,
+        "sha256": "04f963d39fdbbd9a7f118b6291a94abd0264a6fa947f216da46a0b502d8af226"
+      },
+      {
+        "path": "trellis/modules/sparse/spatial.py",
+        "mode": "100644",
+        "size": 4567,
+        "sha256": "d38197d35faaf55def3b0b0b279380c4ff2f62f0d78e620f6ed8fb1d72449440"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/__init__.py",
+        "mode": "100644",
+        "size": 46,
+        "sha256": "debb94976ce5c7fbf196012d9dbd1c6aa70acbc37c8f97cb3ffc94ef90730bfb"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/blocks.py",
+        "mode": "100644",
+        "size": 2360,
+        "sha256": "dd21a98de1a06a236500be3dcbdd71efb112fc2daea81d1db6be04dc9b2ab0a5"
+      },
+      {
+        "path": "trellis/modules/sparse/transformer/modulated.py",
+        "mode": "100644",
+        "size": 5643,
+        "sha256": "64e11a97d14e47b2f6992817a3bb7eb515f0f94025db9db4d1d604de14f01fe2"
+      },
+      {
+        "path": "trellis/modules/spatial.py",
+        "mode": "100644",
+        "size": 1763,
+        "sha256": "cfab71d7106b4fdf6cbdd2885646b5590d13439f9308c5b924c069afcdbf185d"
+      },
+      {
+        "path": "trellis/modules/transformer/__init__.py",
+        "mode": "100644",
+        "size": 46,
+        "sha256": "debb94976ce5c7fbf196012d9dbd1c6aa70acbc37c8f97cb3ffc94ef90730bfb"
+      },
+      {
+        "path": "trellis/modules/transformer/blocks.py",
+        "mode": "100644",
+        "size": 5865,
+        "sha256": "3c03f97d24b462bcfd54f33f97dfe056b896f76e77dd391b197c5f576b2a94b9"
+      },
+      {
+        "path": "trellis/modules/transformer/modulated.py",
+        "mode": "100644",
+        "size": 5587,
+        "sha256": "1e03f9b0e9141782678bd59421b9cec79df6e2f64296dc920c8d160e3e74ab0c"
+      },
+      {
+        "path": "trellis/modules/utils.py",
+        "mode": "100644",
+        "size": 1157,
+        "sha256": "acfdc3769ce510f79f1762638063ff796481947d33d26a04f7c061f2eccdbf09"
+      },
+      {
+        "path": "trellis/pipelines/__init__.py",
+        "mode": "100644",
+        "size": 98,
+        "sha256": "487e6056581a06965a2184563169f0b41fe74466c40e1cdd86e0e0e62a214417"
+      },
+      {
+        "path": "trellis/pipelines/base.py",
+        "mode": "100644",
+        "size": 3874,
+        "sha256": "a91152313bda7744c5fad52953f4b5d04012ba4459f24dafe868f46081165f00"
+      },
+      {
+        "path": "trellis/pipelines/samplers/__init__.py",
+        "mode": "100644",
+        "size": 121,
+        "sha256": "438e0d327767c4ed05b167347e306f3ed80b4956add8f506126937feba0989ad"
+      },
+      {
+        "path": "trellis/pipelines/samplers/base.py",
+        "mode": "100644",
+        "size": 286,
+        "sha256": "be8530b55ea66ac58e8ab23d650f463636dd52cf7e39c7c9c66f69bf72e6a0d1"
+      },
+      {
+        "path": "trellis/pipelines/samplers/classifier_free_guidance_mixin.py",
+        "mode": "100644",
+        "size": 454,
+        "sha256": "28af94747319a29d68f1dba864e103fcea906a24827646532d5915109de1098d"
+      },
+      {
+        "path": "trellis/pipelines/samplers/flow_euler.py",
+        "mode": "100644",
+        "size": 7087,
+        "sha256": "3ec294b426d3d2a9759179a47d69ba6a10808e4423fa1d453b0fb8f958da2c75"
+      },
+      {
+        "path": "trellis/pipelines/samplers/guidance_interval_mixin.py",
+        "mode": "100644",
+        "size": 629,
+        "sha256": "6d290aef03b58b2967e5edaaee3578cdde39e4471689dca3429ffb08ff632c21"
+      },
+      {
+        "path": "trellis/pipelines/trellis_image_to_3d.py",
+        "mode": "100644",
+        "size": 7901,
+        "sha256": "869063682c40fa8e0ad95d2bd067e178fb2d6072042ac49f4556b2568fe1e128"
+      },
+      {
+        "path": "trellis/representations/__init__.py",
+        "mode": "100644",
+        "size": 69,
+        "sha256": "eda90dedb0467dea569da51124e21edd2a1e6aa6fb44ddf924f3819f67547850"
+      },
+      {
+        "path": "trellis/representations/mesh/__init__.py",
+        "mode": "100644",
+        "size": 62,
+        "sha256": "c79f790288c93d43afbb44a946dd005da003eb6fcb1517a0caeca4505cbee61d"
+      },
+      {
+        "path": "trellis/representations/mesh/cube2mesh.py",
+        "mode": "100644",
+        "size": 4175,
+        "sha256": "cb78e29e388f25fe9dd4d6ca634570441c60dc75895e4f5b84484947479dab93"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/LICENSE.txt",
+        "mode": "100644",
+        "size": 11357,
+        "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/flexicubes.py",
+        "mode": "100644",
+        "size": 19355,
+        "sha256": "b6afcbb8d57e969d299e0d13bbaa026da42a41e24eae192cf6f38b5cd7980943"
+      },
+      {
+        "path": "trellis/representations/mesh/flexicubes/tables.py",
+        "mode": "100644",
+        "size": 40967,
+        "sha256": "de9535d097dc7df266a8e8098efbe6f46d923287536d5f7f7ee924171267c442"
+      },
+      {
+        "path": "trellis/representations/mesh/utils_cube.py",
+        "mode": "100644",
+        "size": 4834,
+        "sha256": "811299b8a9cea1666b8a6c22bc3acfbee56d0fa471e6b8d809c40e3ef4e3eb69"
+      }
+    ]
+  },
+  "sourceInputDispositions": [
+    {
+      "sourcePath": ".gitmodules",
+      "disposition": "omit",
+      "reason": "Submodule checkout metadata is provenance-only and is not runtime source or a license."
+    },
+    {
+      "sourcePath": "LICENSE",
+      "artifactPath": "LICENSE",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "README.md",
+      "disposition": "omit",
+      "reason": "Upstream project documentation is outside the shipping runtime and notice boundary."
+    },
+    {
+      "sourcePath": "trellis/__init__.py",
+      "artifactPath": "trellis/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/__init__.py",
+      "artifactPath": "trellis/models/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/sparse_structure_flow.py",
+      "artifactPath": "trellis/models/sparse_structure_flow.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/sparse_structure_vae.py",
+      "artifactPath": "trellis/models/sparse_structure_vae.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/models/structured_latent_flow.py",
+      "artifactPath": "trellis/models/structured_latent_flow.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/structured_latent_vae/__init__.py",
+      "artifactPath": "trellis/models/structured_latent_vae/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/structured_latent_vae/base.py",
+      "artifactPath": "trellis/models/structured_latent_vae/base.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/models/structured_latent_vae/decoder_mesh.py",
+      "artifactPath": "trellis/models/structured_latent_vae/decoder_mesh.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/attention/__init__.py",
+      "artifactPath": "trellis/modules/attention/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/attention/full_attn.py",
+      "artifactPath": "trellis/modules/attention/full_attn.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/attention/modules.py",
+      "artifactPath": "trellis/modules/attention/modules.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/norm.py",
+      "artifactPath": "trellis/modules/norm.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/__init__.py",
+      "artifactPath": "trellis/modules/sparse/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/attention/__init__.py",
+      "artifactPath": "trellis/modules/sparse/attention/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/attention/full_attn.py",
+      "artifactPath": "trellis/modules/sparse/attention/full_attn.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/attention/modules.py",
+      "artifactPath": "trellis/modules/sparse/attention/modules.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/attention/serialized_attn.py",
+      "disposition": "omit",
+      "reason": "The serialized attention implementation and its vox2seq dependency are prohibited."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/attention/windowed_attn.py",
+      "artifactPath": "trellis/modules/sparse/attention/windowed_attn.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/basic.py",
+      "artifactPath": "trellis/modules/sparse/basic.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/conv/__init__.py",
+      "artifactPath": "trellis/modules/sparse/conv/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/conv/conv_spconv.py",
+      "artifactPath": "trellis/modules/sparse/conv/conv_spconv.py",
+      "disposition": "patch",
+      "reason": "Fixed the selected spconv implementation to an eager local spconv import without backend discovery."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/linear.py",
+      "artifactPath": "trellis/modules/sparse/linear.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/nonlinearity.py",
+      "artifactPath": "trellis/modules/sparse/nonlinearity.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/norm.py",
+      "artifactPath": "trellis/modules/sparse/norm.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/spatial.py",
+      "artifactPath": "trellis/modules/sparse/spatial.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/transformer/__init__.py",
+      "artifactPath": "trellis/modules/sparse/transformer/__init__.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/transformer/blocks.py",
+      "artifactPath": "trellis/modules/sparse/transformer/blocks.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/sparse/transformer/modulated.py",
+      "artifactPath": "trellis/modules/sparse/transformer/modulated.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/modules/spatial.py",
+      "artifactPath": "trellis/modules/spatial.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/transformer/__init__.py",
+      "artifactPath": "trellis/modules/transformer/__init__.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/transformer/blocks.py",
+      "artifactPath": "trellis/modules/transformer/blocks.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/transformer/modulated.py",
+      "artifactPath": "trellis/modules/transformer/modulated.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/modules/utils.py",
+      "artifactPath": "trellis/modules/utils.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/pipelines/__init__.py",
+      "artifactPath": "trellis/pipelines/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/pipelines/base.py",
+      "artifactPath": "trellis/pipelines/base.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/pipelines/samplers/__init__.py",
+      "artifactPath": "trellis/pipelines/samplers/__init__.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/pipelines/samplers/base.py",
+      "artifactPath": "trellis/pipelines/samplers/base.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/pipelines/samplers/classifier_free_guidance_mixin.py",
+      "artifactPath": "trellis/pipelines/samplers/classifier_free_guidance_mixin.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/pipelines/samplers/flow_euler.py",
+      "artifactPath": "trellis/pipelines/samplers/flow_euler.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/pipelines/samplers/guidance_interval_mixin.py",
+      "artifactPath": "trellis/pipelines/samplers/guidance_interval_mixin.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/pipelines/trellis_image_to_3d.py",
+      "artifactPath": "trellis/pipelines/trellis_image_to_3d.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/representations/__init__.py",
+      "artifactPath": "trellis/representations/__init__.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/__init__.py",
+      "artifactPath": "trellis/representations/mesh/__init__.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/cube2mesh.py",
+      "artifactPath": "trellis/representations/mesh/cube2mesh.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/flexicubes/DCO.txt",
+      "disposition": "omit",
+      "reason": "The DCO is provenance-only, verbatim-copy-only evidence and is explicitly non-shipping."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/flexicubes/LICENSE.txt",
+      "artifactPath": "trellis/representations/mesh/flexicubes/LICENSE.txt",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/flexicubes/README.md",
+      "disposition": "omit",
+      "reason": "Submodule documentation is outside the shipping runtime and notice boundary."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/flexicubes/flexicubes.py",
+      "artifactPath": "trellis/representations/mesh/flexicubes/flexicubes.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/flexicubes/tables.py",
+      "artifactPath": "trellis/representations/mesh/flexicubes/tables.py",
+      "disposition": "copy",
+      "reason": "Selected upstream blob copied byte-for-byte."
+    },
+    {
+      "sourcePath": "trellis/representations/mesh/utils_cube.py",
+      "artifactPath": "trellis/representations/mesh/utils_cube.py",
+      "disposition": "patch",
+      "reason": "Materialized with the mandatory source-lock runtime patch policy."
+    }
+  ],
+  "sourceToArtifact": {
+    "canonicalization": "sort by ASCII source path, then concatenate source path, NUL, source SHA-256, NUL, disposition, NUL, artifact path or empty, NUL, artifact SHA-256 or empty, and LF",
+    "sha256": "8af7c2b7de39b3bc9e256c6cc8cdbc66a89be5a8eb69496582e835726c2de2d4"
+  },
+  "authoredFiles": [
+    {
+      "path": "THIRD_PARTY_NOTICES.txt",
+      "origin": {
+        "kind": "project-authored-notice",
+        "description": "Authored notice index for the bundled OpenAI GLIDE and modified FlexiCubes source."
+      }
+    },
+    {
+      "path": "third_party/openai-glide/LICENSE.txt",
+      "origin": {
+        "kind": "verbatim-upstream-copy",
+        "repository": "https://github.com/openai/glide-text2im.git",
+        "commit": "69b530740eb6cef69442d6180579ef5ba9ef063e",
+        "sourcePath": "LICENSE",
+        "sourceSha256": "86bbb73e855821d7c401912fd4bf82e34313e6e3b6fd6f909f2b6cc9e209a53b"
+      }
+    }
+  ],
+  "boundaries": {
+    "cloudResourcesCreated": false,
+    "generatedOutputsIncluded": false,
+    "generationAllowed": false,
+    "generationRun": false,
+    "modelInputsDownloaded": false,
+    "modelInputsIncluded": false,
+    "runtimeImportGateClosed": false,
+    "staticPolicySyntaxVerificationCiReproducible": true,
+    "weightsDownloaded": false,
+    "weightsIncluded": false
+  },
+  "openGates": [
+    "dependencyWheelHashLock",
+    "dinoSourceAndArtifactLock",
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle",
+    "trellisModelArtifactLock"
+  ],
+  "resolvedGates": [
+    "patchedSourceTreeDigest"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "policySha256": "d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea",
+  "policySha256": "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c",
   "status": "selection-locked-runtime-blocked",
   "asOf": "2026-08-14",
   "generationAllowed": false,
@@ -267,15 +267,23 @@
     },
     {
       "path": "trellis/pipelines/base.py",
-      "requirements": ["load exactly four local TRELLIS model families", "fail closed without network fallback"]
+      "requirements": ["select and load exactly four local mesh model families from the reviewed six-entry manifest", "ignore only the two known appearance decoder entries", "fail closed without network fallback"]
     },
     {
       "path": "trellis/pipelines/trellis_image_to_3d.py",
-      "requirements": ["remove rembg and torch.hub", "accept one pre-cleared RGBA input", "emit mesh only", "remove multi-image path"]
+      "requirements": ["remove rembg and torch.hub", "accept one pre-cleared RGBA input", "require an injected local dinov2_vitl14_reg module", "fix each call to one sample", "emit mesh only", "remove multi-image path"]
+    },
+    {
+      "path": "trellis/pipelines/samplers/flow_euler.py",
+      "requirements": ["replace EasyDict with stdlib SimpleNamespace", "remove tqdm and use deterministic plain iteration"]
     },
     {
       "path": "trellis/models/__init__.py",
       "requirements": ["allowlist four inference classes", "load local JSON and safetensors only", "require a strict state dict"]
+    },
+    {
+      "path": "trellis/models/sparse_structure_flow.py",
+      "requirements": ["pin the OpenAI GLIDE source attribution to commit 69b530740eb6cef69442d6180579ef5ba9ef063e", "bundle the exact OpenAI GLIDE MIT license at third_party/openai-glide/LICENSE.txt"]
     },
     {
       "path": "trellis/models/structured_latent_flow.py",
@@ -294,6 +302,14 @@
       "requirements": ["remove elastic training dependencies while preserving checkpoint-compatible class naming"]
     },
     {
+      "path": "trellis/modules/attention/__init__.py",
+      "requirements": ["fix dense attention to the xFormers backend", "remove environment-selected and mutable backend dispatch"]
+    },
+    {
+      "path": "trellis/modules/attention/full_attn.py",
+      "requirements": ["retain only xFormers dense attention", "remove flash-attn, SDPA, and naive backend branches"]
+    },
+    {
       "path": "trellis/modules/sparse/__init__.py",
       "requirements": ["fix the backend contract to spconv and xFormers only", "remove torchsparse and flash-attn branches"]
     },
@@ -304,6 +320,10 @@
     {
       "path": "trellis/modules/sparse/conv/__init__.py",
       "requirements": ["export the spconv backend only"]
+    },
+    {
+      "path": "trellis/modules/sparse/conv/conv_spconv.py",
+      "requirements": ["import only the fixed local spconv backend without runtime backend discovery"]
     },
     {
       "path": "trellis/modules/sparse/transformer/blocks.py",
@@ -322,6 +342,14 @@
       "requirements": ["export only full and windowed attention"]
     },
     {
+      "path": "trellis/modules/sparse/attention/full_attn.py",
+      "requirements": ["retain only xFormers sparse attention", "remove flash-attn backend dispatch"]
+    },
+    {
+      "path": "trellis/modules/sparse/attention/windowed_attn.py",
+      "requirements": ["retain only xFormers sparse windowed attention", "remove flash-attn backend dispatch"]
+    },
+    {
       "path": "trellis/modules/sparse/attention/modules.py",
       "requirements": ["remove serialized-attention dispatch and vox2seq references"]
     },
@@ -331,7 +359,11 @@
     },
     {
       "path": "trellis/representations/mesh/cube2mesh.py",
-      "requirements": ["remove EasyDict dependency and dormant training result paths"]
+      "requirements": ["replace EasyDict with stdlib SimpleNamespace", "remove dormant training result and normal-rendering paths", "reject non-finite vertices or attributes and out-of-bounds triangle indices"]
+    },
+    {
+      "path": "trellis/representations/mesh/utils_cube.py",
+      "requirements": ["retain inference-only cube conversion", "validate local tensor shape, dtype, and bounds without external validation dependencies"]
     },
     {
       "path": "trellis/representations/mesh/flexicubes/flexicubes.py",
@@ -356,6 +388,8 @@
   "prohibitedRuntimeDependencies": [
     "diffoctreerast",
     "diff-gaussian-rasterization",
+    "easydict",
+    "flash_attn",
     "huggingface_hub",
     "kaolin",
     "nvdiffrast",
@@ -364,13 +398,16 @@
     "rembg",
     "torch.hub",
     "torchsparse",
+    "torchvision",
+    "tqdm",
     "vox2seq"
   ],
   "knownAttributionQuestions": [
     {
       "path": "trellis/models/sparse_structure_flow.py",
-      "reference": "The timestep embedding cites OpenAI GLIDE source without a bundled third-party notice.",
-      "status": "pending-third-party-notice-review"
+      "reference": "The timestep embedding must cite OpenAI GLIDE source at commit 69b530740eb6cef69442d6180579ef5ba9ef063e and ship the exact upstream MIT license.",
+      "status": "required-for-materialized-patched-tree",
+      "noticePath": "third_party/openai-glide/LICENSE.txt"
     }
   ],
   "openGates": [

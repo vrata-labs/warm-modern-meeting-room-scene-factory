@@ -1,12 +1,13 @@
 # AI Rights Verdict
 
-Verdict date: 2026-08-14.
+Verdict date: 2026-08-15.
 
 Current verdict: `BLOCK` for generation. The stock TRELLIS package path is not
-approved. A purpose-built image-to-raw-mesh path is only a conditional candidate
-and remains blocked until its exact source tree, artifacts, dependency lock,
-container digest, SBOM, security report, and provider terms snapshot receive a
-human rights signoff.
+approved. A deterministic source artifact for the purpose-built
+image-to-raw-mesh path is now materialized and passes static policy and syntax
+verification. It remains blocked because runtime imports were not executed and
+the model, dependency, container, SBOM, GPU, provider, and human-signoff gates
+are still open.
 
 This is a conservative technical rights record, not legal advice.
 
@@ -48,26 +49,37 @@ The following code or dependencies are prohibited in this experiment:
 - Gaussian/RF checkpoints and `plyfile`;
 - stock broad package initializers that import the prohibited paths.
 
-## Conditional Mesh-Only Boundary
+## Materialized Mesh-Only Boundary
 
-A future probe may be reconsidered only if a separately hashed source package:
+The separately hashed source artifact now implements these source-level
+restrictions:
 
 1. exposes only the image pipeline, sparse structure decoder/flow, SLat flow,
    SLat mesh decoder, mesh extraction, and the modified FlexiCubes source;
 2. replaces broad package initializers with narrow explicit imports;
 3. removes `rembg`, text, Gaussian, radiance-field, renderer, training, demo,
    and dataset code;
-4. loads exactly four local TRELLIS checkpoint families from the reviewed
-   model revision;
-5. replaces unpinned `torch.hub` with a local, hash-verified DINOv2 load;
-6. runs with outbound network disabled and safetensors-only model loading;
-7. serializes finite vertices, triangle indices, and optional vertex colors to
-   binary little-endian PLY without `to_glb` or a rendering dependency;
-8. uses an import denylist at static scan time and runtime, then asserts after
-   inference that no prohibited module entered `sys.modules`;
-9. records the complete OCI image digest, wheel hashes, native libraries,
-   Syft SBOM, vulnerability scan, third-party notices, peak VRAM, and output
-   hashes.
+4. selects exactly the four mesh model families from the reviewed official
+   six-entry manifest and ignores only its two known appearance decoders;
+5. requires one pre-cleared RGBA input and one sample; the manifest must name
+   `dinov2_vitl14_reg`, while the caller-injected module is not yet artifact-
+   authenticated;
+6. loads TRELLIS model state only from adjacent local JSON and safetensors files
+   with a strict state dict;
+7. rejects non-finite mesh vertices or attributes and out-of-bounds triangle
+   indices before returning the mesh representation.
+
+A future probe may be reconsidered only when the exact locked tree is used and
+the remaining runtime and artifact controls are added and qualified:
+
+1. bind the exact DINO source and artifact hashes rather than relying only on
+   the injected module name;
+2. run with outbound network disabled, execute the runtime import denylist, and
+   assert after inference that no prohibited module entered `sys.modules`;
+3. validate and serialize finite vertices, triangle indices, and optional
+   vertex colors to binary little-endian PLY without `to_glb` or rendering;
+4. record the OCI image digest, wheel hashes, native libraries, Syft SBOM,
+   vulnerability scan, complete notices, peak VRAM, and output hashes.
 
 ## Locked Upstream Source Selection
 
@@ -77,7 +89,7 @@ provenance, and license files selected for patch review. Its canonical selection
 digest is
 `5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348`.
 The complete policy semantics are bound by SHA-256
-`d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea`.
+`9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c`.
 
 The verifier rejects a nested repository root, remote mismatch, changed commit,
 dirty or untracked checkout, changed gitlink/submodule, untracked selected file,
@@ -90,15 +102,39 @@ normal repository CI:
 node scripts/verify-trellis-source-selection.mjs <trellis-checkout>
 ```
 
-This lock narrows the auditable patch surface; it is not an approved source
-package. The selected upstream files still contain broad initializers, remote
-loaders, prohibited imports, and dormant training paths listed as mandatory
-patches in the lock. Patched-tree, dependency, DINO/model artifact, OCI, SBOM,
-offline runtime, GPU parity, provider evidence, third-party notice bundle, and
-human-signoff gates remain open. FlexiCubes `DCO.txt` is retained as
-provenance-only evidence under its verbatim-copy terms and is not classified as
-Apache-2.0 shipping code. No weights, input images, or generated outputs were
-added.
+The source-selection lock remains a historical requirements-at-selection
+record, so its `patchedSourceTreeDigest` entry remains in that lock's open-gate
+list. Artifact readiness is recorded separately below.
+
+## Materialized Patched Source Artifact
+
+The shipping tree contains 50 regular `100644` files: 46 Python runtime files,
+the TRELLIS and FlexiCubes licenses, an authored third-party notice index, and
+the exact OpenAI GLIDE MIT license. Every one of the 53 selected inputs has one
+`copy`, `patch`, or `omit` disposition in `artifact-lock.json`. The canonical
+tree digest is
+`e1f2d1caeabc0a9dc795ef9d7c72cffd1ee7ed5501d04a7f70743983ccdcd575`.
+The exact selected-source to artifact-path/hash mapping is bound by SHA-256
+`8af7c2b7de39b3bc9e256c6cc8cdbc66a89be5a8eb69496582e835726c2de2d4`.
+The complete timestamp-free artifact semantics are bound by SHA-256
+`816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51`.
+
+Normal CI can reproduce raw-byte hashes, sizes, modes, dispositions, both lock
+digests, the source-to-artifact mapping, Python syntax parsing, internal module
+paths and named imported-symbol references, the external import allowlist, and
+structural source policy. This static verification does not prove Python or ML
+runtime behavior, import TRELLIS, CUDA, spconv, xFormers, or model code, and is
+not the offline runtime import test.
+
+The source-level GLIDE issue is resolved for this tree: the attribution pins
+commit `69b530740eb6cef69442d6180579ef5ba9ef063e`, and the exact upstream MIT
+license has SHA-256
+`86bbb73e855821d7c401912fd4bf82e34313e6e3b6fd6f909f2b6cc9e209a53b`.
+The complete OCI third-party notice bundle remains open until all dependency
+artifacts are locked. FlexiCubes `DCO.txt`, both upstream READMEs,
+`.gitmodules`, and serialized attention are omitted from the shipping tree.
+No weights, model inputs, generated outputs, containers, or cloud resources
+were added or created.
 
 The four reviewed TRELLIS weight hashes are:
 
@@ -123,7 +159,8 @@ data, output non-infringement, or redistribution.
   must be requalified on a patched PyTorch version, preferably 2.6 or newer;
   accepting the vulnerable baseline is not allowed.
 - No final base image, CPython build, NVIDIA driver/runtime set, transitive
-  wheel lock, patched-tree hash, or OCI digest exists yet.
+  wheel lock, or OCI digest exists yet. No dependency installation or real
+  runtime import qualification has been performed for the materialized tree.
 - TRELLIS and DINO training-data provenance does not establish warranties for
   output ownership, exclusivity, non-infringement, trademarks, design rights,
   or memorization.

@@ -20,29 +20,37 @@ const expectedSource = Object.freeze({
   submoduleCommit: "815e075a2a400d06c48d94c347674344ed6ae5c5",
   fileCount: 53,
   selectionSha256: "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
-  policySha256: "d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea"
+  policySha256: "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c"
 });
 const requiredPatchPaths = Object.freeze([
   "trellis/__init__.py",
   "trellis/models/__init__.py",
+  "trellis/models/sparse_structure_flow.py",
   "trellis/models/structured_latent_flow.py",
   "trellis/models/structured_latent_vae/__init__.py",
   "trellis/models/structured_latent_vae/base.py",
   "trellis/models/structured_latent_vae/decoder_mesh.py",
+  "trellis/modules/attention/__init__.py",
+  "trellis/modules/attention/full_attn.py",
   "trellis/modules/sparse/__init__.py",
   "trellis/modules/sparse/attention/__init__.py",
+  "trellis/modules/sparse/attention/full_attn.py",
   "trellis/modules/sparse/attention/modules.py",
   "trellis/modules/sparse/attention/serialized_attn.py",
+  "trellis/modules/sparse/attention/windowed_attn.py",
   "trellis/modules/sparse/basic.py",
   "trellis/modules/sparse/conv/__init__.py",
+  "trellis/modules/sparse/conv/conv_spconv.py",
   "trellis/modules/sparse/transformer/blocks.py",
   "trellis/modules/sparse/transformer/modulated.py",
   "trellis/pipelines/__init__.py",
   "trellis/pipelines/base.py",
   "trellis/pipelines/trellis_image_to_3d.py",
+  "trellis/pipelines/samplers/flow_euler.py",
   "trellis/representations/__init__.py",
   "trellis/representations/mesh/cube2mesh.py",
-  "trellis/representations/mesh/flexicubes/flexicubes.py"
+  "trellis/representations/mesh/flexicubes/flexicubes.py",
+  "trellis/representations/mesh/utils_cube.py"
 ]);
 const requiredExclusions = Object.freeze([
   "trellis.datasets",
@@ -62,6 +70,8 @@ const requiredExclusions = Object.freeze([
 const requiredProhibitedDependencies = Object.freeze([
   "diffoctreerast",
   "diff-gaussian-rasterization",
+  "easydict",
+  "flash_attn",
   "huggingface_hub",
   "kaolin",
   "nvdiffrast",
@@ -70,6 +80,8 @@ const requiredProhibitedDependencies = Object.freeze([
   "rembg",
   "torch.hub",
   "torchsparse",
+  "torchvision",
+  "tqdm",
   "vox2seq"
 ]);
 const requiredOpenGates = Object.freeze([
@@ -263,9 +275,10 @@ export function validateWmmrSelectionContract(policy) {
     issues.push("dco_provenance_classification_missing");
   }
   if (!Array.isArray(policy.knownAttributionQuestions)
-    || !policy.knownAttributionQuestions.some(({ path, status }) => (
+    || !policy.knownAttributionQuestions.some(({ path, status, noticePath }) => (
       path === "trellis/models/sparse_structure_flow.py"
-      && status === "pending-third-party-notice-review"
+      && status === "required-for-materialized-patched-tree"
+      && noticePath === "third_party/openai-glide/LICENSE.txt"
     ))) {
     issues.push("known_attribution_question_missing");
   }

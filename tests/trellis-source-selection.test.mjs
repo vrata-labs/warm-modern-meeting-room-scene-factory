@@ -93,10 +93,30 @@ test("TRELLIS source selection lock remains blocked and internally consistent", 
   assert.equal(policy.source.commit, "442aa1e1afb9014e80681d3bf604e8d728a86ee7");
   assert.equal(policy.source.submodules[0].commit, "815e075a2a400d06c48d94c347674344ed6ae5c5");
   assert.equal(policy.selection.fileCount, 53);
+  assert.equal(policy.policySha256, "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c");
   assert.equal(policy.generationAllowed, false);
   assert.ok(policy.openGates.includes("humanRightsSignoff"));
   assert.ok(policy.openGates.includes("ociImageDigest"));
   assert.ok(policy.openGates.includes("thirdPartyNoticeBundle"));
+  for (const path of [
+    "trellis/models/sparse_structure_flow.py",
+    "trellis/modules/attention/__init__.py",
+    "trellis/modules/attention/full_attn.py",
+    "trellis/modules/sparse/attention/full_attn.py",
+    "trellis/modules/sparse/attention/windowed_attn.py",
+    "trellis/pipelines/samplers/flow_euler.py",
+    "trellis/representations/mesh/utils_cube.py"
+  ]) {
+    assert.ok(policy.requiredPatches.some((patch) => patch.path === path));
+  }
+  for (const dependency of ["easydict", "flash_attn", "torchvision", "tqdm"]) {
+    assert.ok(policy.prohibitedRuntimeDependencies.includes(dependency));
+  }
+  assert.ok(policy.knownAttributionQuestions.some(({ path, status, noticePath }) => (
+    path === "trellis/models/sparse_structure_flow.py"
+      && status === "required-for-materialized-patched-tree"
+      && noticePath === "third_party/openai-glide/LICENSE.txt"
+  )));
   assert.equal(
     policy.licenseCoverage.find(({ scope }) => scope === "trellis/representations/mesh/flexicubes/DCO.txt").classification,
     "provenance-only-non-shipping"

@@ -85,6 +85,7 @@ test("reference ledger summaries match policy classifications", async () => {
 test("TRELLIS source selection narrows evidence without allowing generation", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   const lock = await json(readiness.aiRights.sourceSelectionLock.policyPath);
+  const artifact = await json(readiness.aiRights.patchedSourceArtifact.lockPath);
   assert.equal(lock.status, "selection-locked-runtime-blocked");
   assert.equal(lock.source.commit, readiness.aiRights.sourceSelectionLock.sourceCommit);
   assert.equal(lock.source.submodules[0].commit, readiness.aiRights.sourceSelectionLock.flexiCubesCommit);
@@ -98,6 +99,21 @@ test("TRELLIS source selection narrows evidence without allowing generation", as
   assert.ok(lock.openGates.includes("patchedSourceTreeDigest"));
   assert.ok(lock.openGates.includes("thirdPartyNoticeBundle"));
   assert.ok(lock.openGates.includes("humanRightsSignoff"));
+  assert.equal(readiness.aiRights.patchedSourceArtifact.status, "materialized-static-verified-runtime-blocked");
+  assert.equal(readiness.aiRights.patchedSourceArtifact.fileCount, 50);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.pythonFileCount, 46);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.treeSha256, artifact.artifact.treeSha256);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.artifactSha256, artifact.artifactSha256);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.sourceToArtifactSha256, artifact.sourceToArtifact.sha256);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.staticPolicySyntaxVerificationCiReproducible, true);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted, false);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed, false);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.generationAllowed, false);
+  assert.deepEqual(artifact.resolvedGates, ["patchedSourceTreeDigest"]);
+  assert.ok(artifact.openGates.includes("offlineImportRuntimeTest"));
+  assert.ok(artifact.openGates.includes("thirdPartyNoticeBundle"));
+  assert.equal(readiness.resolved.trellisPatchedSourceTreeDigest, true);
+  assert.equal(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible, true);
 });
 
 test("GPU policy has a hard timeout and no created experiment resource", async () => {
