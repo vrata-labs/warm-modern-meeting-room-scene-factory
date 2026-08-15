@@ -124,8 +124,9 @@
       "runtimeImportsExecuted": false,
       "runtimeImportGateClosed": false,
       "generationAllowed": false,
-      "resolvedGates": ["patchedSourceTreeDigest"],
-      "openGates": [
+      "gateSnapshot": "historical-at-materialization",
+      "resolvedGatesAtMaterialization": ["patchedSourceTreeDigest"],
+      "openGatesAtMaterialization": [
         "dependencyWheelHashLock",
         "dinoSourceAndArtifactLock",
         "gpuParityAndVramTest",
@@ -137,6 +138,71 @@
         "sbomAndVulnerabilityReport",
         "thirdPartyNoticeBundle",
         "trellisModelArtifactLock"
+      ]
+    },
+    "trellisModelArtifact": {
+      "status": "publisher-git-lfs-identity-locked-payload-unverified-runtime-blocked",
+      "lockPath": "experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json",
+      "sourceRepository": "https://huggingface.co/microsoft/TRELLIS-image-large",
+      "sourceCommit": "25e0d31ffbebe4b5a97464dd851910efc3002d96",
+      "treeOid": "867a6b9c2f0ddd5e72f999640bba55421655c2f9",
+      "objectFormat": "sha1",
+      "fileCount": 19,
+      "normalBlobCount": 11,
+      "lfsPointerCount": 8,
+      "inventorySha256": "e3d5763cedba5e2b9680ad4f57af044928a07d8d82fb93f25b27d5eabf2143f1",
+      "lockSha256": "d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9",
+      "selectedPayloadCount": 4,
+      "selectedPayloadBytes": 2664021360,
+      "payloadsDownloadedDuringLockPreparation": false,
+      "payloadBytesVerified": false,
+      "generationAllowed": false,
+      "localVerification": {
+        "status": "pass",
+        "method": "git-object-only-no-checkout",
+        "verifiedAt": "2026-08-15T07:09:33Z",
+        "ciReproducible": false,
+        "worktreeRequired": false,
+        "gitLfsInvokedByVerifier": false,
+        "networkFallbackAllowed": false,
+        "networkProtocolsAllowedByVerifier": [],
+        "payloadBytesReadByVerifier": false,
+        "runtimeExecutedByVerifier": false
+      },
+      "resolvedGates": [
+        "trellisModelArtifactLock"
+      ],
+      "openGates": [
+        "dependencyWheelHashLock",
+        "dinoSourceAndArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle",
+        "trellisModelPayloadBytesVerification"
+      ]
+    },
+    "currentGateState": {
+      "resolvedGates": [
+        "patchedSourceTreeDigest",
+        "trellisModelArtifactLock"
+      ],
+      "openGates": [
+        "dependencyWheelHashLock",
+        "dinoSourceAndArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle",
+        "trellisModelPayloadBytesVerification"
       ]
     }
   },
@@ -221,7 +287,8 @@
     "styleBibleApproved": true,
     "stage1ArtDirectionGateGreen": true,
     "trellisPatchedSourceTreeDigest": true,
-    "trellisStaticPolicySyntaxVerificationCiReproducible": true
+    "trellisStaticPolicySyntaxVerificationCiReproducible": true,
+    "trellisModelArtifactLock": true
   },
   "blocked": {
     "aiRightsFinalApproval": null,

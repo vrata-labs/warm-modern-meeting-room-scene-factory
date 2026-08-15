@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadWmmrModelArtifactLock } from "./verify-trellis-model-artifact.mjs";
 import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
 
@@ -83,14 +84,54 @@ assert(readiness.aiRights.patchedSourceArtifact.staticPolicySyntaxVerificationCi
 assert(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted === false, "patched_source_runtime_claim_invalid");
 assert(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed === false, "patched_source_runtime_gate_must_remain_open");
 assert(readiness.aiRights.patchedSourceArtifact.generationAllowed === false, "patched_source_generation_must_remain_blocked");
-assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.resolvedGates) === JSON.stringify(artifactLock.resolvedGates), "patched_source_resolved_gates_mismatch");
-assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.openGates) === JSON.stringify(artifactLock.openGates), "patched_source_open_gates_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.gateSnapshot === "historical-at-materialization", "patched_source_gate_snapshot_invalid");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtMaterialization) === JSON.stringify(artifactLock.resolvedGates), "patched_source_resolved_gates_mismatch");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.openGatesAtMaterialization) === JSON.stringify(artifactLock.openGates), "patched_source_open_gates_mismatch");
 assert(patchedSource.artifactSha256 === artifactLock.artifactSha256, "patched_source_verifier_artifact_mismatch");
 assert(patchedSource.treeSha256 === artifactLock.artifact.treeSha256, "patched_source_verifier_tree_mismatch");
 assert(patchedSource.staticVerification.verificationKind === "static-policy-and-syntax", "patched_source_verification_kind_invalid");
 assert(patchedSource.staticVerification.runtimeImportsExecuted === false, "patched_source_runtime_import_claim_invalid");
 assert(artifactLock.openGates.includes("offlineImportRuntimeTest"), "patched_source_runtime_gate_removed");
 assert(artifactLock.openGates.includes("thirdPartyNoticeBundle"), "patched_source_full_notice_gate_removed");
+const modelArtifact = await loadWmmrModelArtifactLock(resolve(root, readiness.aiRights.trellisModelArtifact.lockPath));
+assert(readiness.aiRights.trellisModelArtifact.status === modelArtifact.status, "model_artifact_status_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.sourceRepository === modelArtifact.source.repository, "model_artifact_repository_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.sourceCommit === modelArtifact.source.commit, "model_artifact_commit_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.treeOid === modelArtifact.source.treeOid, "model_artifact_tree_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.objectFormat === modelArtifact.source.objectFormat, "model_artifact_object_format_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.fileCount === modelArtifact.inventory.fileCount, "model_artifact_file_count_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.normalBlobCount === modelArtifact.inventory.normalBlobCount, "model_artifact_normal_blob_count_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.lfsPointerCount === modelArtifact.inventory.lfsPointerCount, "model_artifact_pointer_count_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.inventorySha256 === modelArtifact.inventory.inventorySha256, "model_artifact_inventory_digest_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.lockSha256 === modelArtifact.lockSha256, "model_artifact_lock_digest_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.selectedPayloadCount === modelArtifact.selectedPayloads.count, "model_artifact_selected_payload_count_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.selectedPayloadBytes === modelArtifact.selectedPayloads.totalSize, "model_artifact_selected_payload_bytes_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.payloadsDownloadedDuringLockPreparation === false, "model_artifact_payload_download_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.payloadBytesVerified === false, "model_artifact_payload_verification_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.generationAllowed === false, "model_artifact_generation_must_remain_blocked");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.status === "pass", "model_artifact_local_verification_missing");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.method === "git-object-only-no-checkout", "model_artifact_verification_method_invalid");
+assert(/^2026-08-15T\d{2}:\d{2}:\d{2}Z$/.test(readiness.aiRights.trellisModelArtifact.localVerification.verifiedAt), "model_artifact_verification_timestamp_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.ciReproducible === false, "model_artifact_external_verification_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.worktreeRequired === false, "model_artifact_worktree_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.gitLfsInvokedByVerifier === false, "model_artifact_git_lfs_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.networkFallbackAllowed === false, "model_artifact_network_fallback_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.networkProtocolsAllowedByVerifier.length === 0, "model_artifact_network_protocol_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.payloadBytesReadByVerifier === false, "model_artifact_payload_read_claim_invalid");
+assert(readiness.aiRights.trellisModelArtifact.localVerification.runtimeExecutedByVerifier === false, "model_artifact_runtime_claim_invalid");
+assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.resolvedGates) === JSON.stringify(modelArtifact.resolvedGates), "model_artifact_resolved_gates_mismatch");
+assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.openGates) === JSON.stringify(modelArtifact.openGates), "model_artifact_open_gates_mismatch");
+assert(modelArtifact.openGates.includes("trellisModelPayloadBytesVerification"), "model_payload_verification_gate_missing");
+assert(
+  JSON.stringify(readiness.aiRights.currentGateState.resolvedGates)
+    === JSON.stringify(["patchedSourceTreeDigest", "trellisModelArtifactLock"]),
+  "current_ai_rights_resolved_gates_invalid"
+);
+assert(
+  JSON.stringify(readiness.aiRights.currentGateState.openGates) === JSON.stringify(modelArtifact.openGates),
+  "current_ai_rights_open_gates_invalid"
+);
+assert(!readiness.aiRights.currentGateState.openGates.includes("trellisModelArtifactLock"), "resolved_model_artifact_gate_still_open");
 assert(readiness.compute.primaryPreemptible === true, "gpu_probe_must_be_preemptible");
 assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_resource_created_before_gate");
 assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quota_evidence_invalid");
@@ -105,6 +146,7 @@ assert(readiness.resolved.styleBibleApproved === true, "style_bible_not_approved
 assert(readiness.resolved.stage1ArtDirectionGateGreen === true, "stage_1_art_direction_gate_not_green");
 assert(readiness.resolved.trellisPatchedSourceTreeDigest === true, "patched_source_tree_digest_not_resolved");
 assert(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible === true, "patched_source_static_verification_not_resolved");
+assert(readiness.resolved.trellisModelArtifactLock === true, "model_artifact_lock_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");

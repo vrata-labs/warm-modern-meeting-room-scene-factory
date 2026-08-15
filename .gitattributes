@@ -1,2 +1,3 @@
 # Preserve byte-identical upstream copies in the audited TRELLIS source artifact.
 experiment/warm-modern-meeting-room/trellis-patched-tree/** whitespace=-blank-at-eol,-blank-at-eof
+experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json text eol=lf

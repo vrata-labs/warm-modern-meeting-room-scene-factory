@@ -109,11 +109,58 @@ test("TRELLIS source selection narrows evidence without allowing generation", as
   assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted, false);
   assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed, false);
   assert.equal(readiness.aiRights.patchedSourceArtifact.generationAllowed, false);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.gateSnapshot, "historical-at-materialization");
+  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtMaterialization, artifact.resolvedGates);
+  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.openGatesAtMaterialization, artifact.openGates);
   assert.deepEqual(artifact.resolvedGates, ["patchedSourceTreeDigest"]);
   assert.ok(artifact.openGates.includes("offlineImportRuntimeTest"));
   assert.ok(artifact.openGates.includes("thirdPartyNoticeBundle"));
+  assert.ok(artifact.openGates.includes("trellisModelArtifactLock"));
   assert.equal(readiness.resolved.trellisPatchedSourceTreeDigest, true);
   assert.equal(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible, true);
+});
+
+test("TRELLIS publisher Git and LFS identity lock does not claim payload verification", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const summary = readiness.aiRights.trellisModelArtifact;
+  const lock = await json(summary.lockPath);
+  assert.equal(lock.status, "publisher-git-lfs-identity-locked-payload-unverified-runtime-blocked");
+  assert.equal(lock.source.repository, "https://huggingface.co/microsoft/TRELLIS-image-large");
+  assert.equal(lock.source.commit, "25e0d31ffbebe4b5a97464dd851910efc3002d96");
+  assert.equal(lock.source.treeOid, "867a6b9c2f0ddd5e72f999640bba55421655c2f9");
+  assert.equal(lock.source.objectFormat, "sha1");
+  assert.equal(lock.inventory.fileCount, 19);
+  assert.equal(lock.inventory.normalBlobCount, 11);
+  assert.equal(lock.inventory.lfsPointerCount, 8);
+  assert.equal(lock.inventory.inventorySha256, "e3d5763cedba5e2b9680ad4f57af044928a07d8d82fb93f25b27d5eabf2143f1");
+  assert.equal(lock.lockSha256, "d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9");
+  assert.equal(lock.selectedPayloads.count, 4);
+  assert.equal(lock.selectedPayloads.totalSize, 2664021360);
+  assert.equal(lock.boundaries.lfsPayloadsDownloaded, false);
+  assert.equal(lock.boundaries.lfsPayloadBytesIndependentlyVerified, false);
+  assert.equal(lock.boundaries.weightsIncluded, false);
+  assert.equal(lock.boundaries.runtimeExecuted, false);
+  assert.equal(lock.boundaries.generationAllowed, false);
+  assert.deepEqual(lock.resolvedGates, ["trellisModelArtifactLock"]);
+  assert.ok(lock.openGates.includes("trellisModelPayloadBytesVerification"));
+  assert.equal(summary.inventorySha256, lock.inventory.inventorySha256);
+  assert.equal(summary.lockSha256, lock.lockSha256);
+  assert.equal(summary.selectedPayloadBytes, lock.selectedPayloads.totalSize);
+  assert.equal(summary.payloadsDownloadedDuringLockPreparation, false);
+  assert.equal(summary.payloadBytesVerified, false);
+  assert.equal(summary.generationAllowed, false);
+  assert.equal(summary.localVerification.ciReproducible, false);
+  assert.equal(summary.localVerification.gitLfsInvokedByVerifier, false);
+  assert.deepEqual(summary.localVerification.networkProtocolsAllowedByVerifier, []);
+  assert.equal(summary.localVerification.payloadBytesReadByVerifier, false);
+  assert.equal(summary.localVerification.runtimeExecutedByVerifier, false);
+  assert.deepEqual(readiness.aiRights.currentGateState.resolvedGates, [
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock"
+  ]);
+  assert.deepEqual(readiness.aiRights.currentGateState.openGates, lock.openGates);
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("trellisModelArtifactLock"));
+  assert.equal(readiness.resolved.trellisModelArtifactLock, true);
 });
 
 test("GPU policy has a hard timeout and no created experiment resource", async () => {

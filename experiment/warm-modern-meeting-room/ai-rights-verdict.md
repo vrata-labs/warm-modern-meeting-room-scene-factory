@@ -5,9 +5,11 @@ Verdict date: 2026-08-15.
 Current verdict: `BLOCK` for generation. The stock TRELLIS package path is not
 approved. A deterministic source artifact for the purpose-built
 image-to-raw-mesh path is now materialized and passes static policy and syntax
-verification. It remains blocked because runtime imports were not executed and
-the model, dependency, container, SBOM, GPU, provider, and human-signoff gates
-are still open.
+verification. The publisher Git revision, configs, and LFS pointer identities
+for TRELLIS-image-large are also locked. It remains blocked because the selected
+LFS payload bytes were not downloaded or independently verified, runtime imports
+were not executed, and dependency, DINO, container, SBOM, GPU, provider, and
+human-signoff gates are still open.
 
 This is a conservative technical rights record, not legal advice.
 
@@ -18,11 +20,11 @@ This is a conservative technical rights record, not legal advice.
 | FLUX.1-schnell model | `741f7c3ce8b383c54771c7003378a50191e9efe9` | Apache-2.0 model metadata | Conditional; gated access and exact artifact/dependency lock remain open |
 | FLUX source | `802fb4713906133fcbd0d8dc5351620ca4773036` | Apache-2.0 | Conditional |
 | TRELLIS source | `442aa1e1afb9014e80681d3bf604e8d728a86ee7` | MIT root license | Stock import path blocked by narrower file-level terms |
-| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata | Conditional; no standalone license file in the reviewed revision |
+| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata only | Publisher Git/LFS pointer identity locked; payload bytes and runtime compatibility unverified; no standalone license file |
 | Modified FlexiCubes | `815e075a2a400d06c48d94c347674344ed6ae5c5` | Apache-2.0 | Allowed only inside the pruned mesh path |
 | DINOv2 candidate source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 | Conditional; not yet packaged or runtime-tested |
 
-No model weights or input images were downloaded during this review.
+No model-weight payloads or input images were downloaded during this review.
 
 ## Hard Failure In The Stock TRELLIS Path
 
@@ -119,6 +121,12 @@ The exact selected-source to artifact-path/hash mapping is bound by SHA-256
 The complete timestamp-free artifact semantics are bound by SHA-256
 `816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51`.
 
+The gate arrays inside that content-addressed artifact lock are a historical
+snapshot from materialization time. They therefore continue to list
+`trellisModelArtifactLock` as open. The unified current state is recorded
+separately in `readiness.json`; it marks that pointer-identity gate resolved and
+keeps `trellisModelPayloadBytesVerification` open.
+
 Normal CI can reproduce raw-byte hashes, sizes, modes, dispositions, both lock
 digests, the source-to-artifact mapping, Python syntax parsing, internal module
 paths and named imported-symbol references, the external import allowlist, and
@@ -133,23 +141,71 @@ license has SHA-256
 The complete OCI third-party notice bundle remains open until all dependency
 artifacts are locked. FlexiCubes `DCO.txt`, both upstream READMEs,
 `.gitmodules`, and serialized attention are omitted from the shipping tree.
-No weights, model inputs, generated outputs, containers, or cloud resources
-were added or created.
+No weight payloads, model inputs, generated outputs, containers, or cloud
+resources were added or created.
 
-The four reviewed TRELLIS weight hashes are:
+## Publisher Model Git/LFS Identity Lock
 
-| Artifact | SHA-256 |
-|---|---|
-| `ss_dec_conv3d_16l8_fp16.safetensors` | `1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a` |
-| `ss_flow_img_dit_L_16l8_fp16.safetensors` | `96dc6bfd4136fd950af564dd16b4ae533c9ba6af8f26c670646b2a9f2789b1db` |
-| `slat_flow_img_dit_L_64l8p2_fp16.safetensors` | `693fb2a58ad497bd222007301eeec49d14d60f8c12d2f2f00c221fa747b4c66c` |
-| `slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors` | `3e87aba94b5786407eb06d0502c1ed0885a0027a3f2b8537bfe15b0a92c01859` |
+`trellis-model-artifact-lock.json` pins the exact publisher repository, commit
+`25e0d31ffbebe4b5a97464dd851910efc3002d96`, SHA-1 tree
+`867a6b9c2f0ddd5e72f999640bba55421655c2f9`, and all 19 regular `100644`
+Git blobs. The inventory contains 11 normal blobs and eight canonical Git LFS
+pointers. Its canonical inventory digest is
+`e3d5763cedba5e2b9680ad4f57af044928a07d8d82fb93f25b27d5eabf2143f1`.
+The complete timestamp-free lock semantics are bound by SHA-256
+`d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9`.
 
-These hashes identify artifacts; they do not themselves clear model training
-data, output non-infringement, or redistribution.
+The six-entry pipeline manifest is locked to four selected mesh-path model
+families and two ignored appearance decoders. The two encoder config/pointer
+pairs are present in the publisher tree but ignored as unreferenced. The
+manifest requires `dinov2_vitl14_reg` and eight-element SLat mean and standard
+deviation arrays. Raw config and manifest blob hashes bind their complete
+contents; this semantic check does not prove that a downloaded state dict has
+the expected tensor keys, shapes, dtypes, or strict-load compatibility with the
+patched source artifact.
+
+The reviewed README front matter says `license: mit`, normalized here as MIT.
+There is no standalone `LICENSE`, `LICENSE.txt`, or equivalent weight-license
+file in this revision. This is model-card metadata evidence only, not an
+independent conclusion that the weight payloads are licensed or approved for
+launch.
+
+The four selected publisher LFS pointer identities are:
+
+| Artifact | Publisher LFS OID SHA-256 | Declared payload bytes |
+|---|---|---:|
+| `slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors` | `3e87aba94b5786407eb06d0502c1ed0885a0027a3f2b8537bfe15b0a92c01859` | 181903412 |
+| `slat_flow_img_dit_L_64l8p2_fp16.safetensors` | `693fb2a58ad497bd222007301eeec49d14d60f8c12d2f2f00c221fa747b4c66c` | 1203755136 |
+| `ss_dec_conv3d_16l8_fp16.safetensors` | `1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a` | 147591972 |
+| `ss_flow_img_dit_L_16l8_fp16.safetensors` | `96dc6bfd4136fd950af564dd16b4ae533c9ba6af8f26c670646b2a9f2789b1db` | 1130770840 |
+
+Their declared total is 2664021360 bytes. These values came from publisher LFS
+pointers, not from independently hashing payload bytes. The
+`trellisModelArtifactLock` gate is resolved only at publisher commit, raw Git
+blob, config, and LFS pointer identity level. The new
+`trellisModelPayloadBytesVerification` gate remains open: the four selected
+payloads must be ingested directly into restricted storage, independently
+SHA-256 hashed and size-checked against these pointers, and retained by digest
+before launch. Even closing that gate would not clear training-data, output
+non-infringement, redistribution, tensor compatibility, runtime, or human
+approval questions.
+
+The no-checkout verifier reads only local Git objects with lazy fetch and Git
+LFS smudge disabled. It removes inherited Git environment overrides, disables
+global and system Git config, reads the literal local origin URL, verifies the
+locked commit object and complete recursive tree/blob snapshot, and independently
+recalculates SHA-1 object identities and raw SHA-256 content hashes. Parent
+commit OIDs are syntax-checked but history is not traversed. Its local pass is
+external evidence and is not reproduced by normal repository CI; CI validates
+the canonical lock and its semantic relationships without cloning the publisher
+repository. The verifier does not invoke Git LFS, read LFS payload bytes, execute
+model runtime code, or permit network fallback.
 
 ## Open Security And Reproducibility Failures
 
+- The selected TRELLIS LFS payload bytes have not been downloaded, independently
+  hashed, or tested for strict state-dict and tensor compatibility. The
+  `trellisModelPayloadBytesVerification` gate remains mandatory before launch.
 - The official `dinov2_vitl14_reg` PyTorch artifact has no publisher-provided
   SHA-256. Its source URL and S3 version metadata must be captured, downloaded
   once in isolation, hashed, converted to safetensors, and stored by digest.
