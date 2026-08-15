@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+  "status": "source-git-object-locked-publisher-head-recorded-payload-unverified-runtime-blocked",
+  "source": {
+    "repository": "https://github.com/facebookresearch/dinov2.git",
+    "commit": "b8931f7bf91576930313be2c6d6af376033b35f0",
+    "treeOid": "39a04d481b50b484f72b1c43251efc0b2bcb5dd7",
+    "objectFormat": "sha1"
+  },
+  "sourceSnapshot": {
+    "canonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, mode, NUL, decimal size, NUL, lowercase raw SHA-256, and LF",
+    "commitObjectCount": 1,
+    "treeObjectCount": 58,
+    "blobObjectCount": 174,
+    "directoryCount": 57,
+    "fileCount": 174,
+    "modeCounts": {
+      "100644": 173,
+      "100755": 1
+    },
+    "executablePaths": [
+      "scripts/lint.sh"
+    ],
+    "contentSha256": "8615fa3237c4123e4fe7fbb24511fa89ffc1bab74277f78134b6c27ee2971d57",
+    "objectGraphCanonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, mode, NUL, lowercase Git object OID, and LF",
+    "objectGraphSha256": "e753c5e96b58032fa597d6d8b4e28163c376a244240fa793b2047a280b919848"
+  },
+  "runtimeSourceClosure": {
+    "purpose": "project-owned-offline-dinov2-vitl14-reg-constructor",
+    "canonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, lowercase raw SHA-256, and LF",
+    "fileCount": 12,
+    "totalSize": 43510,
+    "selectionSha256": "5d9fe22b05aad04a77e33b20faecf72a176fb0de5d977128127415196f87fd4d",
+    "files": [
+      {
+        "path": "dinov2/__init__.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "ae847e46898077fe3d8701b8a181d7b4e3d41cd9",
+          "size": 218,
+          "sha256": "0d2b87b7e71c7f7279ccc4b4f8b541d26071425284a0ea01a5a435fac4511cfe"
+        }
+      },
+      {
+        "path": "dinov2/layers/__init__.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "d640d145fbfb8993d6e7ceec4eb22b5b0a3e62fa",
+          "size": 498,
+          "sha256": "1b55deed39d5ab0b589bef421bbfe06f24a10cd590a0f8403234c9ee4e34109d"
+        }
+      },
+      {
+        "path": "dinov2/layers/attention.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "f1d3dabf14ffbd5eb68c3c16edc56d0da19b1265",
+          "size": 3298,
+          "sha256": "79c7be7a452b3aad96698ec38d5d5150b9f4d8ac084fa93324510dc9f624775d"
+        }
+      },
+      {
+        "path": "dinov2/layers/block.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "7e83b71ccb428ca099d2d1d49933dc837faeecfa",
+          "size": 11609,
+          "sha256": "60c0ac7dfa4474be313fabfa5a23d82faf6f0cecd4e720a88be35de9788cb636"
+        }
+      },
+      {
+        "path": "dinov2/layers/dino_head.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "0ace8ffd6297a1dd480b19db407b662a6ea0f565",
+          "size": 2007,
+          "sha256": "9fdb1fa61c0609dc0876f711f9d0d828c33bf9fd972aab3d9c968d44e16b98d1"
+        }
+      },
+      {
+        "path": "dinov2/layers/drop_path.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "1d640e0b969b8dcba96260243473700b4e5b24b5",
+          "size": 1157,
+          "sha256": "b9f8236e86054b9d9a71275efcad2a9ecaa1f86b529d4b8d6109ddb5e806f67a"
+        }
+      },
+      {
+        "path": "dinov2/layers/layer_scale.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "0b38971302b3c8fb3d4c05a5f0912fafe0e80816",
+          "size": 1097,
+          "sha256": "dadd5aafe178f1bf72a205a02a6645c7e635cacbad585d4a7369c200c6e89135"
+        }
+      },
+      {
+        "path": "dinov2/layers/mlp.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "bbf9432aae9258612caeae910a7bde17999e328e",
+          "size": 1269,
+          "sha256": "255825c73b60a916dd00eb1e38aacbcdbf316e40d6a005efb46e245b7edb43aa"
+        }
+      },
+      {
+        "path": "dinov2/layers/patch_embed.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "8b7c0804784a42cf80c0297d110dcc68cc85b339",
+          "size": 2829,
+          "sha256": "40da6add3d811198ea3e17cb99cdd4e5cda59e369efbbe3d18d89308618cf142"
+        }
+      },
+      {
+        "path": "dinov2/layers/swiglu_ffn.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "340cee356cb4ad7cb3c8bbefa121f39f7c4e5c6f",
+          "size": 3200,
+          "sha256": "e46d2948fb97e497cf991ff82ce30cb59b59fdf2e12a19568417113716b4f119"
+        }
+      },
+      {
+        "path": "dinov2/models/__init__.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "3fdff20badbd5244bf79f16bf18dd2cb73982265",
+          "size": 1486,
+          "sha256": "87b360c71997314f41be1c497cc42326fc32617d3a2840f2f19d3795ca8b85ee"
+        }
+      },
+      {
+        "path": "dinov2/models/vision_transformer.py",
+        "mode": "100644",
+        "gitBlob": {
+          "oid": "74df767eb3f3e45c8012e2637580d4927febd048",
+          "size": 14842,
+          "sha256": "495c685c6da47452fd6b2ef0d2e04563e6cfc9a090ff5dec3c5b4386bb7cdf30"
+        }
+      }
+    ],
+    "excludedNetworkLoaderPaths": [
+      "dinov2/hub",
+      "hubconf.py"
+    ]
+  },
+  "evidence": {
+    "canonicalization": "sort by ASCII path, then concatenate UTF-8 path, NUL, lowercase raw SHA-256, and LF",
+    "fileCount": 8,
+    "evidenceSha256": "28da67862b8050424b7652602312ae989757029167a2ff2fc89dd1d19548cc97",
+    "files": [
+      {
+        "path": "LICENSE",
+        "mode": "100644",
+        "role": "source-license",
+        "gitBlob": {
+          "oid": "5471dc10377b76db85a2feca7a99a7eef4980ba8",
+          "size": 11359,
+          "sha256": "600cc67cc4cb2f5ea317dcfc687ad1c74dc4bec8782bbe9db0afd83513b935b7"
+        }
+      },
+      {
+        "path": "MODEL_CARD.md",
+        "mode": "100644",
+        "role": "model-card-license",
+        "gitBlob": {
+          "oid": "21b9bf295c8cab14e782e1a7a1d051be9e501088",
+          "size": 9152,
+          "sha256": "70ca59606bee0a5fbb1baec80e7e29a93cd7cfbe26ca1910c52a852c4aab09d0"
+        }
+      },
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "role": "publisher-artifact-url",
+        "gitBlob": {
+          "oid": "be6c4e67c8bdb1d94a477018caec289279be29cf",
+          "size": 28063,
+          "sha256": "8c671f7f2a054894c81798382e5fb36f376cc0ff3bdfd1f3df683f5d18111a27"
+        }
+      },
+      {
+        "path": "dinov2/hub/backbones.py",
+        "mode": "100644",
+        "role": "publisher-loader-contract",
+        "gitBlob": {
+          "oid": "53fe83719d5107eb77a8f25ef1814c3d73446002",
+          "size": 4991,
+          "sha256": "11c3b7e3da2a843ba5953191e8fc2027b37490313dfb315c0d4ad1a0ea31d27d"
+        }
+      },
+      {
+        "path": "dinov2/hub/utils.py",
+        "mode": "100644",
+        "role": "publisher-base-url",
+        "gitBlob": {
+          "oid": "9c6641404093652d5a2f19b4cf283d976ec39e64",
+          "size": 1260,
+          "sha256": "c0533919016531b320bf9aef7cd7001249bc8ef8957cdb29246c15b67d5abdf8"
+        }
+      },
+      {
+        "path": "dinov2/models/vision_transformer.py",
+        "mode": "100644",
+        "role": "runtime-constructor",
+        "gitBlob": {
+          "oid": "74df767eb3f3e45c8012e2637580d4927febd048",
+          "size": 14842,
+          "sha256": "495c685c6da47452fd6b2ef0d2e04563e6cfc9a090ff5dec3c5b4386bb7cdf30"
+        }
+      },
+      {
+        "path": "docs/README_CHANNEL_ADAPTIVE_DINO.md",
+        "mode": "100644",
+        "role": "repository-scope-caveat",
+        "gitBlob": {
+          "oid": "99eddcd63b9455ce5aa375818cf08a5f461ba531",
+          "size": 6168,
+          "sha256": "50f3670e4ab0f89656ecc88c293bb3d0792c65ef2a6a71e3b001785ede98f797"
+        }
+      },
+      {
+        "path": "hubconf.py",
+        "mode": "100644",
+        "role": "broad-hub-entrypoint",
+        "gitBlob": {
+          "oid": "3b08fce7128177fd6949a18f076b289a3768b42d",
+          "size": 930,
+          "sha256": "e8926c8d01f93e27a6a687a39a1d78716690037fa79153c6483141526ef2a7c2"
+        }
+      }
+    ],
+    "licenseEvidence": {
+      "rootLicensePath": "LICENSE",
+      "sourceDeclaredLicense": "Apache-2.0",
+      "modelCardPath": "MODEL_CARD.md",
+      "modelCardDeclaredLicense": "Apache License 2.0",
+      "repositoryScopeCaveatPath": "docs/README_CHANNEL_ADAPTIVE_DINO.md",
+      "repositoryScopeCaveatStatus": "unresolved-human-review",
+      "repositoryScopeCaveat": "The pinned tree contains one ChannelAdaptive-DINO README but no referenced CellDINO license file, ChannelAdaptive-DINO code, or model weights. That README says the contents of the repository, including code and model weights, are intended for research use only; it first says code is coming soon, later says CellDINO code is released under 'CC by NC', and says model weights will be released under the FAIR Non-Commercial Research License. These conflicting and incomplete statements are outside the candidate runtime source selection and require human rights review.",
+      "approvalClaim": false
+    }
+  },
+  "offlineConstructor": {
+    "modelId": "dinov2_vitl14_reg",
+    "callable": "dinov2.models.vision_transformer.vit_large",
+    "arguments": {
+      "img_size": 518,
+      "patch_size": 14,
+      "init_values": 1,
+      "ffn_layer": "mlp",
+      "block_chunks": 0,
+      "num_register_tokens": 4,
+      "interpolate_antialias": true,
+      "interpolate_offset": 0
+    },
+    "stateLoad": {
+      "artifactSource": "project-owned-local-file-only",
+      "strict": true
+    },
+    "torchHubAllowed": false,
+    "networkAllowed": false
+  },
+  "publisherArtifact": {
+    "url": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitl14/dinov2_vitl14_reg4_pretrain.pth",
+    "publisherSha256": null,
+    "observedSha256": null,
+    "head": {
+      "method": "HEAD",
+      "status": 200,
+      "redirectsFollowed": 0,
+      "responseBodyBytesDelivered": false,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "1217607321",
+        "content-type": "binary/octet-stream",
+        "etag": "\"b6cbe2bf3ce2f370d5a67bcd465144b0-146\"",
+        "last-modified": "Fri, 27 Oct 2023 10:37:32 GMT",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "HLmbhvcd2hPq9CNLwMvwswbRlzZRuOeA"
+      }
+    },
+    "metadataInterpretation": {
+      "etag": "multipart-non-sha256",
+      "xAmzVersionId": "opaque-publisher-metadata",
+      "payloadIdentityVerified": false
+    }
+  },
+  "boundaries": {
+    "cloudResourcesCreated": false,
+    "externalSourceVerificationInNormalCi": false,
+    "generationAllowed": false,
+    "modelInputsDownloaded": false,
+    "payloadBytesDownloaded": false,
+    "payloadBytesIndependentlyVerified": false,
+    "publisherHeadVerificationInNormalCi": false,
+    "runtimeExecuted": false,
+    "sourceFilesIncluded": false,
+    "torchHubInvoked": false,
+    "weightsIncluded": false
+  },
+  "resolvedGates": [
+    "dinoSourceGitObjectLock"
+  ],
+  "openGates": [
+    "dependencyWheelHashLock",
+    "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
+    "dinoSourceAndArtifactLock",
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle",
+    "trellisModelPayloadBytesVerification"
+  ],
+  "gateComposition": {
+    "dinoSourceAndArtifactLock": {
+      "operator": "allOf",
+      "members": [
+        "dinoSourceGitObjectLock",
+        "dinoArtifactPayloadBytesVerification"
+      ]
+    }
+  },
+  "gateMeanings": {
+    "dinoSourceGitObjectLock": "Recorded repository locator plus exact commit, commit object, complete recursive tree/blob snapshot, candidate runtime source selection, and evidence blob identities only; local origin configuration is not signed publisher provenance, and no model payload or runtime approval is claimed.",
+    "dinoArtifactPayloadBytesVerification": "Re-observe zero-redirect publisher metadata, ingest the raw publisher PTH into restricted storage, independently verify its byte length and SHA-256, and bind the retained raw artifact by digest; this leaf does not qualify a converted runtime artifact or strict loading.",
+    "dinoDerivedRuntimeArtifactLock": "If the raw PTH is converted for runtime use, bind the exact derivative format, converter and options, tensor manifest, byte length, SHA-256, and tensor-equivalence evidence before offline runtime qualification.",
+    "dinoSourceAndArtifactLock": "Composite allOf identity gate requiring both dinoSourceGitObjectLock and dinoArtifactPayloadBytesVerification; it remains open while the payload leaf is open and does not resolve offline runtime, derived-artifact, dependency, or human-approval gates."
+  }
+}

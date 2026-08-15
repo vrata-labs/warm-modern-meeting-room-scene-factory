@@ -12,6 +12,7 @@ const defaultLockPath = resolve(
 const lockStatus = "publisher-git-lfs-identity-locked-payload-unverified-runtime-blocked";
 const inventoryCanonicalization = "SHA-256 of stable JSON for complete inventory records sorted by ASCII path";
 const lfsVersion = "https://git-lfs.github.com/spec/v1";
+const gitCommandMaxBufferBytes = 16 * 1024 * 1024;
 const utf8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 const roles = new Set([
   "lfs-rules",
@@ -204,6 +205,34 @@ export function canonicalLockDigest(lock) {
   const semantics = structuredClone(lock);
   delete semantics.lockSha256;
   return sha256(stableJson(semantics));
+}
+
+export function canonicalGitSourceDigest(files) {
+  const hash = createHash("sha256");
+  for (const file of [...files].sort((left, right) => asciiCompare(left.path, right.path))) {
+    hash.update(file.path, "utf8");
+    hash.update("\0", "ascii");
+    hash.update(file.mode, "ascii");
+    hash.update("\0", "ascii");
+    hash.update(String(file.gitBlob.size), "ascii");
+    hash.update("\0", "ascii");
+    hash.update(file.gitBlob.sha256, "ascii");
+    hash.update("\n", "ascii");
+  }
+  return hash.digest("hex");
+}
+
+export function canonicalGitObjectGraphDigest(files) {
+  const hash = createHash("sha256");
+  for (const file of [...files].sort((left, right) => asciiCompare(left.path, right.path))) {
+    hash.update(file.path, "utf8");
+    hash.update("\0", "ascii");
+    hash.update(file.mode, "ascii");
+    hash.update("\0", "ascii");
+    hash.update(file.gitBlob.oid, "ascii");
+    hash.update("\n", "ascii");
+  }
+  return hash.digest("hex");
 }
 
 export function canonicalLfsPointerBytes(lfs) {
@@ -629,7 +658,7 @@ function runExecFile(execFileImpl, file, args, options) {
   });
 }
 
-async function gitBytes(repositoryDirectory, args, execFileImpl) {
+async function gitBytes(repositoryDirectory, args, execFileImpl, timeoutMs = 30_000) {
   if (!allowedGitObjectCommand(args)) throw new TrellisModelArtifactError([`git_command_not_allowed:${args[0] ?? "missing"}`]);
   const inheritedEnvironment = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => !/^GIT_/i.test(name))
@@ -652,7 +681,7 @@ async function gitBytes(repositoryDirectory, args, execFileImpl) {
       execFileImpl,
       "git",
       ["-C", repositoryDirectory, ...args],
-      { encoding: null, env: environment, maxBuffer: 16 * 1024 * 1024, timeout: 30_000 }
+      { encoding: null, env: environment, maxBuffer: gitCommandMaxBufferBytes, timeout: timeoutMs }
     );
     return Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
   } catch (error) {
@@ -661,15 +690,24 @@ async function gitBytes(repositoryDirectory, args, execFileImpl) {
   }
 }
 
-async function gitText(repositoryDirectory, args, execFileImpl) {
+async function gitText(repositoryDirectory, args, execFileImpl, timeoutMs = 30_000) {
   let value;
   try {
-    value = utf8.decode(await gitBytes(repositoryDirectory, args, execFileImpl));
+    value = utf8.decode(await gitBytes(repositoryDirectory, args, execFileImpl, timeoutMs));
   } catch (error) {
     if (error instanceof TrellisModelArtifactError) throw error;
     throw new TrellisModelArtifactError([`git_output_not_utf8:${args[0]}`]);
   }
   return value.endsWith("\n") ? value.slice(0, -1) : value;
+}
+
+function remainingOperationTimeoutMs(traversal) {
+  if (!traversal) return 30_000;
+  const remaining = traversal.deadlineAt - Date.now();
+  if (remaining <= 0) {
+    throw new TrellisModelArtifactError(["repository_verification_deadline_exceeded"]);
+  }
+  return Math.min(30_000, remaining);
 }
 
 function parseNulTerminatedUtf8(output, issuePrefix) {
@@ -751,12 +789,22 @@ function compareGitTreeEntries(left, right) {
   return leftTerminator - rightTerminator;
 }
 
-function parseGitTreeObject(output, objectFormat, prefix) {
+function parseGitTreeObject(
+  output,
+  objectFormat,
+  prefix,
+  { deadlineAt = Number.POSITIVE_INFINITY, traversal = null } = {}
+) {
   const oidByteLength = objectFormat === "sha1" ? 20 : 32;
   const entries = [];
   const names = new Set();
+  let parsedDirectoryCount = 0;
+  let parsedFileCount = 0;
   let offset = 0;
   while (offset < output.byteLength) {
+    if (Date.now() > deadlineAt) {
+      throw new TrellisModelArtifactError(["repository_verification_deadline_exceeded"]);
+    }
     const modeEnd = output.indexOf(0x20, offset);
     const nameEnd = modeEnd < 0 ? -1 : output.indexOf(0, modeEnd + 1);
     const oidEnd = nameEnd < 0 ? -1 : nameEnd + 1 + oidByteLength;
@@ -770,6 +818,21 @@ function parseGitTreeObject(output, objectFormat, prefix) {
     const mode = modeBytes.toString("ascii");
     if (!new Set(["40000", "100644", "100755", "120000", "160000"]).has(mode)) {
       throw new TrellisModelArtifactError([`tree_mode_invalid:${prefix || "."}`]);
+    }
+    if (traversal && mode === "40000") {
+      parsedDirectoryCount += 1;
+      if (traversal.directoryCount + parsedDirectoryCount > traversal.maxDirectoryCount) {
+        throw new TrellisModelArtifactError([
+          `repository_directory_count_exceeded:${traversal.directoryCount + parsedDirectoryCount}`
+        ]);
+      }
+    } else if (traversal) {
+      parsedFileCount += 1;
+      if (traversal.fileCount + parsedFileCount > traversal.maxFileCount) {
+        throw new TrellisModelArtifactError([
+          `repository_file_count_exceeded:${traversal.fileCount + parsedFileCount}`
+        ]);
+      }
     }
     const nameBytes = output.subarray(modeEnd + 1, nameEnd);
     let name;
@@ -801,20 +864,40 @@ async function readRepositoryTree(
   execFileImpl,
   issues,
   prefix = "",
-  ancestry = new Set()
+  ancestry = new Set(),
+  traversal = null
 ) {
+  const commandTimeoutMs = remainingOperationTimeoutMs(traversal);
   if (ancestry.has(treeOid)) throw new TrellisModelArtifactError([`tree_cycle_detected:${prefix || "."}`]);
   if (ancestry.size > 64) throw new TrellisModelArtifactError([`tree_depth_exceeded:${prefix || "."}`]);
-  const objectType = await gitText(repositoryDirectory, ["cat-file", "-t", treeOid], execFileImpl);
+  const objectType = await gitText(
+    repositoryDirectory,
+    ["cat-file", "-t", treeOid],
+    execFileImpl,
+    commandTimeoutMs
+  );
   if (objectType !== "tree") throw new TrellisModelArtifactError([`tree_object_type_invalid:${prefix || "."}`]);
-  const bytes = await gitBytes(repositoryDirectory, ["cat-file", "tree", treeOid], execFileImpl);
+  const bytes = await gitBytes(
+    repositoryDirectory,
+    ["cat-file", "tree", treeOid],
+    execFileImpl,
+    remainingOperationTimeoutMs(traversal)
+  );
   if (gitObjectOid("tree", bytes, objectFormat) !== treeOid) {
     throw new TrellisModelArtifactError([`tree_object_oid_mismatch:${prefix || "."}`]);
   }
   const files = [];
   const directories = new Set();
   const nextAncestry = new Set(ancestry).add(treeOid);
-  for (const entry of parseGitTreeObject(bytes, objectFormat, prefix)) {
+  const entries = parseGitTreeObject(bytes, objectFormat, prefix, {
+    deadlineAt: traversal?.deadlineAt,
+    traversal
+  });
+  if (traversal) {
+    traversal.directoryCount += entries.filter(({ mode }) => mode === "40000").length;
+    traversal.fileCount += entries.filter(({ mode }) => mode !== "40000").length;
+  }
+  for (const entry of entries) {
     if (entry.mode === "40000") {
       directories.add(entry.path);
       const nested = await readRepositoryTree(
@@ -824,7 +907,8 @@ async function readRepositoryTree(
         execFileImpl,
         issues,
         entry.path,
-        nextAncestry
+        nextAncestry,
+        traversal
       );
       files.push(...nested.files);
       for (const path of nested.directories) directories.add(path);
@@ -833,6 +917,219 @@ async function readRepositoryTree(
     }
   }
   return { directories, files };
+}
+
+export async function readVerifiedGitRepositorySnapshot(
+  source,
+  repositoryDirectory,
+  {
+    execFileImpl = execFile,
+    maxBlobBytes = gitCommandMaxBufferBytes,
+    maxDirectoryCount = 10_000,
+    maxFileCount = 10_000,
+    maxTotalBlobBytes = 512 * 1024 * 1024,
+    operationTimeoutMs = 120_000
+  } = {}
+) {
+  if (!isObject(source)) throw new TrellisModelArtifactError(["source_invalid"]);
+  if (typeof source.repository !== "string" || !source.repository) {
+    throw new TrellisModelArtifactError(["source_repository_invalid"]);
+  }
+  if (!new Set(["sha1", "sha256"]).has(source.objectFormat)) {
+    throw new TrellisModelArtifactError(["source_object_format_invalid"]);
+  }
+  const objectOidRegex = oidPattern(source.objectFormat);
+  if (!objectOidRegex.test(source.commit ?? "")) {
+    throw new TrellisModelArtifactError(["source_commit_invalid"]);
+  }
+  if (!objectOidRegex.test(source.treeOid ?? "")) {
+    throw new TrellisModelArtifactError(["source_tree_oid_invalid"]);
+  }
+  const limits = {
+    maxBlobBytes,
+    maxDirectoryCount,
+    maxFileCount,
+    maxTotalBlobBytes,
+    operationTimeoutMs
+  };
+  const maximums = {
+    maxBlobBytes: gitCommandMaxBufferBytes,
+    maxDirectoryCount: 100_000,
+    maxFileCount: 100_000,
+    maxTotalBlobBytes: 2 * 1024 * 1024 * 1024,
+    operationTimeoutMs: 10 * 60_000
+  };
+  for (const [name, value] of Object.entries(limits)) {
+    if (!Number.isSafeInteger(value) || value <= 0 || value > maximums[name]) {
+      throw new TrellisModelArtifactError([`repository_verification_limit_invalid:${name}`]);
+    }
+  }
+  const traversal = {
+    deadlineAt: Date.now() + operationTimeoutMs,
+    directoryCount: 0,
+    fileCount: 0,
+    maxDirectoryCount,
+    maxFileCount
+  };
+
+  const repositories = parseNulTerminatedUtf8(await gitBytes(
+    repositoryDirectory,
+    ["config", "--local", "--includes", "--null", "--get-all", "remote.origin.url"],
+    execFileImpl,
+    remainingOperationTimeoutMs(traversal)
+  ), "repository_origin");
+  if (repositories.length !== 1) {
+    throw new TrellisModelArtifactError([`repository_origin_count_invalid:${repositories.length}`]);
+  }
+  const [repository] = repositories;
+  if (repository !== source.repository) throw new TrellisModelArtifactError(["repository_remote_mismatch"]);
+
+  const objectFormat = await gitText(
+    repositoryDirectory,
+    ["rev-parse", "--show-object-format"],
+    execFileImpl,
+    remainingOperationTimeoutMs(traversal)
+  );
+  if (objectFormat !== source.objectFormat) {
+    throw new TrellisModelArtifactError(["repository_object_format_mismatch"]);
+  }
+  const commitType = await gitText(
+    repositoryDirectory,
+    ["cat-file", "-t", source.commit],
+    execFileImpl,
+    remainingOperationTimeoutMs(traversal)
+  );
+  if (commitType !== "commit") throw new TrellisModelArtifactError(["source_object_not_commit"]);
+  const commitBytes = await gitBytes(
+    repositoryDirectory,
+    ["cat-file", "commit", source.commit],
+    execFileImpl,
+    remainingOperationTimeoutMs(traversal)
+  );
+  if (gitObjectOid("commit", commitBytes, source.objectFormat) !== source.commit) {
+    throw new TrellisModelArtifactError(["commit_object_oid_mismatch"]);
+  }
+  const issues = [];
+  verifyCommitStructure(commitBytes, source.treeOid, source.objectFormat, issues);
+  if (issues.length > 0) throw new TrellisModelArtifactError(issues);
+  remainingOperationTimeoutMs(traversal);
+
+  const tree = await readRepositoryTree(
+    repositoryDirectory,
+    source.treeOid,
+    source.objectFormat,
+    execFileImpl,
+    issues,
+    "",
+    new Set(),
+    traversal
+  );
+  if (tree.directories.size > maxDirectoryCount) {
+    throw new TrellisModelArtifactError([`repository_directory_count_exceeded:${tree.directories.size}`]);
+  }
+  if (tree.files.length > maxFileCount) {
+    throw new TrellisModelArtifactError([`repository_file_count_exceeded:${tree.files.length}`]);
+  }
+  const files = [];
+  let totalBlobBytes = 0;
+  for (const entry of tree.files) {
+    remainingOperationTimeoutMs(traversal);
+    let objectType;
+    let objectSizeText;
+    try {
+      objectType = await gitText(
+        repositoryDirectory,
+        ["cat-file", "-t", entry.oid],
+        execFileImpl,
+        remainingOperationTimeoutMs(traversal)
+      );
+      objectSizeText = await gitText(
+        repositoryDirectory,
+        ["cat-file", "-s", entry.oid],
+        execFileImpl,
+        remainingOperationTimeoutMs(traversal)
+      );
+    } catch (error) {
+      if (error instanceof TrellisModelArtifactError) {
+        if (error.issues.includes("repository_verification_deadline_exceeded")) throw error;
+        throw new TrellisModelArtifactError([`repository_blob_object_unreadable:${entry.path}`]);
+      }
+      throw error;
+    }
+    if (objectType !== "blob") {
+      throw new TrellisModelArtifactError([`repository_entry_not_blob:${entry.path}`]);
+    }
+    if (!/^(0|[1-9][0-9]*)$/.test(objectSizeText)) {
+      throw new TrellisModelArtifactError([`repository_object_size_invalid:${entry.path}`]);
+    }
+    const objectSize = Number(objectSizeText);
+    if (!Number.isSafeInteger(objectSize) || objectSize > maxBlobBytes) {
+      throw new TrellisModelArtifactError([`repository_blob_size_limit_exceeded:${entry.path}`]);
+    }
+    totalBlobBytes += objectSize;
+    if (!Number.isSafeInteger(totalBlobBytes) || totalBlobBytes > maxTotalBlobBytes) {
+      throw new TrellisModelArtifactError(["repository_total_blob_size_limit_exceeded"]);
+    }
+    let bytes;
+    try {
+      bytes = await gitBytes(
+        repositoryDirectory,
+        ["cat-file", "blob", entry.oid],
+        execFileImpl,
+        remainingOperationTimeoutMs(traversal)
+      );
+    } catch (error) {
+      if (error instanceof TrellisModelArtifactError) {
+        if (error.issues.includes("repository_verification_deadline_exceeded")) throw error;
+        throw new TrellisModelArtifactError([`repository_blob_object_unreadable:${entry.path}`]);
+      }
+      throw error;
+    }
+    if (!Number.isSafeInteger(objectSize) || objectSize !== bytes.byteLength) {
+      throw new TrellisModelArtifactError([`repository_blob_byte_length_mismatch:${entry.path}`]);
+    }
+    if (gitObjectOid("blob", bytes, source.objectFormat) !== entry.oid) {
+      throw new TrellisModelArtifactError([`repository_blob_object_oid_mismatch:${entry.path}`]);
+    }
+    const file = {
+      path: entry.path,
+      mode: entry.mode,
+      gitBlob: {
+        oid: entry.oid,
+        size: bytes.byteLength,
+        sha256: sha256(bytes)
+      }
+    };
+    files.push(file);
+  }
+  remainingOperationTimeoutMs(traversal);
+  files.sort((left, right) => asciiCompare(left.path, right.path));
+  const directories = [...tree.directories].sort(asciiCompare);
+  const modeCounts = Object.fromEntries(
+    [...new Set(files.map(({ mode }) => mode))]
+      .sort(asciiCompare)
+      .map((mode) => [mode, files.filter((file) => file.mode === mode).length])
+  );
+  const contentSha256 = canonicalGitSourceDigest(files);
+  const objectGraphSha256 = canonicalGitObjectGraphDigest(files);
+  remainingOperationTimeoutMs(traversal);
+  return {
+    repository,
+    objectFormat,
+    commit: source.commit,
+    treeOid: source.treeOid,
+    commitObjectCount: 1,
+    treeObjectCount: directories.length + 1,
+    blobObjectCount: files.length,
+    directoryCount: directories.length,
+    fileCount: files.length,
+    modeCounts,
+    executablePaths: files.filter(({ mode }) => mode === "100755").map(({ path }) => path),
+    contentSha256,
+    objectGraphSha256,
+    directories,
+    files
+  };
 }
 
 function decodeBlob(bytes, path, issues) {

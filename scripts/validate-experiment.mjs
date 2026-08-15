@@ -1,5 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import {
+  isAllOfGateResolved,
+  loadWmmrDinoSourceArtifactLock
+} from "./verify-dino-source-artifact.mjs";
 import { loadWmmrModelArtifactLock } from "./verify-trellis-model-artifact.mjs";
 import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
@@ -119,19 +123,102 @@ assert(readiness.aiRights.trellisModelArtifact.localVerification.networkFallback
 assert(readiness.aiRights.trellisModelArtifact.localVerification.networkProtocolsAllowedByVerifier.length === 0, "model_artifact_network_protocol_claim_invalid");
 assert(readiness.aiRights.trellisModelArtifact.localVerification.payloadBytesReadByVerifier === false, "model_artifact_payload_read_claim_invalid");
 assert(readiness.aiRights.trellisModelArtifact.localVerification.runtimeExecutedByVerifier === false, "model_artifact_runtime_claim_invalid");
-assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.resolvedGates) === JSON.stringify(modelArtifact.resolvedGates), "model_artifact_resolved_gates_mismatch");
-assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.openGates) === JSON.stringify(modelArtifact.openGates), "model_artifact_open_gates_mismatch");
+assert(readiness.aiRights.trellisModelArtifact.gateSnapshot === "historical-at-model-artifact-lock", "model_artifact_gate_snapshot_invalid");
+assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.resolvedGatesAtLock) === JSON.stringify(modelArtifact.resolvedGates), "model_artifact_resolved_gates_mismatch");
+assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.openGatesAtLock) === JSON.stringify(modelArtifact.openGates), "model_artifact_open_gates_mismatch");
 assert(modelArtifact.openGates.includes("trellisModelPayloadBytesVerification"), "model_payload_verification_gate_missing");
-assert(
-  JSON.stringify(readiness.aiRights.currentGateState.resolvedGates)
-    === JSON.stringify(["patchedSourceTreeDigest", "trellisModelArtifactLock"]),
-  "current_ai_rights_resolved_gates_invalid"
+const dinoArtifact = await loadWmmrDinoSourceArtifactLock(
+  resolve(root, readiness.aiRights.dinoSourceArtifactMetadata.lockPath)
 );
-assert(
-  JSON.stringify(readiness.aiRights.currentGateState.openGates) === JSON.stringify(modelArtifact.openGates),
-  "current_ai_rights_open_gates_invalid"
-);
-assert(!readiness.aiRights.currentGateState.openGates.includes("trellisModelArtifactLock"), "resolved_model_artifact_gate_still_open");
+const dinoSummary = readiness.aiRights.dinoSourceArtifactMetadata;
+assert(dinoSummary.status === dinoArtifact.status, "dino_artifact_status_mismatch");
+assert(dinoSummary.sourceRepository === dinoArtifact.source.repository, "dino_artifact_repository_mismatch");
+assert(dinoSummary.sourceCommit === dinoArtifact.source.commit, "dino_artifact_commit_mismatch");
+assert(dinoSummary.treeOid === dinoArtifact.source.treeOid, "dino_artifact_tree_mismatch");
+assert(dinoSummary.objectFormat === dinoArtifact.source.objectFormat, "dino_artifact_object_format_mismatch");
+assert(dinoSummary.fileCount === dinoArtifact.sourceSnapshot.fileCount, "dino_artifact_file_count_mismatch");
+assert(dinoSummary.directoryCount === dinoArtifact.sourceSnapshot.directoryCount, "dino_artifact_directory_count_mismatch");
+assert(dinoSummary.sourceContentSha256 === dinoArtifact.sourceSnapshot.contentSha256, "dino_artifact_source_digest_mismatch");
+assert(dinoSummary.sourceObjectGraphSha256 === dinoArtifact.sourceSnapshot.objectGraphSha256, "dino_artifact_object_graph_digest_mismatch");
+assert(dinoSummary.runtimeClosureFileCount === dinoArtifact.runtimeSourceClosure.fileCount, "dino_runtime_closure_count_mismatch");
+assert(dinoSummary.runtimeClosureBytes === dinoArtifact.runtimeSourceClosure.totalSize, "dino_runtime_closure_size_mismatch");
+assert(dinoSummary.runtimeSelectionSha256 === dinoArtifact.runtimeSourceClosure.selectionSha256, "dino_runtime_closure_digest_mismatch");
+assert(dinoSummary.evidenceFileCount === dinoArtifact.evidence.fileCount, "dino_evidence_count_mismatch");
+assert(dinoSummary.evidenceSha256 === dinoArtifact.evidence.evidenceSha256, "dino_evidence_digest_mismatch");
+assert(dinoSummary.lockSha256 === dinoArtifact.lockSha256, "dino_lock_digest_mismatch");
+assert(dinoSummary.publisherArtifactUrl === dinoArtifact.publisherArtifact.url, "dino_publisher_url_mismatch");
+assert(dinoSummary.publisherContentLength === Number(dinoArtifact.publisherArtifact.head.headers["content-length"]), "dino_publisher_size_mismatch");
+assert(dinoSummary.publisherSha256 === null && dinoArtifact.publisherArtifact.publisherSha256 === null, "dino_publisher_hash_claim_invalid");
+assert(dinoSummary.observedSha256 === null && dinoArtifact.publisherArtifact.observedSha256 === null, "dino_observed_hash_claim_invalid");
+assert(dinoSummary.payloadBytesDownloaded === false, "dino_payload_download_claim_invalid");
+assert(dinoSummary.payloadBytesVerified === false, "dino_payload_verification_claim_invalid");
+assert(dinoSummary.runtimeExecuted === false, "dino_runtime_claim_invalid");
+assert(dinoSummary.generationAllowed === false, "dino_generation_must_remain_blocked");
+assert(dinoSummary.licenseReviewStatus === "unresolved-human-review-repository-scope-caveat", "dino_license_review_status_invalid");
+assert(dinoSummary.sourceLicenseEvidenceStatus === "root-apache-2.0-with-conflicting-repository-readme-human-review", "dino_source_license_status_invalid");
+assert(dinoSummary.weightRightsReviewStatus === "model-card-apache-evidence-only-payload-and-redistribution-unresolved", "dino_weight_rights_status_invalid");
+assert(dinoSummary.normalCiScope === "canonical-lock-semantics-only-no-external-source-or-head", "dino_normal_ci_scope_invalid");
+assert(JSON.stringify(dinoSummary.approvalClaims) === JSON.stringify({
+  payloadApproved: false,
+  runtimeApproved: false,
+  sourceLicenseApproved: false,
+  weightLicenseApproved: false
+}), "dino_approval_claim_invalid");
+assert(dinoSummary.localVerification.status === "pass", "dino_local_verification_missing");
+assert(dinoSummary.localVerification.method === "git-object-only-no-checkout-plus-head-only", "dino_local_verification_method_invalid");
+assert(/^2026-08-15T\d{2}:\d{2}:\d{2}Z$/.test(dinoSummary.localVerification.verifiedAt), "dino_local_verification_timestamp_invalid");
+assert(dinoSummary.localVerification.ciReproducible === false, "dino_external_verification_claim_invalid");
+assert(dinoSummary.localVerification.sourceWorktreeRequired === false, "dino_source_worktree_claim_invalid");
+assert(dinoSummary.localVerification.sourceNetworkFallbackAllowed === false, "dino_source_network_fallback_claim_invalid");
+assert(Array.isArray(dinoSummary.localVerification.sourceNetworkProtocolsAllowedByVerifier)
+  && dinoSummary.localVerification.sourceNetworkProtocolsAllowedByVerifier.length === 0,
+"dino_source_network_protocol_claim_invalid");
+assert(dinoSummary.localVerification.publisherRequestMethod === "HEAD", "dino_publisher_method_claim_invalid");
+assert(dinoSummary.localVerification.publisherRedirectsAllowed === false, "dino_publisher_redirect_claim_invalid");
+assert(dinoSummary.localVerification.publisherGetFallbackAllowed === false, "dino_publisher_get_claim_invalid");
+assert(dinoSummary.localVerification.publisherRangeFallbackAllowed === false, "dino_publisher_range_claim_invalid");
+assert(dinoSummary.localVerification.publisherResponseBodyBytesDeliveredToVerifier === false, "dino_response_body_delivery_claim_invalid");
+assert(dinoSummary.localVerification.runtimeExecutedByVerifier === false, "dino_verifier_runtime_claim_invalid");
+assert(dinoSummary.gateSnapshot === "historical-at-dino-metadata-lock", "dino_gate_snapshot_invalid");
+assert(JSON.stringify(dinoSummary.resolvedGatesAtLock) === JSON.stringify(dinoArtifact.resolvedGates), "dino_resolved_gates_mismatch");
+assert(JSON.stringify(dinoSummary.openGatesAtLock) === JSON.stringify(dinoArtifact.openGates), "dino_open_gates_mismatch");
+assert(dinoArtifact.resolvedGates.length === 1 && dinoArtifact.resolvedGates[0] === "dinoSourceGitObjectLock", "dino_source_gate_not_singly_resolved");
+assert(dinoArtifact.openGates.includes("dinoArtifactPayloadBytesVerification"), "dino_payload_gate_missing");
+assert(dinoArtifact.openGates.includes("dinoSourceAndArtifactLock"), "dino_composite_gate_missing");
+assert(dinoArtifact.gateComposition.dinoSourceAndArtifactLock.operator === "allOf", "dino_gate_composition_invalid");
+const expectedCurrentResolvedGates = [
+  "dinoSourceGitObjectLock",
+  "patchedSourceTreeDigest",
+  "trellisModelArtifactLock"
+];
+const expectedCurrentOpenGates = [
+  "dependencyWheelHashLock",
+  "dinoArtifactPayloadBytesVerification",
+  "dinoDerivedRuntimeArtifactLock",
+  "dinoSourceAndArtifactLock",
+  "gpuParityAndVramTest",
+  "humanRightsSignoff",
+  "ociImageDigest",
+  "offlineImportRuntimeTest",
+  "patchedPytorchQualification",
+  "providerTermsSnapshot",
+  "sbomAndVulnerabilityReport",
+  "thirdPartyNoticeBundle",
+  "trellisModelPayloadBytesVerification"
+];
+assert(JSON.stringify(readiness.aiRights.currentGateState.resolvedGates) === JSON.stringify(expectedCurrentResolvedGates), "current_ai_rights_resolved_gates_invalid");
+assert(JSON.stringify(readiness.aiRights.currentGateState.openGates) === JSON.stringify(expectedCurrentOpenGates), "current_ai_rights_open_gates_invalid");
+const currentResolvedGates = new Set(readiness.aiRights.currentGateState.resolvedGates);
+const currentOpenGates = new Set(readiness.aiRights.currentGateState.openGates);
+for (const [gate, composition] of Object.entries(dinoArtifact.gateComposition)) {
+  for (const member of composition.members) {
+    assert(currentResolvedGates.has(member) !== currentOpenGates.has(member), `current_gate_member_state_invalid:${member}`);
+  }
+  const compositeResolved = isAllOfGateResolved(composition, readiness.aiRights.currentGateState.resolvedGates);
+  assert(currentResolvedGates.has(gate) === compositeResolved, `current_composite_resolved_state_invalid:${gate}`);
+  assert(currentOpenGates.has(gate) === !compositeResolved, `current_composite_open_state_invalid:${gate}`);
+}
+assert(!currentOpenGates.has("trellisModelArtifactLock"), "resolved_model_artifact_gate_still_open");
 assert(readiness.compute.primaryPreemptible === true, "gpu_probe_must_be_preemptible");
 assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_resource_created_before_gate");
 assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quota_evidence_invalid");
@@ -147,6 +234,7 @@ assert(readiness.resolved.stage1ArtDirectionGateGreen === true, "stage_1_art_dir
 assert(readiness.resolved.trellisPatchedSourceTreeDigest === true, "patched_source_tree_digest_not_resolved");
 assert(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible === true, "patched_source_static_verification_not_resolved");
 assert(readiness.resolved.trellisModelArtifactLock === true, "model_artifact_lock_not_resolved");
+assert(readiness.resolved.dinoSourceGitObjectLock === true, "dino_source_git_object_lock_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");

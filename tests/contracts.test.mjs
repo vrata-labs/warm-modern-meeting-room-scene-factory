@@ -149,18 +149,73 @@ test("TRELLIS publisher Git and LFS identity lock does not claim payload verific
   assert.equal(summary.payloadsDownloadedDuringLockPreparation, false);
   assert.equal(summary.payloadBytesVerified, false);
   assert.equal(summary.generationAllowed, false);
+  assert.equal(summary.gateSnapshot, "historical-at-model-artifact-lock");
   assert.equal(summary.localVerification.ciReproducible, false);
   assert.equal(summary.localVerification.gitLfsInvokedByVerifier, false);
   assert.deepEqual(summary.localVerification.networkProtocolsAllowedByVerifier, []);
   assert.equal(summary.localVerification.payloadBytesReadByVerifier, false);
   assert.equal(summary.localVerification.runtimeExecutedByVerifier, false);
+  assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
+  assert.deepEqual(summary.openGatesAtLock, lock.openGates);
+  assert.equal(readiness.resolved.trellisModelArtifactLock, true);
+});
+
+test("DINO source and HEAD metadata lock resolves only source identity", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const summary = readiness.aiRights.dinoSourceArtifactMetadata;
+  const lock = await json(summary.lockPath);
+  assert.equal(lock.status, "source-git-object-locked-publisher-head-recorded-payload-unverified-runtime-blocked");
+  assert.equal(lock.source.repository, "https://github.com/facebookresearch/dinov2.git");
+  assert.equal(lock.source.commit, "b8931f7bf91576930313be2c6d6af376033b35f0");
+  assert.equal(lock.source.treeOid, "39a04d481b50b484f72b1c43251efc0b2bcb5dd7");
+  assert.equal(lock.sourceSnapshot.fileCount, 174);
+  assert.equal(lock.sourceSnapshot.directoryCount, 57);
+  assert.deepEqual(lock.sourceSnapshot.modeCounts, { "100644": 173, "100755": 1 });
+  assert.equal(lock.sourceSnapshot.contentSha256, "8615fa3237c4123e4fe7fbb24511fa89ffc1bab74277f78134b6c27ee2971d57");
+  assert.equal(lock.sourceSnapshot.objectGraphSha256, "e753c5e96b58032fa597d6d8b4e28163c376a244240fa793b2047a280b919848");
+  assert.equal(lock.runtimeSourceClosure.fileCount, 12);
+  assert.equal(lock.runtimeSourceClosure.totalSize, 43510);
+  assert.equal(lock.runtimeSourceClosure.selectionSha256, "5d9fe22b05aad04a77e33b20faecf72a176fb0de5d977128127415196f87fd4d");
+  assert.equal(lock.lockSha256, "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9");
+  assert.equal(lock.publisherArtifact.publisherSha256, null);
+  assert.equal(lock.publisherArtifact.observedSha256, null);
+  assert.equal(lock.publisherArtifact.head.responseBodyBytesDelivered, false);
+  assert.equal(lock.evidence.licenseEvidence.repositoryScopeCaveatStatus, "unresolved-human-review");
+  assert.equal(lock.evidence.licenseEvidence.approvalClaim, false);
+  assert.deepEqual(lock.resolvedGates, ["dinoSourceGitObjectLock"]);
+  assert.ok(lock.openGates.includes("dinoArtifactPayloadBytesVerification"));
+  assert.ok(lock.openGates.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(lock.openGates.includes("dinoSourceAndArtifactLock"));
+  assert.deepEqual(lock.gateComposition.dinoSourceAndArtifactLock, {
+    operator: "allOf",
+    members: ["dinoSourceGitObjectLock", "dinoArtifactPayloadBytesVerification"]
+  });
+  assert.equal(summary.normalCiScope, "canonical-lock-semantics-only-no-external-source-or-head");
+  assert.equal(summary.sourceLicenseEvidenceStatus, "root-apache-2.0-with-conflicting-repository-readme-human-review");
+  assert.equal(summary.weightRightsReviewStatus, "model-card-apache-evidence-only-payload-and-redistribution-unresolved");
+  assert.deepEqual(summary.approvalClaims, {
+    payloadApproved: false,
+    runtimeApproved: false,
+    sourceLicenseApproved: false,
+    weightLicenseApproved: false
+  });
+  assert.equal(summary.localVerification.ciReproducible, false);
+  assert.equal(summary.localVerification.publisherRequestMethod, "HEAD");
+  assert.equal(summary.localVerification.publisherResponseBodyBytesDeliveredToVerifier, false);
+  assert.equal(summary.gateSnapshot, "historical-at-dino-metadata-lock");
+  assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
+  assert.deepEqual(summary.openGatesAtLock, lock.openGates);
   assert.deepEqual(readiness.aiRights.currentGateState.resolvedGates, [
+    "dinoSourceGitObjectLock",
     "patchedSourceTreeDigest",
     "trellisModelArtifactLock"
   ]);
-  assert.deepEqual(readiness.aiRights.currentGateState.openGates, lock.openGates);
-  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("trellisModelArtifactLock"));
-  assert.equal(readiness.resolved.trellisModelArtifactLock, true);
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceGitObjectLock"));
+  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoArtifactPayloadBytesVerification"));
+  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoSourceAndArtifactLock"));
+  assert.equal(readiness.resolved.dinoSourceGitObjectLock, true);
+  assert.equal(readiness.aiRights.generationAllowed, false);
 });
 
 test("GPU policy has a hard timeout and no created experiment resource", async () => {
