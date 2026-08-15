@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "asOf": "2026-08-14",
+  "asOf": "2026-08-15",
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
@@ -91,9 +91,9 @@
     "ownerRole": "experiment-sponsor",
     "ownerIdentityRecord": "restricted-operator-record",
     "verdict": "blocked",
-    "verdictDate": "2026-08-14",
+    "verdictDate": "2026-08-15",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "source-selection-locked-patched-runtime-and-human-signoff-pending",
+    "prunedMeshPath": "patched-source-materialized-static-verification-green-runtime-and-human-signoff-pending",
     "modelInputCount": 0,
     "generationAllowed": false,
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
@@ -104,10 +104,40 @@
       "flexiCubesCommit": "815e075a2a400d06c48d94c347674344ed6ae5c5",
       "fileCount": 53,
       "selectionSha256": "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
-      "policySha256": "d810ca9db4ac72dc53473fc59ce2fb35996bf7cf48e7c2a2246b4bfbf733e5ea",
+      "policySha256": "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c",
       "localVerifiedAt": "2026-08-14T21:32:40Z",
       "ciReproducible": false,
       "generationAllowed": false
+    },
+    "patchedSourceArtifact": {
+      "status": "materialized-static-verified-runtime-blocked",
+      "lockPath": "experiment/warm-modern-meeting-room/artifact-lock.json",
+      "treePath": "experiment/warm-modern-meeting-room/trellis-patched-tree",
+      "fileCount": 50,
+      "pythonFileCount": 46,
+      "treeSha256": "e1f2d1caeabc0a9dc795ef9d7c72cffd1ee7ed5501d04a7f70743983ccdcd575",
+      "artifactSha256": "816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51",
+      "sourceSelectionSha256": "5860f91b0fddd401f661f5a16ef2f224d3c6f712f73a2fb050fd547abcac8348",
+      "sourcePolicySha256": "9d41db04bbec3977c797751e671377df073b642726d2d1ca554ed5c7c385443c",
+      "sourceToArtifactSha256": "8af7c2b7de39b3bc9e256c6cc8cdbc66a89be5a8eb69496582e835726c2de2d4",
+      "staticPolicySyntaxVerificationCiReproducible": true,
+      "runtimeImportsExecuted": false,
+      "runtimeImportGateClosed": false,
+      "generationAllowed": false,
+      "resolvedGates": ["patchedSourceTreeDigest"],
+      "openGates": [
+        "dependencyWheelHashLock",
+        "dinoSourceAndArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle",
+        "trellisModelArtifactLock"
+      ]
     }
   },
   "compute": {
@@ -189,7 +219,9 @@
     "gpuTeardownRuleDefined": true,
     "stage1ReferenceCollectionUnblocked": true,
     "styleBibleApproved": true,
-    "stage1ArtDirectionGateGreen": true
+    "stage1ArtDirectionGateGreen": true,
+    "trellisPatchedSourceTreeDigest": true,
+    "trellisStaticPolicySyntaxVerificationCiReproducible": true
   },
   "blocked": {
     "aiRightsFinalApproval": null,

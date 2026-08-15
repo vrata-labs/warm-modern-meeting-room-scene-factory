@@ -1,0 +1,19 @@
+THIRD-PARTY NOTICES
+
+OpenAI GLIDE
+Source: https://github.com/openai/glide-text2im
+Commit: 69b530740eb6cef69442d6180579ef5ba9ef063e
+License: MIT
+License text: third_party/openai-glide/LICENSE.txt
+Use: the timestep embedding implementation in
+trellis/models/sparse_structure_flow.py is adapted from glide_text2im/nn.py.
+
+FlexiCubes
+Source: https://github.com/MaxtirError/FlexiCubes.git
+Commit: 815e075a2a400d06c48d94c347674344ed6ae5c5
+License: Apache-2.0
+License text: trellis/representations/mesh/flexicubes/LICENSE.txt
+Modification: trellis/representations/mesh/flexicubes/flexicubes.py is an
+inference-only variant with local tensor validation and without differentiable
+triangulation or regularization result paths. The modified source carries a
+prominent modification notice.

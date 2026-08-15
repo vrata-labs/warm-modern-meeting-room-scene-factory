@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
 
 const root = resolve(import.meta.dirname, "..");
@@ -67,6 +68,29 @@ assert(readiness.aiRights.sourceSelectionLock.generationAllowed === false, "sour
 assert(sourceSelection.openGates.includes("patchedSourceTreeDigest"), "source_selection_missing_patched_tree_gate");
 assert(sourceSelection.openGates.includes("thirdPartyNoticeBundle"), "source_selection_missing_notice_gate");
 assert(sourceSelection.openGates.includes("humanRightsSignoff"), "source_selection_missing_human_signoff_gate");
+const patchedSource = await verifyPatchedTree();
+const artifactLock = await json(readiness.aiRights.patchedSourceArtifact.lockPath);
+assert(readiness.aiRights.patchedSourceArtifact.status === "materialized-static-verified-runtime-blocked", "patched_source_status_invalid");
+assert(readiness.aiRights.patchedSourceArtifact.treePath === artifactLock.artifact.path, "patched_source_tree_path_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.fileCount === artifactLock.artifact.fileCount, "patched_source_file_count_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.pythonFileCount === 46, "patched_source_python_file_count_invalid");
+assert(readiness.aiRights.patchedSourceArtifact.treeSha256 === artifactLock.artifact.treeSha256, "patched_source_tree_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.artifactSha256 === artifactLock.artifactSha256, "patched_source_artifact_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.sourceSelectionSha256 === sourceSelection.selection.selectionSha256, "patched_source_selection_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.sourcePolicySha256 === sourceSelection.policySha256, "patched_source_policy_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.sourceToArtifactSha256 === artifactLock.sourceToArtifact.sha256, "patched_source_mapping_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.staticPolicySyntaxVerificationCiReproducible === true, "patched_source_static_verification_not_reproducible");
+assert(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted === false, "patched_source_runtime_claim_invalid");
+assert(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed === false, "patched_source_runtime_gate_must_remain_open");
+assert(readiness.aiRights.patchedSourceArtifact.generationAllowed === false, "patched_source_generation_must_remain_blocked");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.resolvedGates) === JSON.stringify(artifactLock.resolvedGates), "patched_source_resolved_gates_mismatch");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.openGates) === JSON.stringify(artifactLock.openGates), "patched_source_open_gates_mismatch");
+assert(patchedSource.artifactSha256 === artifactLock.artifactSha256, "patched_source_verifier_artifact_mismatch");
+assert(patchedSource.treeSha256 === artifactLock.artifact.treeSha256, "patched_source_verifier_tree_mismatch");
+assert(patchedSource.staticVerification.verificationKind === "static-policy-and-syntax", "patched_source_verification_kind_invalid");
+assert(patchedSource.staticVerification.runtimeImportsExecuted === false, "patched_source_runtime_import_claim_invalid");
+assert(artifactLock.openGates.includes("offlineImportRuntimeTest"), "patched_source_runtime_gate_removed");
+assert(artifactLock.openGates.includes("thirdPartyNoticeBundle"), "patched_source_full_notice_gate_removed");
 assert(readiness.compute.primaryPreemptible === true, "gpu_probe_must_be_preemptible");
 assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_resource_created_before_gate");
 assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quota_evidence_invalid");
@@ -79,6 +103,8 @@ assert(readiness.stageRules.stage1ExitBlockedUntil.length === 0, "stage_1_exit_m
 assert(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil.length === 0, "stage_2_preparation_must_be_unblocked");
 assert(readiness.resolved.styleBibleApproved === true, "style_bible_not_approved");
 assert(readiness.resolved.stage1ArtDirectionGateGreen === true, "stage_1_art_direction_gate_not_green");
+assert(readiness.resolved.trellisPatchedSourceTreeDigest === true, "patched_source_tree_digest_not_resolved");
+assert(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible === true, "patched_source_static_verification_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");
