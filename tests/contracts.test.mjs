@@ -206,15 +206,113 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
   assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
   assert.deepEqual(summary.openGatesAtLock, lock.openGates);
   assert.deepEqual(readiness.aiRights.currentGateState.resolvedGates, [
+    "dinoArtifactPayloadBytesVerification",
+    "dinoSourceAndArtifactLock",
     "dinoSourceGitObjectLock",
     "patchedSourceTreeDigest",
     "trellisModelArtifactLock"
   ]);
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceGitObjectLock"));
-  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoArtifactPayloadBytesVerification"));
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoArtifactPayloadBytesVerification"));
   assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
-  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoSourceAndArtifactLock"));
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceAndArtifactLock"));
   assert.equal(readiness.resolved.dinoSourceGitObjectLock, true);
+  assert.equal(readiness.resolved.dinoArtifactPayloadBytesVerification, true);
+  assert.equal(readiness.resolved.dinoSourceAndArtifactLock, true);
+  assert.equal(readiness.aiRights.generationAllowed, false);
+});
+
+test("DINO raw payload identity is independently locked without approval or runtime claims", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const historical = readiness.aiRights.dinoSourceArtifactMetadata;
+  const summary = readiness.aiRights.dinoPayloadBytes;
+  const lock = await json(summary.lockPath);
+  assert.equal(lock.status, "raw-publisher-payload-identity-verified-restricted-retained-runtime-and-rights-blocked");
+  assert.equal(lock.lockSha256, "72da7b8d42e33ba0f7632018cf9766e93ac5e62892b51023b755ce25db56f55b");
+  assert.deepEqual(lock.sourceMetadataLock, {
+    path: "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+    lockSha256: "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+    publisherUrlTransitivelyBound: true
+  });
+  assert.equal(lock.sourceMetadataLock.path, historical.lockPath);
+  assert.equal(lock.sourceMetadataLock.lockSha256, historical.lockSha256);
+  assert.equal(lock.payload.representation, "raw-opaque-pth-publisher-response-body");
+  assert.equal(lock.payload.byteLength, 1217607321);
+  assert.equal(lock.payload.observedSha256, "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51");
+  assert.equal(lock.payload.publisherSha256, null);
+  assert.deepEqual(lock.payload.independentHashTools, ["openssl", "sha256sum"]);
+  assert.deepEqual(lock.acquisition.preAcquisitionHead, {
+    method: "HEAD",
+    matchedSourceMetadataLockExactly: true
+  });
+  assert.equal(lock.acquisition.get.method, "GET");
+  assert.equal(lock.acquisition.get.status, 200);
+  assert.equal(lock.acquisition.get.redirectsFollowed, 0);
+  assert.equal(lock.acquisition.get.rangeRequested, false);
+  assert.equal(lock.acquisition.get.acceptEncoding, "identity");
+  assert.equal(lock.acquisition.get.responseBlockCount, 1);
+  assert.deepEqual(lock.acquisition.get.headers, {
+    "accept-ranges": "bytes",
+    "content-length": "1217607321",
+    "content-type": "binary/octet-stream",
+    etag: "\"b6cbe2bf3ce2f370d5a67bcd465144b0-146\"",
+    "last-modified": "Fri, 27 Oct 2023 10:37:32 GMT",
+    "x-amz-server-side-encryption": "AES256",
+    "x-amz-version-id": "HLmbhvcd2hPq9CNLwMvwswbRlzZRuOeA"
+  });
+  assert.deepEqual(lock.acquisition.get.absentHeaders, [
+    "content-encoding",
+    "content-range",
+    "location",
+    "transfer-encoding"
+  ]);
+  assert.equal(lock.restrictedStorage.contentAddress.digest, lock.payload.observedSha256);
+  assert.deepEqual(lock.restrictedStorage.encryption, { mode: "SSE-KMS", algorithm: "AES-256" });
+  assert.equal(lock.restrictedStorage.versioningEnabled, false);
+  assert.equal(lock.restrictedStorage.objectAcl, "owner-only");
+  assert.equal(lock.restrictedStorage.bucketAclEntryCount, 0);
+  assert.equal(lock.restrictedStorage.evidenceScope, "operator-attested-point-in-time");
+  assert.equal(lock.restrictedStorage.staticKeyAuthEnabled, false);
+  assert.deepEqual(lock.restrictedStorage.anonymousAccess, { read: false, list: false, configRead: false });
+  assert.deepEqual(lock.restrictedStorage.liveUnauthenticatedHttpStatus, { read: 403, list: 403, configRead: 403 });
+  assert.equal(lock.restrictedStorage.fullReadback.matchedPayloadIdentity, true);
+  assert.equal(lock.restrictedStorage.incompleteMultipartUploads, 0);
+  assert.equal(lock.restrictedStorage.knownLocalPayloadCopiesDeleted, true);
+  assert.equal(lock.restrictedStorage.operatorRecord.rawRecordSha256, "55d6dcbe1321068ac82a4c2e2f07f2faabd803e86693ec809044724b5d6a91da");
+  assert.equal(lock.restrictedStorage.operatorRecord.locatorPublished, false);
+  assert.equal(lock.normalCi.scope, "canonical-public-lock-only/no-payload-or-restricted-record-access");
+  assert.equal(lock.normalCi.networkRequestInitiatedByVerifier, false);
+  assert.equal(lock.normalCi.payloadAccessAllowed, false);
+  assert.ok(Object.values(lock.boundaries).every((value) => value === false));
+  assert.deepEqual(lock.gateEffect.directlyResolvedGates, ["dinoArtifactPayloadBytesVerification"]);
+  assert.deepEqual(lock.gateEffect.mechanicallyResolvedCompositeGates, ["dinoSourceAndArtifactLock"]);
+  const currentResolved = new Set(readiness.aiRights.currentGateState.resolvedGates);
+  assert.ok(lock.gateComposition.dinoSourceAndArtifactLock.members.every((gate) => currentResolved.has(gate)));
+  assert.ok(currentResolved.has("dinoSourceAndArtifactLock"));
+  assert.equal(lock.gateSnapshot, "historical-at-dino-payload-bytes-lock");
+  assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
+  assert.deepEqual(summary.openGatesAtLock, lock.openGates);
+  assert.equal(summary.observedSha256, lock.payload.observedSha256);
+  assert.equal(summary.publisherSha256, null);
+  assert.equal(summary.payloadBytesVerified, true);
+  assert.equal(summary.externalVerifiedAt, "2026-08-20T09:04:22Z");
+  assert.equal(summary.payloadUploadedAt, "2026-08-20T08:46:24Z");
+  assert.deepEqual(summary.approvalClaims, {
+    derivedArtifactApproved: false,
+    humanSignoffApproved: false,
+    payloadApproved: false,
+    publisherSha256Verified: false,
+    rightsApproved: false,
+    runtimeApproved: false,
+    sourceLicenseApproved: false,
+    weightLicenseApproved: false
+  });
+  assert.equal(historical.observedSha256, null);
+  assert.equal(historical.payloadBytesVerified, false);
+  assert.deepEqual(historical.resolvedGatesAtLock, ["dinoSourceGitObjectLock"]);
+  assert.ok(historical.openGatesAtLock.includes("dinoArtifactPayloadBytesVerification"));
+  assert.ok(historical.openGatesAtLock.includes("dinoSourceAndArtifactLock"));
+  assert.equal(readiness.aiRights.verdict, "blocked");
   assert.equal(readiness.aiRights.generationAllowed, false);
 });
 
