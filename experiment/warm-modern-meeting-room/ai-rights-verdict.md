@@ -6,14 +6,16 @@ Current verdict: `BLOCK` for generation. The stock TRELLIS package path is not
 approved. A deterministic source artifact for the purpose-built
 image-to-raw-mesh path is now materialized and passes static policy and syntax
 verification. The publisher Git revision, configs, and LFS pointer identities
-for TRELLIS-image-large are also locked. The DINOv2 source Git objects, candidate
-runtime source selection, and one publisher HEAD observation are now locked as
-well. The raw opaque DINO publisher PTH byte identity is now independently
-verified and retained under restricted policy, but it was not deserialized or
-executed. Generation remains blocked because the selected TRELLIS payloads are
-still unverified; DINO source-versus-weight rights, a derived runtime artifact,
-tensor equivalence, runtime imports, dependencies, container, SBOM, GPU,
-provider, and human-signoff gates remain open.
+for TRELLIS-image-large are also locked. The four selected raw TRELLIS payload
+byte identities now independently match their publisher LFS pointer OIDs and are
+point-in-time attested as restricted-retained. The DINOv2 source Git objects,
+candidate runtime source selection, and one publisher HEAD observation are
+locked as well. The raw opaque DINO publisher PTH byte identity is independently
+verified and restricted-retained. None of these payloads was parsed,
+deserialized, or executed. Generation remains blocked because DINO
+source-versus-weight rights, a derived runtime artifact, tensor equivalence,
+runtime imports, dependencies, container, SBOM, GPU, provider, rights, and
+human-signoff gates remain open.
 
 This is a conservative technical rights record, not legal advice.
 
@@ -24,15 +26,15 @@ This is a conservative technical rights record, not legal advice.
 | FLUX.1-schnell model | `741f7c3ce8b383c54771c7003378a50191e9efe9` | Apache-2.0 model metadata | Conditional; gated access and exact artifact/dependency lock remain open |
 | FLUX source | `802fb4713906133fcbd0d8dc5351620ca4773036` | Apache-2.0 | Conditional |
 | TRELLIS source | `442aa1e1afb9014e80681d3bf604e8d728a86ee7` | MIT root license | Stock import path blocked by narrower file-level terms |
-| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata only | Publisher Git/LFS pointer identity locked; payload bytes and runtime compatibility unverified; no standalone license file |
+| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata only | Four selected raw payload byte identities independently match the publisher LFS pointers and are point-in-time restricted-retained; runtime compatibility, rights approval, and human signoff remain unresolved; no standalone license file |
 | Modified FlexiCubes | `815e075a2a400d06c48d94c347674344ed6ae5c5` | Apache-2.0 | Allowed only inside the pruned mesh path |
 | DINOv2 source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 root license with a conflicting repository README caveat | Source Git-object identity locked; repository-scope caveat and runtime qualification remain unresolved |
 | DINOv2 ViT-L/14 reg4 weights | raw opaque PTH SHA-256 `36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51`; publisher URL transitively bound through the historical source lock | Apache-2.0 model-card evidence only | Raw publisher payload byte identity independently verified and restricted-retained; publisher SHA-256 absent; deserialization, redistribution review, derived runtime artifact, and strict-load qualification remain unresolved |
 
-No model input images were downloaded. The DINO raw publisher payload was
-acquired and retained outside public Git under the controls recorded below; all
-known local payload copies were then deleted. The selected TRELLIS payloads were
-not downloaded or independently verified.
+No model input images were downloaded. The DINO raw publisher payload and four
+selected raw TRELLIS payloads were acquired and retained outside public Git
+under the point-in-time controls recorded below; all known local payload copies
+were then deleted.
 
 ## Hard Failure In The Stock TRELLIS Path
 
@@ -137,9 +139,10 @@ times. They therefore preserve gates that were open when each lock was made.
 Only `readiness.json` `currentGateState` is the unified current state. It is
 validated independently from the immutable per-lock snapshots and evaluates the
 DINO `allOf` composition from its members. It marks the TRELLIS pointer-identity
-gate, DINO source Git-object leaf, DINO raw payload byte-identity leaf, and their
-`allOf` composite resolved. The TRELLIS payload verification gate, DINO derived
-runtime artifact gate, and every non-identity gate remain open.
+and selected-payload byte-identity leaves, DINO source Git-object leaf, DINO raw
+payload byte-identity leaf, and the DINO `allOf` composite resolved. The TRELLIS
+payload lock resolves no composite gate. The DINO derived runtime artifact gate
+and every non-identity gate remain open.
 
 Normal CI can reproduce raw-byte hashes, sizes, modes, dispositions, both lock
 digests, the source-to-artifact mapping, Python syntax parsing, internal module
@@ -157,7 +160,8 @@ artifacts are locked. FlexiCubes `DCO.txt`, both upstream READMEs,
 `.gitmodules`, and serialized attention are omitted from the shipping tree.
 No weight payloads were added to public Git, and no model inputs, generated
 outputs, containers, or compute resources were added or created. The raw DINO
-payload is retained only in restricted storage as described below.
+payload and four selected raw TRELLIS payloads are retained only under the
+point-in-time restricted-storage attestations described below.
 
 ## Publisher Model Git/LFS Identity Lock
 
@@ -194,16 +198,15 @@ The four selected publisher LFS pointer identities are:
 | `ss_dec_conv3d_16l8_fp16.safetensors` | `1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a` | 147591972 |
 | `ss_flow_img_dit_L_16l8_fp16.safetensors` | `96dc6bfd4136fd950af564dd16b4ae533c9ba6af8f26c670646b2a9f2789b1db` | 1130770840 |
 
-Their declared total is 2664021360 bytes. These values came from publisher LFS
-pointers, not from independently hashing payload bytes. The
-`trellisModelArtifactLock` gate is resolved only at publisher commit, raw Git
-blob, config, and LFS pointer identity level. The new
-`trellisModelPayloadBytesVerification` gate remains open: the four selected
-payloads must be ingested directly into restricted storage, independently
-SHA-256 hashed and size-checked against these pointers, and retained by digest
-before launch. Even closing that gate would not clear training-data, output
-non-infringement, redistribution, tensor compatibility, runtime, or human
-approval questions.
+Their declared total is 2664021360 bytes. In this historical model-artifact lock,
+these values came from publisher LFS pointers rather than independently hashing
+payload bytes. The historical `trellisModelArtifactLock` gate is resolved only
+at publisher commit, raw Git blob, config, and LFS pointer identity level, and
+its snapshot correctly leaves `trellisModelPayloadBytesVerification` open. The
+separate payload lock below records the later byte-identity result without
+mutating this historical lock. Closing that leaf does not clear training-data,
+output non-infringement, redistribution, tensor compatibility, runtime, rights,
+or human-approval questions.
 
 The no-checkout verifier reads only local Git objects with lazy fetch and Git
 LFS smudge disabled. It removes inherited Git environment overrides, disables
@@ -215,6 +218,79 @@ external evidence and is not reproduced by normal repository CI; CI validates
 the canonical lock and its semantic relationships without cloning the publisher
 repository. The verifier does not invoke Git LFS, read LFS payload bytes, execute
 model runtime code, or permit network fallback.
+
+## TRELLIS Selected Payload Byte-Identity Lock
+
+`trellis-payload-bytes-lock.json` is a separate timestamp-free canonical public
+lock. It references the unchanged historical model-artifact lock by public path
+and semantic SHA-256, thereby binding publisher repository
+`https://huggingface.co/microsoft/TRELLIS-image-large`, exact commit
+`25e0d31ffbebe4b5a97464dd851910efc3002d96`, and the selected LFS pointers. Its
+complete semantics are bound by SHA-256
+`d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d`.
+
+Each selected payload was acquired by direct GET from its commit-pinned resolve
+path with `Accept-Encoding: identity` and no Range request. Each request followed
+one 302 redirect to a final 200 response with content type
+`application/octet-stream` and `Accept-Ranges: bytes`. Each initial 302 response
+reported `x-linked-size` equal to the exact payload byte length and an exact
+quoted `x-linked-etag` equal to the publisher LFS SHA-256:
+
+| Artifact | Exact bytes | Publisher LFS / observed SHA-256 | Final ETag |
+|---|---:|---|---|
+| `slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors` | 181903412 | `3e87aba94b5786407eb06d0502c1ed0885a0027a3f2b8537bfe15b0a92c01859` | `"90cbb9469e3bb19934ab40a8cec5331b88323c0636b89139383b632d396503cb"` |
+| `slat_flow_img_dit_L_64l8p2_fp16.safetensors` | 1203755136 | `693fb2a58ad497bd222007301eeec49d14d60f8c12d2f2f00c221fa747b4c66c` | `"48327f38cd327356fd2fe0a413429b8f9dfc7cc1a9ca4564b2ec9291c73bfb76"` |
+| `ss_dec_conv3d_16l8_fp16.safetensors` | 147591972 | `1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a` | `"6ac386147a7d3c547af80d0f813e4d4a380e514ac0c1e3a9096ae60c94a497e1"` |
+| `ss_flow_img_dit_L_16l8_fp16.safetensors` | 1130770840 | `96dc6bfd4136fd950af564dd16b4ae533c9ba6af8f26c670646b2a9f2789b1db` | `"2235ba5568195f3ac0ef7eb16f46e596a6a93c5cdf409004130a50cc1f032126"` |
+
+The exact total is 2664021360 bytes. `sha256sum` and OpenSSL independently
+matched every raw response body to its publisher LFS pointer OID. No
+safetensors parsing, deserialization, model input, runtime execution, or
+generation occurred.
+
+At the external record time `2026-08-20T12:46:45Z`, operator evidence covered
+four content-addressed objects with SSE-KMS AES-256, versioning disabled,
+owner-only object ACLs, no bucket ACL grants beyond the owner, static-key
+authentication disabled, and anonymous read, list, and configuration access all
+disabled. Live unauthenticated checks returned HTTP 403. Full object readback
+matched every exact size and SHA-256, and incomplete multipart uploads were zero.
+Known local payload deletion was verified at `2026-08-20T12:44:28Z`. These are
+point-in-time operator attestations, not continuing public proof of storage
+state.
+
+Before the successful explicit put-object path, one canned-ACL attempt was
+rejected before transfer and a separate copy path left four incomplete multipart
+uploads. All four were detected and aborted. No private bucket, KMS, object-key,
+resource, principal, credential, or other restricted locator is published. The
+restricted schema-version-3 operator record was fully read back; its raw-record
+SHA-256 is
+`33f033da362875c9332613183ac8398ef886b7b7c0de768a739f71167e1306ab`.
+
+Only `trellisModelPayloadBytesVerification` is directly resolved. There is no
+composite gate effect. The historical snapshot resolves exactly the DINO payload
+leaf, DINO source leaf and their composite, patched source tree, TRELLIS model
+artifact leaf, and TRELLIS payload leaf. Dependency wheel hashes, the DINO
+derived runtime artifact, GPU parity and VRAM, human rights signoff, OCI image,
+offline import runtime, patched PyTorch qualification, provider terms, SBOM and
+vulnerability report, and third-party notices remain open.
+
+The normal-CI invocation of this verifier validates only the canonical public
+lock, its self-digest, and its relationship to the historical public model lock.
+This verifier invocation does not access real payloads or the restricted
+operator record, initiate payload or network requests, allow network fallback,
+or reproduce the real payload hashes. This does not claim that the complete
+normal CI workflow is network-free. CI exercises optional streaming verification
+only with small synthetic fixtures. On Linux, the explicit `--payload-dir` mode
+uses bounded descriptor-anchored directory enumeration and child access, streams
+the four expected regular files as logical bytes, and rejects missing or extra
+selection, size or hash drift, nonregular input, symlink components, and
+path/inode changes. It fails closed where descriptor-relative access is
+unavailable. It does not parse safetensors and makes no claim about runner
+network isolation or physical sparse allocation.
+
+This identity lock does not establish tensor keys, shapes, dtypes, strict-load
+compatibility, runtime safety, license or redistribution approval, model-input
+approval, output rights, human signoff, or permission to generate.
 
 ## DINO Source And Publisher Metadata Lock
 
@@ -361,7 +437,7 @@ identity result does not resolve `dinoDerivedRuntimeArtifactLock` or any other
 non-identity gate. Current open gates remain dependency wheel hashes, DINO
 derived runtime artifact, GPU parity and VRAM, human rights signoff, OCI image,
 offline import runtime, patched PyTorch qualification, provider terms, SBOM and
-vulnerability report, third-party notices, and TRELLIS payload verification.
+vulnerability report, and third-party notices.
 
 Normal CI scope is
 `canonical-public-lock-only/no-payload-or-restricted-record-access`: it validates
@@ -381,9 +457,10 @@ approved, safe, licensed, runtime-ready, or publisher-hash-verified.
 
 ## Open Security And Reproducibility Failures
 
-- The selected TRELLIS LFS payload bytes have not been downloaded, independently
-  hashed, or tested for strict state-dict and tensor compatibility. The
-  `trellisModelPayloadBytesVerification` gate remains mandatory before launch.
+- The four selected TRELLIS raw payload byte identities now match their publisher
+  LFS pointer SHA-256 values, but no safetensors parsing, tensor-key/shape/dtype
+  inspection, strict state-dict load, source compatibility test, runtime, model
+  input, generation, rights approval, or human signoff occurred.
 - No publisher SHA-256 was found in the reviewed pinned evidence, HEAD, or GET
   metadata for the official `dinov2_vitl14_reg` PyTorch artifact. The raw
   1217607321-byte payload now has an independent observed SHA-256 and restricted

@@ -6,6 +6,7 @@ import {
 } from "./verify-dino-source-artifact.mjs";
 import { loadWmmrDinoPayloadArtifactLock } from "./verify-dino-payload-artifact.mjs";
 import { loadWmmrModelArtifactLock } from "./verify-trellis-model-artifact.mjs";
+import { loadWmmrTrellisPayloadArtifactLock } from "./verify-trellis-payload-artifact.mjs";
 import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
 
@@ -128,6 +129,65 @@ assert(readiness.aiRights.trellisModelArtifact.gateSnapshot === "historical-at-m
 assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.resolvedGatesAtLock) === JSON.stringify(modelArtifact.resolvedGates), "model_artifact_resolved_gates_mismatch");
 assert(JSON.stringify(readiness.aiRights.trellisModelArtifact.openGatesAtLock) === JSON.stringify(modelArtifact.openGates), "model_artifact_open_gates_mismatch");
 assert(modelArtifact.openGates.includes("trellisModelPayloadBytesVerification"), "model_payload_verification_gate_missing");
+const trellisPayload = await loadWmmrTrellisPayloadArtifactLock(
+  resolve(root, readiness.aiRights.trellisPayloadBytes.lockPath)
+);
+const trellisPayloadSummary = readiness.aiRights.trellisPayloadBytes;
+assert(trellisPayloadSummary.status === trellisPayload.status, "trellis_payload_status_mismatch");
+assert(trellisPayloadSummary.lockSha256 === trellisPayload.lockSha256, "trellis_payload_lock_digest_mismatch");
+assert(trellisPayloadSummary.modelArtifactLockPath === trellisPayload.modelArtifactLock.path, "trellis_payload_model_lock_path_mismatch");
+assert(trellisPayloadSummary.modelArtifactLockSha256 === trellisPayload.modelArtifactLock.lockSha256, "trellis_payload_model_lock_digest_mismatch");
+assert(trellisPayloadSummary.modelArtifactLockPath === readiness.aiRights.trellisModelArtifact.lockPath, "trellis_payload_historical_model_path_mismatch");
+assert(trellisPayloadSummary.modelArtifactLockSha256 === readiness.aiRights.trellisModelArtifact.lockSha256, "trellis_payload_historical_model_digest_mismatch");
+assert(trellisPayloadSummary.publisherRepository === trellisPayload.modelArtifactLock.publisherRepository, "trellis_payload_publisher_repository_mismatch");
+assert(trellisPayloadSummary.publisherCommit === trellisPayload.modelArtifactLock.publisherCommit, "trellis_payload_publisher_commit_mismatch");
+assert(trellisPayloadSummary.representation === trellisPayload.payloadSet.representation, "trellis_payload_representation_mismatch");
+assert(trellisPayloadSummary.payloadCount === trellisPayload.payloadSet.count, "trellis_payload_count_mismatch");
+assert(trellisPayloadSummary.totalByteLength === trellisPayload.payloadSet.totalByteLength, "trellis_payload_total_mismatch");
+assert(trellisPayloadSummary.publisherPointerHashesMatched === true
+  && trellisPayload.payloadSet.payloads.every((payload) => (
+    payload.hashesMatch === true && payload.publisherLfsOidSha256 === payload.observedSha256
+  )),
+"trellis_payload_publisher_pointer_hash_mismatch");
+assert(trellisPayloadSummary.payloadBytesVerified === true, "trellis_payload_bytes_not_verified");
+assert(trellisPayloadSummary.retainedInRestrictedStorageAtVerification === true, "trellis_payload_not_retained_at_verification");
+assert(trellisPayloadSummary.storageEvidenceScope === trellisPayload.restrictedStorage.evidenceScope, "trellis_payload_storage_evidence_scope_invalid");
+assert(trellisPayloadSummary.fullReadbackVerified === trellisPayload.restrictedStorage.fullReadback.everyObjectMatchedPayloadIdentity, "trellis_payload_readback_mismatch");
+assert(trellisPayloadSummary.operatorRecordVersion === trellisPayload.restrictedStorage.operatorRecord.schemaVersion, "trellis_payload_operator_record_version_mismatch");
+assert(trellisPayloadSummary.operatorRecordVisibility === trellisPayload.restrictedStorage.operatorRecord.visibility, "trellis_payload_operator_record_visibility_mismatch");
+assert(trellisPayloadSummary.operatorRecordRawSha256 === trellisPayload.restrictedStorage.operatorRecord.rawRecordSha256, "trellis_payload_operator_record_digest_mismatch");
+assert(trellisPayloadSummary.externalRecordAt === "2026-08-20T12:46:45Z", "trellis_payload_external_record_time_invalid");
+assert(trellisPayloadSummary.localPayloadDeletionVerifiedAt === "2026-08-20T12:44:28Z", "trellis_payload_local_deletion_time_invalid");
+assert(!Object.hasOwn(trellisPayload, "externalRecordAt")
+  && !Object.hasOwn(trellisPayload, "localPayloadDeletionVerifiedAt"),
+"trellis_payload_lock_must_be_timestamp_free");
+assert(trellisPayloadSummary.uploadRetrySummary === "canned-acl-rejected-before-transfer-and-four-incomplete-multipart-uploads-aborted-before-explicit-put-object-success", "trellis_payload_retry_summary_invalid");
+assert(trellisPayloadSummary.normalCiScope === trellisPayload.normalCi.scope, "trellis_payload_normal_ci_scope_mismatch");
+assert(trellisPayloadSummary.normalCiScope === "canonical-public-lock-and-historical-relationship-only/no-payload-or-restricted-record-access", "trellis_payload_normal_ci_scope_invalid");
+assert(trellisPayload.normalCi.realPayloadHashesReproducible === false, "trellis_payload_normal_ci_hash_reproduction_claim_invalid");
+assert(trellisPayload.normalCi.networkFallbackAllowedByVerifier === false, "trellis_payload_network_fallback_claim_invalid");
+assert(trellisPayload.normalCi.streamingVerificationCoverage === "synthetic-fixtures-only", "trellis_payload_normal_ci_fixture_scope_invalid");
+assert(trellisPayloadSummary.safetensorsParsed === false && trellisPayload.boundaries.safetensorsParsed === false, "trellis_payload_parsing_claim_invalid");
+assert(trellisPayloadSummary.deserialized === false && trellisPayload.boundaries.deserialized === false, "trellis_payload_deserialization_claim_invalid");
+assert(trellisPayloadSummary.runtimeExecuted === false && trellisPayload.boundaries.runtimeExecuted === false, "trellis_payload_runtime_claim_invalid");
+assert(trellisPayloadSummary.modelInputUsed === false && trellisPayload.boundaries.modelInputUsed === false, "trellis_payload_model_input_claim_invalid");
+assert(trellisPayloadSummary.generationAllowed === false && trellisPayload.boundaries.generationAllowed === false, "trellis_payload_generation_claim_invalid");
+assert(JSON.stringify(trellisPayloadSummary.approvalClaims) === JSON.stringify({
+  humanSignoffApproved: false,
+  payloadApproved: false,
+  rightsApproved: false,
+  runtimeApproved: false,
+  weightLicenseApproved: false
+}), "trellis_payload_approval_claim_invalid");
+assert(trellisPayloadSummary.gateSnapshot === trellisPayload.gateSnapshot, "trellis_payload_gate_snapshot_invalid");
+assert(JSON.stringify(trellisPayloadSummary.resolvedGatesAtLock) === JSON.stringify(trellisPayload.resolvedGates), "trellis_payload_resolved_gates_mismatch");
+assert(JSON.stringify(trellisPayloadSummary.openGatesAtLock) === JSON.stringify(trellisPayload.openGates), "trellis_payload_open_gates_mismatch");
+assert(JSON.stringify(trellisPayload.gateEffect.directlyResolvedGates) === JSON.stringify(["trellisModelPayloadBytesVerification"]), "trellis_payload_direct_gate_effect_invalid");
+assert(trellisPayload.gateEffect.doesNotResolveCompositeGates === true, "trellis_payload_composite_gate_effect_invalid");
+assert(!Object.hasOwn(trellisPayload, "gateComposition"), "trellis_payload_composite_gate_forbidden");
+assert(readiness.aiRights.trellisModelArtifact.payloadBytesVerified === false
+  && modelArtifact.boundaries.lfsPayloadBytesIndependentlyVerified === false,
+"trellis_historical_payload_claims_mutated");
 const dinoArtifact = await loadWmmrDinoSourceArtifactLock(
   resolve(root, readiness.aiRights.dinoSourceArtifactMetadata.lockPath)
 );
@@ -243,7 +303,8 @@ const expectedCurrentResolvedGates = [
   "dinoSourceAndArtifactLock",
   "dinoSourceGitObjectLock",
   "patchedSourceTreeDigest",
-  "trellisModelArtifactLock"
+  "trellisModelArtifactLock",
+  "trellisModelPayloadBytesVerification"
 ];
 const expectedCurrentOpenGates = [
   "dependencyWheelHashLock",
@@ -255,8 +316,7 @@ const expectedCurrentOpenGates = [
   "patchedPytorchQualification",
   "providerTermsSnapshot",
   "sbomAndVulnerabilityReport",
-  "thirdPartyNoticeBundle",
-  "trellisModelPayloadBytesVerification"
+  "thirdPartyNoticeBundle"
 ];
 assert(JSON.stringify(readiness.aiRights.currentGateState.resolvedGates) === JSON.stringify(expectedCurrentResolvedGates), "current_ai_rights_resolved_gates_invalid");
 assert(JSON.stringify(readiness.aiRights.currentGateState.openGates) === JSON.stringify(expectedCurrentOpenGates), "current_ai_rights_open_gates_invalid");
@@ -289,6 +349,7 @@ assert(readiness.resolved.trellisModelArtifactLock === true, "model_artifact_loc
 assert(readiness.resolved.dinoSourceGitObjectLock === true, "dino_source_git_object_lock_not_resolved");
 assert(readiness.resolved.dinoArtifactPayloadBytesVerification === true, "dino_payload_bytes_gate_not_resolved");
 assert(readiness.resolved.dinoSourceAndArtifactLock === true, "dino_source_and_artifact_gate_not_resolved");
+assert(readiness.resolved.trellisModelPayloadBytesVerification === true, "trellis_payload_bytes_gate_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");

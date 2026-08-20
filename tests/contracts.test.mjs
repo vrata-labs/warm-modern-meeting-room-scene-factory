@@ -210,7 +210,8 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
     "dinoSourceAndArtifactLock",
     "dinoSourceGitObjectLock",
     "patchedSourceTreeDigest",
-    "trellisModelArtifactLock"
+    "trellisModelArtifactLock",
+    "trellisModelPayloadBytesVerification"
   ]);
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceGitObjectLock"));
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoArtifactPayloadBytesVerification"));
@@ -312,6 +313,91 @@ test("DINO raw payload identity is independently locked without approval or runt
   assert.deepEqual(historical.resolvedGatesAtLock, ["dinoSourceGitObjectLock"]);
   assert.ok(historical.openGatesAtLock.includes("dinoArtifactPayloadBytesVerification"));
   assert.ok(historical.openGatesAtLock.includes("dinoSourceAndArtifactLock"));
+  assert.equal(readiness.aiRights.verdict, "blocked");
+  assert.equal(readiness.aiRights.generationAllowed, false);
+});
+
+test("TRELLIS selected payload identities resolve only their direct leaf without runtime or approval claims", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const historical = readiness.aiRights.trellisModelArtifact;
+  const summary = readiness.aiRights.trellisPayloadBytes;
+  const lock = await json(summary.lockPath);
+  assert.equal(lock.status, "selected-raw-publisher-payload-identity-verified-restricted-retained-runtime-and-rights-blocked");
+  assert.equal(lock.lockSha256, "d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d");
+  assert.deepEqual(lock.modelArtifactLock, {
+    path: "experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json",
+    lockSha256: "d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9",
+    publisherRepository: "https://huggingface.co/microsoft/TRELLIS-image-large",
+    publisherCommit: "25e0d31ffbebe4b5a97464dd851910efc3002d96",
+    selectedPayloadPointersTransitivelyBound: true
+  });
+  assert.equal(lock.modelArtifactLock.path, historical.lockPath);
+  assert.equal(lock.modelArtifactLock.lockSha256, historical.lockSha256);
+  assert.equal(lock.payloadSet.count, 4);
+  assert.equal(lock.payloadSet.totalByteLength, 2664021360);
+  assert.deepEqual(lock.payloadSet.independentHashTools, ["openssl", "sha256sum"]);
+  assert.ok(lock.payloadSet.payloads.every((payload) => (
+    payload.publisherLfsOidSha256 === payload.observedSha256
+      && payload.hashesMatch === true
+      && payload.acquisition.method === "GET"
+      && payload.acquisition.acceptEncoding === "identity"
+      && payload.acquisition.rangeRequested === false
+      && payload.acquisition.redirectsFollowed === 1
+      && JSON.stringify(payload.acquisition.responseStatuses) === JSON.stringify([302, 200])
+      && payload.acquisition.initialResponse.status === 302
+      && payload.acquisition.initialResponse.headers["x-linked-size"] === String(payload.byteLength)
+      && payload.acquisition.initialResponse.headers["x-linked-etag"] === `"${payload.publisherLfsOidSha256}"`
+      && payload.acquisition.finalResponse.status === 200
+      && payload.acquisition.finalResponse.contentType === "application/octet-stream"
+      && payload.acquisition.finalResponse.acceptRanges === "bytes"
+      && /^"[0-9a-f]{64}"$/.test(payload.acquisition.finalResponse.etag)
+      && payload.restrictedStorageReadback.matchedPayloadIdentity === true
+  )));
+  assert.equal(lock.restrictedStorage.evidenceScope, "operator-attested-point-in-time");
+  assert.equal(lock.restrictedStorage.continuingPublicProof, false);
+  assert.deepEqual(lock.restrictedStorage.encryption, { mode: "SSE-KMS", algorithm: "AES-256" });
+  assert.equal(lock.restrictedStorage.versioningEnabled, false);
+  assert.equal(lock.restrictedStorage.objectAcl, "owner-only");
+  assert.equal(lock.restrictedStorage.bucketAclGrantsBeyondOwner, 0);
+  assert.equal(lock.restrictedStorage.staticKeyAuthEnabled, false);
+  assert.deepEqual(lock.restrictedStorage.anonymousAccess, { read: false, list: false, configRead: false });
+  assert.deepEqual(lock.restrictedStorage.liveUnauthenticatedHttpStatus, { read: 403, list: 403, configRead: 403 });
+  assert.equal(lock.restrictedStorage.fullReadback.everyObjectMatchedPayloadIdentity, true);
+  assert.equal(lock.restrictedStorage.incompleteMultipartUploads, 0);
+  assert.equal(lock.restrictedStorage.knownLocalPayloadCopiesDeleted, true);
+  assert.equal(lock.restrictedStorage.operatorRecord.schemaVersion, 3);
+  assert.equal(lock.restrictedStorage.operatorRecord.rawRecordSha256, "33f033da362875c9332613183ac8398ef886b7b7c0de768a739f71167e1306ab");
+  assert.equal(lock.restrictedStorage.operatorRecord.locatorPublished, false);
+  assert.equal(lock.normalCi.scope, "canonical-public-lock-and-historical-relationship-only/no-payload-or-restricted-record-access");
+  assert.equal(lock.normalCi.realPayloadHashesReproducible, false);
+  assert.equal(lock.normalCi.networkFallbackAllowedByVerifier, false);
+  assert.equal(lock.normalCi.streamingVerificationCoverage, "synthetic-fixtures-only");
+  assert.ok(Object.values(lock.boundaries).every((value) => value === false));
+  assert.deepEqual(lock.gateEffect.directlyResolvedGates, ["trellisModelPayloadBytesVerification"]);
+  assert.equal(lock.gateEffect.doesNotResolveCompositeGates, true);
+  assert.equal(Object.hasOwn(lock, "gateComposition"), false);
+  assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
+  assert.deepEqual(summary.openGatesAtLock, lock.openGates);
+  assert.equal(summary.externalRecordAt, "2026-08-20T12:46:45Z");
+  assert.equal(summary.localPayloadDeletionVerifiedAt, "2026-08-20T12:44:28Z");
+  assert.equal(summary.safetensorsParsed, false);
+  assert.equal(summary.deserialized, false);
+  assert.equal(summary.runtimeExecuted, false);
+  assert.equal(summary.modelInputUsed, false);
+  assert.equal(summary.generationAllowed, false);
+  assert.deepEqual(summary.approvalClaims, {
+    humanSignoffApproved: false,
+    payloadApproved: false,
+    rightsApproved: false,
+    runtimeApproved: false,
+    weightLicenseApproved: false
+  });
+  assert.equal(historical.payloadBytesVerified, false);
+  assert.deepEqual(historical.resolvedGatesAtLock, ["trellisModelArtifactLock"]);
+  assert.ok(historical.openGatesAtLock.includes("trellisModelPayloadBytesVerification"));
+  assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("trellisModelPayloadBytesVerification"));
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("trellisModelPayloadBytesVerification"));
+  assert.equal(readiness.resolved.trellisModelPayloadBytesVerification, true);
   assert.equal(readiness.aiRights.verdict, "blocked");
   assert.equal(readiness.aiRights.generationAllowed, false);
 });

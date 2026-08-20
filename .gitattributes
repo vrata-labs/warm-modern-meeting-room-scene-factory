@@ -3,3 +3,4 @@ experiment/warm-modern-meeting-room/trellis-patched-tree/** whitespace=-blank-at
 experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json text eol=lf
 experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json text eol=lf
 experiment/warm-modern-meeting-room/dino-payload-bytes-lock.json text eol=lf
+experiment/warm-modern-meeting-room/trellis-payload-bytes-lock.json text eol=lf
