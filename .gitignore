@@ -6,6 +6,11 @@ coverage/
 *.glb
 *.gltf
 *.bin
+*.pth
+*.pt
+*.safetensors
+*.ckpt
+*.onnx
 *.png
 *.jpg
 *.jpeg

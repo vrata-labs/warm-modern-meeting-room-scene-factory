@@ -207,6 +207,7 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
   assert.deepEqual(summary.openGatesAtLock, lock.openGates);
   assert.deepEqual(readiness.aiRights.currentGateState.resolvedGates, [
     "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
     "dinoSourceAndArtifactLock",
     "dinoSourceGitObjectLock",
     "patchedSourceTreeDigest",
@@ -215,10 +216,11 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
   ]);
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceGitObjectLock"));
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoArtifactPayloadBytesVerification"));
-  assert.ok(readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoSourceAndArtifactLock"));
   assert.equal(readiness.resolved.dinoSourceGitObjectLock, true);
   assert.equal(readiness.resolved.dinoArtifactPayloadBytesVerification, true);
+  assert.equal(readiness.resolved.dinoDerivedRuntimeArtifactLock, true);
   assert.equal(readiness.resolved.dinoSourceAndArtifactLock, true);
   assert.equal(readiness.aiRights.generationAllowed, false);
 });
@@ -315,6 +317,62 @@ test("DINO raw payload identity is independently locked without approval or runt
   assert.ok(historical.openGatesAtLock.includes("dinoSourceAndArtifactLock"));
   assert.equal(readiness.aiRights.verdict, "blocked");
   assert.equal(readiness.aiRights.generationAllowed, false);
+});
+
+test("DINO derived safetensors lock resolves only exact conversion and tensor equivalence", async () => {
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  const historical = readiness.aiRights.dinoPayloadBytes;
+  const summary = readiness.aiRights.dinoDerivedRuntimeArtifact;
+  const lock = await json(summary.lockPath);
+  const manifest = await json(summary.tensorManifestPath);
+  assert.equal(lock.status, "derived-safetensors-artifact-identity-and-tensor-equivalence-locked-runtime-and-rights-blocked");
+  assert.equal(lock.lockSha256, "947b7b7adb9bcde2d6c63948e789d6b8236045f05d3c8688a2062e20e60b8bb6");
+  assert.equal(manifest.manifestSha256, "1b3d3e1878c99c5f271931e257961091a049af65b4b4ff5c7602bc72b6087a83");
+  assert.equal(lock.payloadBytesLock.path, historical.lockPath);
+  assert.equal(lock.payloadBytesLock.lockSha256, historical.lockSha256);
+  assert.equal(lock.payloadBytesLock.payloadObservedSha256, historical.observedSha256);
+  assert.equal(lock.conversion.options.weightsOnly, true);
+  assert.equal(lock.conversion.options.sealedInputCopy, true);
+  assert.equal(lock.conversion.options.mapLocation, "cpu");
+  assert.equal(lock.conversion.isolation.networkAllowed, false);
+  assert.equal(lock.conversion.isolation.cloudCredentialsPassed, false);
+  assert.equal(lock.conversion.reproducibility.runCount, 2);
+  assert.equal(lock.conversion.reproducibility.artifactByteIdentical, true);
+  assert.equal(lock.artifact.format, "safetensors");
+  assert.equal(lock.artifact.modelId, "dinov2_vitl14_reg");
+  assert.equal(lock.artifact.sha256, "30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc");
+  assert.equal(lock.artifact.byteLength, 1217523408);
+  assert.equal(manifest.tensorCount, 344);
+  assert.equal(manifest.tensorIdentitySha256, "6423b9afd5bcdb42dc69123dcddf203d6534cab0b26d1c09a5d184d18efb3d63");
+  assert.equal(manifest.tensorLayoutSha256, "ba5e1d272ac2691f269385976e9f33b84159d598de9233987aca302a5dcd33aa");
+  assert.equal(lock.tensorEquivalence.mismatchCount, 0);
+  assert.equal(lock.tensorEquivalence.tensorBytesMatched, true);
+  assert.equal(lock.restrictedStorage.fullReadback.matchedArtifactIdentity, true);
+  assert.equal(lock.restrictedStorage.operatorRecord.schemaVersion, 2);
+  assert.equal(lock.restrictedStorage.operatorRecord.rawRecordSha256, "f1485bb09f93a7fa1bf13f04710d74b2c5d142b76305c482b9154ffcee0f28c4");
+  assert.equal(lock.restrictedStorage.operatorRecord.locatorPublished, false);
+  assert.deepEqual(lock.gateEffect.directlyResolvedGates, ["dinoDerivedRuntimeArtifactLock"]);
+  assert.equal(lock.gateEffect.doesNotResolveOtherGates, true);
+  assert.ok(historical.openGatesAtLock.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
+  assert.ok(readiness.aiRights.currentGateState.openGates.includes("offlineImportRuntimeTest"));
+  assert.ok(readiness.aiRights.currentGateState.openGates.includes("patchedPytorchQualification"));
+  assert.equal(summary.deserializedWithWeightsOnly, true);
+  assert.equal(summary.sealedInputCopy, true);
+  assert.equal(summary.strictStateDictLoadExecuted, false);
+  assert.equal(summary.offlineImportRuntimeExecuted, false);
+  assert.equal(summary.modelRuntimeExecuted, false);
+  assert.equal(summary.modelInputUsed, false);
+  assert.equal(summary.generationAllowed, false);
+  assert.deepEqual(summary.approvalClaims, {
+    humanSignoffApproved: false,
+    rightsApproved: false,
+    runtimeApproved: false,
+    sourceWeightRuntimeCompatibilityApproved: false,
+    weightLicenseApproved: false
+  });
+  assert.equal(readiness.aiRights.verdict, "blocked");
 });
 
 test("TRELLIS selected payload identities resolve only their direct leaf without runtime or approval claims", async () => {

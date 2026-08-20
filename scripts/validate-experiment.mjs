@@ -5,6 +5,7 @@ import {
   loadWmmrDinoSourceArtifactLock
 } from "./verify-dino-source-artifact.mjs";
 import { loadWmmrDinoPayloadArtifactLock } from "./verify-dino-payload-artifact.mjs";
+import { loadWmmrDinoDerivedRuntimeArtifactLock } from "./verify-dino-derived-runtime-artifact.mjs";
 import { loadWmmrModelArtifactLock } from "./verify-trellis-model-artifact.mjs";
 import { loadWmmrTrellisPayloadArtifactLock } from "./verify-trellis-payload-artifact.mjs";
 import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
@@ -298,8 +299,83 @@ assert(JSON.stringify(dinoPayload.gateEffect.directlyResolvedGates) === JSON.str
 assert(JSON.stringify(dinoPayload.gateEffect.mechanicallyResolvedCompositeGates) === JSON.stringify(["dinoSourceAndArtifactLock"]), "dino_payload_mechanical_gate_effect_invalid");
 assert(dinoSummary.payloadBytesDownloaded === false && dinoSummary.payloadBytesVerified === false, "dino_historical_claims_mutated");
 assert(dinoPayloadSummary.payloadBytesVerified === true, "dino_current_payload_claim_missing");
+const {
+  lock: dinoDerived,
+  manifest: dinoDerivedManifest
+} = await loadWmmrDinoDerivedRuntimeArtifactLock(
+  resolve(root, readiness.aiRights.dinoDerivedRuntimeArtifact.lockPath)
+);
+const dinoDerivedSummary = readiness.aiRights.dinoDerivedRuntimeArtifact;
+assert(dinoDerivedSummary.status === dinoDerived.status, "dino_derived_status_mismatch");
+assert(dinoDerivedSummary.lockSha256 === dinoDerived.lockSha256, "dino_derived_lock_digest_mismatch");
+assert(dinoDerivedSummary.tensorManifestPath === dinoDerived.tensorManifest.path, "dino_derived_manifest_path_mismatch");
+assert(dinoDerivedSummary.tensorManifestSha256 === dinoDerivedManifest.manifestSha256, "dino_derived_manifest_digest_mismatch");
+assert(dinoDerivedSummary.payloadLockPath === dinoDerived.payloadBytesLock.path, "dino_derived_payload_path_mismatch");
+assert(dinoDerivedSummary.payloadLockSha256 === dinoDerived.payloadBytesLock.lockSha256, "dino_derived_payload_digest_mismatch");
+assert(dinoDerivedSummary.payloadLockPath === dinoPayloadSummary.lockPath, "dino_derived_historical_payload_path_mismatch");
+assert(dinoDerivedSummary.payloadLockSha256 === dinoPayloadSummary.lockSha256, "dino_derived_historical_payload_digest_mismatch");
+assert(dinoDerivedSummary.payloadByteLength === dinoDerived.payloadBytesLock.payloadByteLength, "dino_derived_payload_size_mismatch");
+assert(dinoDerivedSummary.payloadSha256 === dinoDerived.payloadBytesLock.payloadObservedSha256, "dino_derived_payload_sha256_mismatch");
+assert(dinoDerivedSummary.artifactFormat === dinoDerived.artifact.format, "dino_derived_artifact_format_mismatch");
+assert(dinoDerivedSummary.artifactByteLength === dinoDerived.artifact.byteLength, "dino_derived_artifact_size_mismatch");
+assert(dinoDerivedSummary.artifactSha256 === dinoDerived.artifact.sha256, "dino_derived_artifact_sha256_mismatch");
+assert(dinoDerivedSummary.artifactHeaderByteLength === dinoDerived.artifact.headerByteLength, "dino_derived_header_size_mismatch");
+assert(dinoDerivedSummary.artifactHeaderSha256 === dinoDerived.artifact.headerSha256, "dino_derived_header_sha256_mismatch");
+assert(dinoDerivedSummary.tensorCount === dinoDerivedManifest.tensorCount, "dino_derived_tensor_count_mismatch");
+assert(dinoDerivedSummary.totalTensorByteLength === dinoDerivedManifest.totalTensorByteLength, "dino_derived_tensor_bytes_mismatch");
+assert(dinoDerivedSummary.tensorIdentitySha256 === dinoDerivedManifest.tensorIdentitySha256, "dino_derived_tensor_identity_mismatch");
+assert(dinoDerivedSummary.tensorLayoutSha256 === dinoDerivedManifest.tensorLayoutSha256, "dino_derived_tensor_layout_mismatch");
+assert(dinoDerivedSummary.converterPath === dinoDerived.conversion.converter.path, "dino_derived_converter_path_mismatch");
+assert(dinoDerivedSummary.converterSha256 === dinoDerived.conversion.converter.sourceSha256, "dino_derived_converter_sha256_mismatch");
+assert(dinoDerivedSummary.conversionImageDigest === dinoDerived.conversion.environment.conversionImageDigest, "dino_derived_image_digest_mismatch");
+assert(dinoDerivedSummary.pytorchVersion === dinoDerived.conversion.environment.pytorchVersion, "dino_derived_pytorch_version_mismatch");
+assert(dinoDerivedSummary.weightsOnly === true && dinoDerived.conversion.options.weightsOnly === true, "dino_derived_weights_only_missing");
+assert(dinoDerivedSummary.sealedInputCopy === true
+  && dinoDerived.conversion.options.sealedInputCopy === true,
+"dino_derived_sealed_input_missing");
+assert(dinoDerivedSummary.conversionMemoryLimitBytes === dinoDerived.conversion.isolation.memoryLimitBytes, "dino_derived_memory_limit_mismatch");
+assert(dinoDerivedSummary.conversionCpuLimit === dinoDerived.conversion.isolation.cpuLimit, "dino_derived_cpu_limit_mismatch");
+assert(dinoDerivedSummary.conversionPidsLimit === dinoDerived.conversion.isolation.pidsLimit, "dino_derived_pids_limit_mismatch");
+assert(dinoDerivedSummary.conversionRunCount === 2 && dinoDerived.conversion.reproducibility.runCount === 2, "dino_derived_run_count_invalid");
+assert(dinoDerivedSummary.artifactByteIdenticalAcrossRuns === true
+  && dinoDerived.conversion.reproducibility.artifactByteIdentical === true,
+"dino_derived_reproducibility_invalid");
+assert(JSON.stringify(dinoDerivedSummary.conversionEvidenceRawSha256) === JSON.stringify(
+  dinoDerived.conversion.reproducibility.reports.map(({ rawRecordSha256 }) => rawRecordSha256)
+), "dino_derived_conversion_evidence_mismatch");
+assert(dinoDerivedSummary.operatorRecordRawSha256 === dinoDerived.restrictedStorage.operatorRecord.rawRecordSha256, "dino_derived_operator_record_mismatch");
+assert(dinoDerivedSummary.fullReadbackVerified === dinoDerived.restrictedStorage.fullReadback.matchedArtifactIdentity, "dino_derived_readback_mismatch");
+assert(dinoDerivedSummary.incompleteMultipartUploads === 0, "dino_derived_multipart_invalid");
+assert(dinoDerivedSummary.deserializedWithWeightsOnly === true, "dino_derived_deserialization_record_missing");
+assert(dinoDerivedSummary.strictStateDictLoadExecuted === false
+  && dinoDerived.boundaries.strictStateDictLoadExecuted === false,
+"dino_derived_strict_load_claim_invalid");
+assert(dinoDerivedSummary.offlineImportRuntimeExecuted === false
+  && dinoDerived.boundaries.offlineImportRuntimeExecuted === false,
+"dino_derived_offline_import_claim_invalid");
+assert(dinoDerivedSummary.modelRuntimeExecuted === false
+  && dinoDerived.boundaries.modelRuntimeExecuted === false,
+"dino_derived_runtime_claim_invalid");
+assert(dinoDerivedSummary.modelInputUsed === false
+  && dinoDerived.boundaries.modelInputUsed === false,
+"dino_derived_model_input_claim_invalid");
+assert(dinoDerivedSummary.generationAllowed === false
+  && dinoDerived.boundaries.generationAllowed === false,
+"dino_derived_generation_claim_invalid");
+assert(JSON.stringify(dinoDerivedSummary.approvalClaims) === JSON.stringify({
+  humanSignoffApproved: false,
+  rightsApproved: false,
+  runtimeApproved: false,
+  sourceWeightRuntimeCompatibilityApproved: false,
+  weightLicenseApproved: false
+}), "dino_derived_approval_claim_invalid");
+assert(dinoPayload.openGates.includes("dinoDerivedRuntimeArtifactLock"), "dino_historical_derived_gate_mutated");
+assert(JSON.stringify(dinoDerivedSummary.resolvedGatesAtLock) === JSON.stringify(dinoDerived.resolvedGates), "dino_derived_resolved_gates_mismatch");
+assert(JSON.stringify(dinoDerivedSummary.openGatesAtLock) === JSON.stringify(dinoDerived.openGates), "dino_derived_open_gates_mismatch");
+assert(JSON.stringify(dinoDerived.gateEffect.directlyResolvedGates) === JSON.stringify(["dinoDerivedRuntimeArtifactLock"]), "dino_derived_direct_gate_effect_invalid");
 const expectedCurrentResolvedGates = [
   "dinoArtifactPayloadBytesVerification",
+  "dinoDerivedRuntimeArtifactLock",
   "dinoSourceAndArtifactLock",
   "dinoSourceGitObjectLock",
   "patchedSourceTreeDigest",
@@ -308,7 +384,6 @@ const expectedCurrentResolvedGates = [
 ];
 const expectedCurrentOpenGates = [
   "dependencyWheelHashLock",
-  "dinoDerivedRuntimeArtifactLock",
   "gpuParityAndVramTest",
   "humanRightsSignoff",
   "ociImageDigest",
@@ -348,6 +423,7 @@ assert(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible ==
 assert(readiness.resolved.trellisModelArtifactLock === true, "model_artifact_lock_not_resolved");
 assert(readiness.resolved.dinoSourceGitObjectLock === true, "dino_source_git_object_lock_not_resolved");
 assert(readiness.resolved.dinoArtifactPayloadBytesVerification === true, "dino_payload_bytes_gate_not_resolved");
+assert(readiness.resolved.dinoDerivedRuntimeArtifactLock === true, "dino_derived_runtime_artifact_gate_not_resolved");
 assert(readiness.resolved.dinoSourceAndArtifactLock === true, "dino_source_and_artifact_gate_not_resolved");
 assert(readiness.resolved.trellisModelPayloadBytesVerification === true, "trellis_payload_bytes_gate_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
