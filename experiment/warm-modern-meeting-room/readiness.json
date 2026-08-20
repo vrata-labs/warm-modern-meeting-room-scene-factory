@@ -93,7 +93,7 @@
     "verdict": "blocked",
     "verdictDate": "2026-08-20",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "patched-source-materialized-trellis-and-dino-source-plus-raw-payload-identity-locked-runtime-rights-and-human-signoff-pending",
+    "prunedMeshPath": "patched-source-materialized-trellis-and-dino-source-plus-selected-raw-payload-identities-locked-runtime-rights-and-human-signoff-pending",
     "modelInputCount": 0,
     "generationAllowed": false,
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
@@ -185,6 +185,63 @@
         "sbomAndVulnerabilityReport",
         "thirdPartyNoticeBundle",
         "trellisModelPayloadBytesVerification"
+      ]
+    },
+    "trellisPayloadBytes": {
+      "status": "selected-raw-publisher-payload-identity-verified-restricted-retained-runtime-and-rights-blocked",
+      "lockPath": "experiment/warm-modern-meeting-room/trellis-payload-bytes-lock.json",
+      "lockSha256": "d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d",
+      "modelArtifactLockPath": "experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json",
+      "modelArtifactLockSha256": "d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9",
+      "publisherRepository": "https://huggingface.co/microsoft/TRELLIS-image-large",
+      "publisherCommit": "25e0d31ffbebe4b5a97464dd851910efc3002d96",
+      "representation": "raw-opaque-safetensors-publisher-response-bodies",
+      "payloadCount": 4,
+      "totalByteLength": 2664021360,
+      "publisherPointerHashesMatched": true,
+      "payloadBytesVerified": true,
+      "retainedInRestrictedStorageAtVerification": true,
+      "storageEvidenceScope": "operator-attested-point-in-time",
+      "fullReadbackVerified": true,
+      "operatorRecordVersion": 3,
+      "operatorRecordVisibility": "restricted-evidence-retention",
+      "operatorRecordRawSha256": "33f033da362875c9332613183ac8398ef886b7b7c0de768a739f71167e1306ab",
+      "externalRecordAt": "2026-08-20T12:46:45Z",
+      "localPayloadDeletionVerifiedAt": "2026-08-20T12:44:28Z",
+      "uploadRetrySummary": "canned-acl-rejected-before-transfer-and-four-incomplete-multipart-uploads-aborted-before-explicit-put-object-success",
+      "normalCiScope": "canonical-public-lock-and-historical-relationship-only/no-payload-or-restricted-record-access",
+      "safetensorsParsed": false,
+      "deserialized": false,
+      "runtimeExecuted": false,
+      "modelInputUsed": false,
+      "generationAllowed": false,
+      "approvalClaims": {
+        "humanSignoffApproved": false,
+        "payloadApproved": false,
+        "rightsApproved": false,
+        "runtimeApproved": false,
+        "weightLicenseApproved": false
+      },
+      "gateSnapshot": "historical-at-trellis-payload-bytes-lock",
+      "resolvedGatesAtLock": [
+        "dinoArtifactPayloadBytesVerification",
+        "dinoSourceAndArtifactLock",
+        "dinoSourceGitObjectLock",
+        "patchedSourceTreeDigest",
+        "trellisModelArtifactLock",
+        "trellisModelPayloadBytesVerification"
+      ],
+      "openGatesAtLock": [
+        "dependencyWheelHashLock",
+        "dinoDerivedRuntimeArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle"
       ]
     },
     "dinoSourceArtifactMetadata": {
@@ -320,7 +377,8 @@
         "dinoSourceAndArtifactLock",
         "dinoSourceGitObjectLock",
         "patchedSourceTreeDigest",
-        "trellisModelArtifactLock"
+        "trellisModelArtifactLock",
+        "trellisModelPayloadBytesVerification"
       ],
       "openGates": [
         "dependencyWheelHashLock",
@@ -332,8 +390,7 @@
         "patchedPytorchQualification",
         "providerTermsSnapshot",
         "sbomAndVulnerabilityReport",
-        "thirdPartyNoticeBundle",
-        "trellisModelPayloadBytesVerification"
+        "thirdPartyNoticeBundle"
       ]
     }
   },
@@ -422,7 +479,8 @@
     "trellisModelArtifactLock": true,
     "dinoSourceGitObjectLock": true,
     "dinoArtifactPayloadBytesVerification": true,
-    "dinoSourceAndArtifactLock": true
+    "dinoSourceAndArtifactLock": true,
+    "trellisModelPayloadBytesVerification": true
   },
   "blocked": {
     "aiRightsFinalApproval": null,
