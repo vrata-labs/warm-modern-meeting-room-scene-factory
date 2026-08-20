@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
@@ -47,6 +47,30 @@ test("repository boundary scans force-added node_modules and rejects disguised b
   }
 });
 
+test("repository boundary does not inspect extensionless files in forbidden paths", async (context) => {
+  const cases = [
+    ["repository path", "node_modules/cache/opaque.txt", "forbidden_repository_path:node_modules/cache/opaque.txt"],
+    ["top-level path", "restricted/opaque.txt", "forbidden_experiment_top_level_path:restricted"],
+    ["review mapping", "review-alpha.txt", "review_mapping_must_not_be_committed:review-alpha.txt"]
+  ];
+  for (const [name, path, expectedIssue] of cases) {
+    await context.test(name, async () => {
+      const directory = await fixture();
+      try {
+        await mkdir(resolve(directory, path, ".."), { recursive: true });
+        await writeFile(join(directory, path), Buffer.from([0x00]));
+        await git(directory, "add", "-f", path);
+        await assert.rejects(
+          checkRepositoryBoundary(directory),
+          (error) => error.message.includes(expectedIssue) && !error.message.includes("file_must_be_utf8_text")
+        );
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+  }
+});
+
 test("repository boundary validates staged bytes independently from the worktree", async () => {
   const directory = await fixture();
   try {
@@ -56,6 +80,20 @@ test("repository boundary validates staged bytes independently from the worktree
     await assert.rejects(
       checkRepositoryBoundary(directory),
       /git_index_file_must_be_utf8_text:payload\.txt/
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("repository boundary rejects oversized text before loading it", async () => {
+  const directory = await fixture();
+  try {
+    await writeFile(join(directory, "oversized.txt"), Buffer.alloc(4 * 1024 * 1024 + 1, 0x41));
+    await git(directory, "add", "oversized.txt");
+    await assert.rejects(
+      checkRepositoryBoundary(directory),
+      /git_index_text_file_too_large:oversized\.txt/
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

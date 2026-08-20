@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "asOf": "2026-08-15",
+  "asOf": "2026-08-20",
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
@@ -91,9 +91,9 @@
     "ownerRole": "experiment-sponsor",
     "ownerIdentityRecord": "restricted-operator-record",
     "verdict": "blocked",
-    "verdictDate": "2026-08-15",
+    "verdictDate": "2026-08-20",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "patched-source-materialized-trellis-and-dino-source-identity-locked-payload-runtime-and-human-signoff-pending",
+    "prunedMeshPath": "patched-source-materialized-trellis-and-dino-source-plus-raw-payload-identity-locked-runtime-rights-and-human-signoff-pending",
     "modelInputCount": 0,
     "generationAllowed": false,
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
@@ -257,17 +257,74 @@
         "trellisModelPayloadBytesVerification"
       ]
     },
+    "dinoPayloadBytes": {
+      "status": "raw-publisher-payload-identity-verified-restricted-retained-runtime-and-rights-blocked",
+      "lockPath": "experiment/warm-modern-meeting-room/dino-payload-bytes-lock.json",
+      "lockSha256": "72da7b8d42e33ba0f7632018cf9766e93ac5e62892b51023b755ce25db56f55b",
+      "sourceMetadataLockPath": "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+      "sourceMetadataLockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+      "publisherUrlTransitivelyBound": true,
+      "representation": "raw-opaque-pth-publisher-response-body",
+      "byteLength": 1217607321,
+      "observedSha256": "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51",
+      "publisherSha256": null,
+      "payloadBytesVerified": true,
+      "retainedInRestrictedStorageAtVerification": true,
+      "storageEvidenceScope": "operator-attested-point-in-time",
+      "contentAddressSha256": "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51",
+      "fullReadbackVerified": true,
+      "operatorRecordVersion": 2,
+      "operatorRecordVisibility": "restricted-evidence-retention",
+      "operatorRecordRawSha256": "55d6dcbe1321068ac82a4c2e2f07f2faabd803e86693ec809044724b5d6a91da",
+      "externalVerifiedAt": "2026-08-20T09:04:22Z",
+      "payloadUploadedAt": "2026-08-20T08:46:24Z",
+      "normalCiScope": "canonical-public-lock-only/no-payload-or-restricted-record-access",
+      "deserialized": false,
+      "runtimeExecuted": false,
+      "generationAllowed": false,
+      "approvalClaims": {
+        "derivedArtifactApproved": false,
+        "humanSignoffApproved": false,
+        "payloadApproved": false,
+        "publisherSha256Verified": false,
+        "rightsApproved": false,
+        "runtimeApproved": false,
+        "sourceLicenseApproved": false,
+        "weightLicenseApproved": false
+      },
+      "gateSnapshot": "historical-at-dino-payload-bytes-lock",
+      "resolvedGatesAtLock": [
+        "dinoArtifactPayloadBytesVerification",
+        "dinoSourceAndArtifactLock",
+        "dinoSourceGitObjectLock",
+        "patchedSourceTreeDigest",
+        "trellisModelArtifactLock"
+      ],
+      "openGatesAtLock": [
+        "dependencyWheelHashLock",
+        "dinoDerivedRuntimeArtifactLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
+        "ociImageDigest",
+        "offlineImportRuntimeTest",
+        "patchedPytorchQualification",
+        "providerTermsSnapshot",
+        "sbomAndVulnerabilityReport",
+        "thirdPartyNoticeBundle",
+        "trellisModelPayloadBytesVerification"
+      ]
+    },
     "currentGateState": {
       "resolvedGates": [
+        "dinoArtifactPayloadBytesVerification",
+        "dinoSourceAndArtifactLock",
         "dinoSourceGitObjectLock",
         "patchedSourceTreeDigest",
         "trellisModelArtifactLock"
       ],
       "openGates": [
         "dependencyWheelHashLock",
-        "dinoArtifactPayloadBytesVerification",
         "dinoDerivedRuntimeArtifactLock",
-        "dinoSourceAndArtifactLock",
         "gpuParityAndVramTest",
         "humanRightsSignoff",
         "ociImageDigest",
@@ -363,7 +420,9 @@
     "trellisPatchedSourceTreeDigest": true,
     "trellisStaticPolicySyntaxVerificationCiReproducible": true,
     "trellisModelArtifactLock": true,
-    "dinoSourceGitObjectLock": true
+    "dinoSourceGitObjectLock": true,
+    "dinoArtifactPayloadBytesVerification": true,
+    "dinoSourceAndArtifactLock": true
   },
   "blocked": {
     "aiRightsFinalApproval": null,

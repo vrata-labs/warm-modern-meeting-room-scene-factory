@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "72da7b8d42e33ba0f7632018cf9766e93ac5e62892b51023b755ce25db56f55b",
+  "status": "raw-publisher-payload-identity-verified-restricted-retained-runtime-and-rights-blocked",
+  "sourceMetadataLock": {
+    "path": "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+    "lockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+    "publisherUrlTransitivelyBound": true
+  },
+  "payload": {
+    "representation": "raw-opaque-pth-publisher-response-body",
+    "byteLength": 1217607321,
+    "observedSha256": "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51",
+    "publisherSha256": null,
+    "independentHashTools": [
+      "openssl",
+      "sha256sum"
+    ]
+  },
+  "acquisition": {
+    "preAcquisitionHead": {
+      "method": "HEAD",
+      "matchedSourceMetadataLockExactly": true
+    },
+    "get": {
+      "method": "GET",
+      "status": 200,
+      "redirectsFollowed": 0,
+      "rangeRequested": false,
+      "acceptEncoding": "identity",
+      "responseBlockCount": 1,
+      "headers": {
+        "accept-ranges": "bytes",
+        "content-length": "1217607321",
+        "content-type": "binary/octet-stream",
+        "etag": "\"b6cbe2bf3ce2f370d5a67bcd465144b0-146\"",
+        "last-modified": "Fri, 27 Oct 2023 10:37:32 GMT",
+        "x-amz-server-side-encryption": "AES256",
+        "x-amz-version-id": "HLmbhvcd2hPq9CNLwMvwswbRlzZRuOeA"
+      },
+      "absentHeaders": [
+        "content-encoding",
+        "content-range",
+        "location",
+        "transfer-encoding"
+      ]
+    }
+  },
+  "restrictedStorage": {
+    "evidenceScope": "operator-attested-point-in-time",
+    "retentionStatus": "operator-attested-retained-under-approved-policy",
+    "contentAddress": {
+      "algorithm": "sha256",
+      "digest": "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51"
+    },
+    "encryption": {
+      "mode": "SSE-KMS",
+      "algorithm": "AES-256"
+    },
+    "versioningEnabled": false,
+    "objectAcl": "owner-only",
+    "bucketAclEntryCount": 0,
+    "staticKeyAuthEnabled": false,
+    "anonymousAccess": {
+      "read": false,
+      "list": false,
+      "configRead": false
+    },
+    "liveUnauthenticatedHttpStatus": {
+      "read": 403,
+      "list": 403,
+      "configRead": 403
+    },
+    "fullReadback": {
+      "byteLength": 1217607321,
+      "sha256": "36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51",
+      "matchedPayloadIdentity": true
+    },
+    "incompleteMultipartUploads": 0,
+    "knownLocalPayloadCopiesDeleted": true,
+    "operatorRecord": {
+      "schemaVersion": 2,
+      "visibility": "restricted-evidence-retention",
+      "rawRecordSha256": "55d6dcbe1321068ac82a4c2e2f07f2faabd803e86693ec809044724b5d6a91da",
+      "fullReadbackVerified": true,
+      "locatorPublished": false
+    }
+  },
+  "normalCi": {
+    "scope": "canonical-public-lock-only/no-payload-or-restricted-record-access",
+    "networkRequestInitiatedByVerifier": false,
+    "payloadAccessAllowed": false,
+    "restrictedOperatorRecordAccessAllowed": false
+  },
+  "boundaries": {
+    "derivedArtifactCreated": false,
+    "deserialized": false,
+    "generationAllowed": false,
+    "humanSignoff": false,
+    "modelInputUsed": false,
+    "payloadBytesIncludedInPublicRepository": false,
+    "payloadReadInNormalCi": false,
+    "privateLocatorPublished": false,
+    "pthInspected": false,
+    "restrictedOperatorRecordReadInNormalCi": false,
+    "rightsApproved": false,
+    "runtimeExecuted": false,
+    "sourceWeightCompatibilityTested": false,
+    "tensorEquivalenceTested": false
+  },
+  "gateEffect": {
+    "directlyResolvedGates": [
+      "dinoArtifactPayloadBytesVerification"
+    ],
+    "mechanicallyResolvedCompositeGates": [
+      "dinoSourceAndArtifactLock"
+    ],
+    "doesNotResolveNonIdentityGates": true
+  },
+  "gateComposition": {
+    "dinoSourceAndArtifactLock": {
+      "operator": "allOf",
+      "members": [
+        "dinoSourceGitObjectLock",
+        "dinoArtifactPayloadBytesVerification"
+      ]
+    }
+  },
+  "gateSnapshot": "historical-at-dino-payload-bytes-lock",
+  "resolvedGates": [
+    "dinoArtifactPayloadBytesVerification",
+    "dinoSourceAndArtifactLock",
+    "dinoSourceGitObjectLock",
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock"
+  ],
+  "openGates": [
+    "dependencyWheelHashLock",
+    "dinoDerivedRuntimeArtifactLock",
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle",
+    "trellisModelPayloadBytesVerification"
+  ]
+}

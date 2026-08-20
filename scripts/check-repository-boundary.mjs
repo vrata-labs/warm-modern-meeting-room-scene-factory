@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
-import { lstat, readFile, readdir, realpath } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { lstat, open, readdir, realpath } from "node:fs/promises";
 import { extname, isAbsolute, posix, resolve } from "node:path";
 import { promisify, TextDecoder } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -53,6 +54,7 @@ const forbiddenExtensions = new Set([
   ".zip"
 ]);
 const utf8 = new TextDecoder("utf-8", { fatal: true });
+const maxTextFileBytes = 4 * 1024 * 1024;
 
 function safeTrackedPath(path) {
   return typeof path === "string"
@@ -87,7 +89,7 @@ async function repositoryFiles(root) {
     if (separator < 0 || metadata.length !== 3 || metadata[2] !== "0") {
       throw new Error(`invalid_git_index_record:${path || "missing"}`);
     }
-    staged.set(path, { mode: metadata[0] });
+    staged.set(path, { mode: metadata[0], oid: metadata[1] });
   }
   const untrackedOutput = await gitOutput(root, ["ls-files", "--others", "--exclude-standard", "-z"]);
   const untracked = Buffer.from(untrackedOutput).toString("utf8").split("\0").filter(Boolean);
@@ -162,37 +164,88 @@ export async function checkRepositoryBoundary(root = defaultRoot) {
       continue;
     }
     const topLevel = trackedPath.split("/", 1)[0];
-    if (forbiddenTopLevel.has(topLevel)) issues.push(`forbidden_experiment_top_level_path:${topLevel}`);
-    if (trackedPath.split("/").some((segment) => forbiddenPathSegments.has(segment))) {
+    const forbiddenTopLevelPath = forbiddenTopLevel.has(topLevel);
+    const forbiddenRepositoryPath = trackedPath.split("/").some((segment) => forbiddenPathSegments.has(segment));
+    const reviewMapping = /alpha|beta/i.test(trackedPath);
+    if (forbiddenTopLevelPath) issues.push(`forbidden_experiment_top_level_path:${topLevel}`);
+    if (forbiddenRepositoryPath) {
       issues.push(`forbidden_repository_path:${trackedPath}`);
     }
-    if (forbiddenExtensions.has(extname(trackedPath).toLowerCase())) {
+    const forbiddenExtension = forbiddenExtensions.has(extname(trackedPath).toLowerCase());
+    if (forbiddenExtension) {
       issues.push(`forbidden_scene_binary:${trackedPath}`);
     }
-    if (/alpha|beta/i.test(trackedPath)) issues.push(`review_mapping_must_not_be_committed:${trackedPath}`);
+    if (reviewMapping) issues.push(`review_mapping_must_not_be_committed:${trackedPath}`);
+    if (forbiddenTopLevelPath || forbiddenRepositoryPath || forbiddenExtension || reviewMapping) continue;
 
     const stagedRecord = staged.get(trackedPath);
     if (stagedRecord) {
       if (stagedRecord.mode !== "100644") issues.push(`git_index_file_must_be_regular:${trackedPath}`);
       try {
-        const stagedBytes = await gitOutput(repositoryRoot, ["show", `:${trackedPath}`]);
-        validateBytes(Buffer.from(stagedBytes), trackedPath, "git_index", issues);
+        const stagedSize = Number(await gitOutput(repositoryRoot, ["cat-file", "-s", stagedRecord.oid], "utf8"));
+        if (!Number.isSafeInteger(stagedSize) || stagedSize < 0 || stagedSize > maxTextFileBytes) {
+          issues.push(`git_index_text_file_too_large:${trackedPath}`);
+        } else {
+          const stagedBytes = await gitOutput(repositoryRoot, ["cat-file", "blob", stagedRecord.oid]);
+          validateBytes(Buffer.from(stagedBytes), trackedPath, "git_index", issues);
+        }
       } catch {
         issues.push(`git_index_file_unreadable:${trackedPath}`);
       }
     }
 
     const expectedPath = resolve(repositoryRoot, trackedPath);
+    let handle;
     try {
-      const metadata = await lstat(expectedPath);
+      const metadata = await lstat(expectedPath, { bigint: true });
       if (!metadata.isFile() || metadata.isSymbolicLink() || await realpath(expectedPath) !== expectedPath) {
         issues.push(`tracked_file_must_be_regular:${trackedPath}`);
         continue;
       }
-      const bytes = await readFile(expectedPath);
+      handle = await open(
+        expectedPath,
+        fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0) | (fsConstants.O_NONBLOCK ?? 0)
+      );
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile() || before.dev !== metadata.dev || before.ino !== metadata.ino) {
+        issues.push(`tracked_file_must_be_regular:${trackedPath}`);
+        continue;
+      }
+      if (before.size > BigInt(maxTextFileBytes)) {
+        issues.push(`worktree_text_file_too_large:${trackedPath}`);
+        continue;
+      }
+      const bytes = Buffer.allocUnsafe(Number(before.size));
+      let offset = 0;
+      while (offset < bytes.length) {
+        const { bytesRead } = await handle.read(bytes, offset, bytes.length - offset, null);
+        if (bytesRead === 0) break;
+        offset += bytesRead;
+      }
+      const extra = Buffer.allocUnsafe(1);
+      const { bytesRead: extraBytesRead } = await handle.read(extra, 0, 1, null);
+      const after = await handle.stat({ bigint: true });
+      const currentMetadata = await lstat(expectedPath, { bigint: true });
+      if (offset !== bytes.length
+        || extraBytesRead !== 0
+        || after.dev !== before.dev
+        || after.ino !== before.ino
+        || after.size !== before.size
+        || after.mtimeNs !== before.mtimeNs
+        || after.ctimeNs !== before.ctimeNs
+        || currentMetadata.isSymbolicLink()
+        || !currentMetadata.isFile()
+        || currentMetadata.dev !== before.dev
+        || currentMetadata.ino !== before.ino
+        || await realpath(expectedPath) !== expectedPath) {
+        issues.push(`tracked_file_changed_during_read:${trackedPath}`);
+        continue;
+      }
       validateBytes(bytes, trackedPath, "worktree", issues);
     } catch {
       issues.push(`tracked_file_unreadable:${trackedPath}`);
+    } finally {
+      await handle?.close();
     }
   }
 
