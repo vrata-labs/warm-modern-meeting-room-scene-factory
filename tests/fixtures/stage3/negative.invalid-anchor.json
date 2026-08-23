@@ -1,0 +1,1 @@
+{"name":"invalid-anchor","target":"scene","path":"spawn.position.x","value":3.4,"expectedIssue":"anchor_out_of_bounds:main"}

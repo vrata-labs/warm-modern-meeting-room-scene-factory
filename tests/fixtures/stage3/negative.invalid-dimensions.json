@@ -1,0 +1,1 @@
+{"name":"invalid-dimensions","target":"scene","path":"room.widthM","value":5,"expectedIssue":"schema_scene:room:widthM:minimum"}

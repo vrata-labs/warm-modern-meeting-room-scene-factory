@@ -1,0 +1,1 @@
+{"name":"non-finite-transform","target":"sceneText","replace":"\"x\": 0, \"y\": 0, \"z\": 0 }, \"yaw\": 0 }, \"sourceRecordId\": \"asset-table-project\"","with":"\"x\": 1e999, \"y\": 0, \"z\": 0 }, \"yaw\": 0 }, \"sourceRecordId\": \"asset-table-project\"","expectedIssue":"non_finite_number:scene:components:0:transform:position:x"}

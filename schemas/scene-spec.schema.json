@@ -4,87 +4,112 @@
   "title": "Warm Modern Meeting Room Pilot Scene Specification",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "sceneId", "generator", "room", "openings", "materialZones", "components", "spawn", "seats", "mediaSurfaces"],
+  "required": ["schemaVersion", "sceneId", "generator", "room", "profiles", "materialRecipes", "materialZones", "openings", "architecturalDetails", "lighting", "exterior", "components", "clearance", "spawn", "seats", "mediaSurfaces", "reviewViews", "assetLedgerPath", "generationLedgerPath"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
     "generator": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "commit", "blenderVersion", "acceptedInputSha256"],
+      "required": ["repository", "commit", "blenderVersion", "blenderBuildHash", "seed", "acceptedInputSha256"],
       "properties": {
         "repository": { "const": "vrata-labs/warm-modern-meeting-room-scene-factory" },
         "commit": { "$ref": "#/$defs/sha1" },
         "blenderVersion": { "const": "4.5.12 LTS" },
-        "acceptedInputSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "uniqueItems": true }
+        "blenderBuildHash": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "acceptedInputSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "minItems": 1, "uniqueItems": true }
       }
     },
     "room": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["widthM", "depthM", "heightM", "wallThicknessM", "floorY"],
+      "required": ["widthM", "depthM", "heightM", "wallThicknessM", "floorY", "ceilingY", "polygon"],
       "properties": {
-        "widthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 80 },
-        "depthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 80 },
-        "heightM": { "type": "number", "minimum": 2.4, "maximum": 20 },
-        "wallThicknessM": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-        "floorY": { "type": "number", "minimum": -0.05, "maximum": 0.05 }
+        "widthM": { "type": "number", "minimum": 6.3, "maximum": 7.7 },
+        "depthM": { "type": "number", "minimum": 4.5, "maximum": 5.5 },
+        "heightM": { "type": "number", "minimum": 2.79, "maximum": 3.41 },
+        "wallThicknessM": { "const": 0.18 },
+        "floorY": { "type": "number", "minimum": -0.05, "maximum": 0.05 },
+        "ceilingY": { "type": "number", "minimum": 2.74, "maximum": 3.46 },
+        "polygon": { "type": "array", "items": { "$ref": "#/$defs/horizontalPoint" }, "minItems": 4, "maxItems": 4 }
       }
     },
+    "profiles": { "type": "array", "items": { "$ref": "#/$defs/profile" }, "minItems": 2 },
+    "materialRecipes": { "type": "array", "items": { "$ref": "#/$defs/materialRecipe" }, "minItems": 3 },
+    "materialZones": { "type": "array", "items": { "$ref": "#/$defs/materialZone" }, "minItems": 6 },
     "openings": { "type": "array", "items": { "$ref": "#/$defs/opening" }, "minItems": 2 },
-    "materialZones": { "type": "array", "items": { "$ref": "#/$defs/materialZone" }, "minItems": 3 },
-    "components": { "type": "array", "items": { "$ref": "#/$defs/component" } },
+    "architecturalDetails": { "type": "array", "items": { "$ref": "#/$defs/architecturalDetail" }, "minItems": 4 },
+    "lighting": { "type": "array", "items": { "$ref": "#/$defs/light" }, "minItems": 2 },
+    "exterior": { "$ref": "#/$defs/exterior" },
+    "components": { "type": "array", "items": { "$ref": "#/$defs/component" }, "minItems": 9 },
+    "clearance": { "$ref": "#/$defs/clearance" },
     "spawn": { "$ref": "#/$defs/anchor" },
     "seats": { "type": "array", "items": { "$ref": "#/$defs/seat" }, "minItems": 8, "maxItems": 8 },
-    "mediaSurfaces": { "type": "array", "items": { "$ref": "#/$defs/surface" }, "minItems": 2, "maxItems": 2 }
+    "mediaSurfaces": { "type": "array", "items": { "$ref": "#/$defs/surface" }, "minItems": 2, "maxItems": 2 },
+    "reviewViews": { "type": "array", "items": { "$ref": "#/$defs/reviewView" }, "minItems": 4, "maxItems": 4 },
+    "assetLedgerPath": { "const": "provenance/asset-ledger.json" },
+    "generationLedgerPath": { "const": "provenance/generation-ledger.json" }
   },
   "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "horizontalPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "z"],
+      "properties": { "x": { "type": "number" }, "z": { "type": "number" } }
+    },
     "position": {
       "type": "object",
       "additionalProperties": false,
       "required": ["x", "y", "z"],
-      "properties": {
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "z": { "type": "number" }
-      }
+      "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "z": { "type": "number" } }
     },
-    "anchor": {
+    "dimensions": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "position"],
+      "required": ["widthM", "heightM", "depthM"],
       "properties": {
-        "id": { "const": "main" },
-        "position": { "$ref": "#/$defs/position" }
-      }
-    },
-    "seat": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "position", "yaw", "seatHeight", "radius"],
-      "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-        "position": { "$ref": "#/$defs/position" },
-        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
-        "seatHeight": { "type": "number", "minimum": 0, "maximum": 0.8 },
-        "radius": { "type": "number", "minimum": 0.35, "maximum": 0.8 }
-      }
-    },
-    "opening": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "kind", "wall", "offsetM", "widthM", "heightM", "sillM", "profileId"],
-      "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-        "kind": { "enum": ["door", "window"] },
-        "wall": { "enum": ["north", "east", "south", "west"] },
-        "offsetM": { "type": "number", "minimum": 0 },
         "widthM": { "type": "number", "exclusiveMinimum": 0 },
         "heightM": { "type": "number", "exclusiveMinimum": 0 },
-        "sillM": { "type": "number", "minimum": 0 },
-        "profileId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        "depthM": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "yaw"],
+      "properties": {
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "widthM", "depthM", "materialRecipeId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["baseboard", "door-frame", "trim", "window-frame"] },
+        "widthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.5 },
+        "depthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.5 },
+        "materialRecipeId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "materialRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "baseColorSrgb", "roughness", "metalness", "textureScaleM", "sourceRecordId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "category": { "enum": ["fabric", "glass", "metal", "mineral", "wood"] },
+        "baseColorSrgb": { "type": "string", "pattern": "^#[0-9A-F]{6}$" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "textureScaleM": { "type": "number", "exclusiveMinimum": 0 },
+        "sourceRecordId": { "$ref": "#/$defs/id" }
       }
     },
     "materialZone": {
@@ -92,21 +117,121 @@
       "additionalProperties": false,
       "required": ["id", "surface", "recipeId"],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "id": { "$ref": "#/$defs/id" },
         "surface": { "enum": ["floor", "ceiling", "north", "east", "south", "west"] },
-        "recipeId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        "recipeId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "opening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "wall", "offsetM", "widthM", "heightM", "sillM", "profileId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["door", "window"] },
+        "wall": { "enum": ["north", "east", "south", "west"] },
+        "offsetM": { "type": "number", "minimum": 0 },
+        "widthM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "sillM": { "type": "number", "minimum": 0 },
+        "profileId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "architecturalDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "wall", "profileId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["baseboard", "built-in", "column", "niche", "reveal", "sill", "trim"] },
+        "wall": { "enum": ["north", "east", "south", "west"] },
+        "profileId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "position", "temperatureK", "intensityLumens", "intendedContribution"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "daylight" } }, "required": ["kind"] },
+          "then": { "properties": { "temperatureK": { "type": "integer", "minimum": 2700, "maximum": 6500 } } },
+          "else": { "properties": { "temperatureK": { "type": "integer", "minimum": 2700, "maximum": 3000 } } }
+        }
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["area", "daylight", "pendant", "spot"] },
+        "position": { "$ref": "#/$defs/position" },
+        "temperatureK": { "type": "integer", "minimum": 2700, "maximum": 6500 },
+        "intensityLumens": { "type": "number", "exclusiveMinimum": 0 },
+        "intendedContribution": { "type": "string", "minLength": 1 }
+      }
+    },
+    "exterior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "windowOpeningId", "sourceRecordIds"],
+      "properties": {
+        "strategy": { "enum": ["cleared-hdri", "procedural-exterior", "project-authored-geometry"] },
+        "windowOpeningId": { "$ref": "#/$defs/id" },
+        "sourceRecordIds": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "uniqueItems": true }
       }
     },
     "component": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "family", "position", "yaw", "sourceRecordId"],
+      "required": ["id", "family", "dimensions", "transform", "sourceRecordId", "generationRecordId"],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "id": { "$ref": "#/$defs/id" },
         "family": { "enum": ["acoustic-module", "conference-av", "conference-table", "credenza", "laptop-stationery", "pendant-luminaire", "planter", "power-cable-management", "task-chair"] },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "transform": { "$ref": "#/$defs/transform" },
+        "sourceRecordId": { "$ref": "#/$defs/id" },
+        "generationRecordId": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    },
+    "clearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumRouteWidthM", "routes"],
+      "properties": {
+        "minimumRouteWidthM": { "type": "number", "minimum": 0.9 },
+        "routes": { "type": "array", "items": { "$ref": "#/$defs/clearanceRoute" }, "minItems": 10, "maxItems": 10 }
+      }
+    },
+    "clearanceRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "destinationId", "widthM", "points"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "destinationId": { "enum": ["main", "presenter", "seat-01", "seat-02", "seat-03", "seat-04", "seat-05", "seat-06", "seat-07", "seat-08"] },
+        "widthM": { "type": "number", "minimum": 0.9 },
+        "points": { "type": "array", "items": { "$ref": "#/$defs/horizontalPoint" }, "minItems": 2 }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position", "openRadiusM"],
+      "properties": {
+        "id": { "const": "main" },
+        "position": { "$ref": "#/$defs/position" },
+        "openRadiusM": { "type": "number", "minimum": 0.75 }
+      }
+    },
+    "seat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position", "yaw", "seatHeight", "radius", "componentId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^seat-0[1-8]$" },
         "position": { "$ref": "#/$defs/position" },
         "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
-        "sourceRecordId": { "type": "string", "minLength": 1 }
+        "seatHeight": { "type": "number", "minimum": 0, "maximum": 0.8 },
+        "radius": { "type": "number", "minimum": 0.35, "maximum": 0.8 },
+        "componentId": { "$ref": "#/$defs/id" }
       }
     },
     "surface": {
@@ -119,6 +244,17 @@
         "heightM": { "type": "number", "exclusiveMinimum": 0 },
         "position": { "$ref": "#/$defs/position" },
         "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 }
+      }
+    },
+    "reviewView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "position", "target", "fovDegrees"],
+      "properties": {
+        "id": { "enum": ["entry", "participant", "presenter", "diagonal-overview"] },
+        "position": { "$ref": "#/$defs/position" },
+        "target": { "$ref": "#/$defs/position" },
+        "fovDegrees": { "type": "number", "minimum": 35, "maximum": 90 }
       }
     }
   }

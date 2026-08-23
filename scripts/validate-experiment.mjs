@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
+import { parseSceneContract } from "../compiler/scene-contract.mjs";
 import {
   isAllOfGateResolved,
   loadWmmrDinoSourceArtifactLock
@@ -61,6 +62,14 @@ assert(readiness.resolved.candidateRepositoryCiGreen === true, "candidate_reposi
 assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_protection_not_enabled");
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
+assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
+assert(readiness.stage3.status === "contract-and-diagnostics-scaffold", "stage3_status_invalid");
+assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
+assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
+assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
+assert(readiness.stage3.approvedCandidateSpecificationCreated === false, "fixture_must_not_claim_approved_candidate_specification");
+assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
+assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");
 assert(readiness.resolved.fullShaCdnFixture.commit === readiness.historicalAssetsRepository.commit, "cdn_fixture_commit_mismatch");
 assert(readiness.resolved.fullShaCdnFixture.accessControlAllowOrigin === "*", "cdn_fixture_cors_invalid");
 assert(readiness.resolved.fullShaCdnFixture.cacheControl.includes("immutable"), "cdn_fixture_cache_not_immutable");
@@ -554,6 +563,21 @@ assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.length === 0, "completed_probe_must_not_remain_blocked");
 assert(readiness.stageRules.stage3BlockedUntil.length === 0, "stage_3_must_be_unblocked_after_second_successful_probe");
+
+const [sceneFixtureText, assetLedgerFixtureText, generationLedgerFixtureText] = await Promise.all([
+  readFile(resolve(root, readiness.stage3.validFixturePath), "utf8"),
+  readFile(resolve(root, readiness.stage3.validAssetLedgerFixturePath), "utf8"),
+  readFile(resolve(root, readiness.stage3.validGenerationLedgerFixturePath), "utf8")
+]);
+const sceneContractReport = parseSceneContract({
+  sceneText: sceneFixtureText,
+  assetLedgerText: assetLedgerFixtureText,
+  generationLedgerText: generationLedgerFixtureText
+});
+assert(sceneContractReport.status === "stage3-scene-contract-valid", "stage3_scene_contract_invalid");
+assert(sceneContractReport.specificationSha256 === "189556b9da4ecf9f318049d0ad8e5ac67b1216057221aa5e49ecb3d88dc59cc5", "stage3_scene_fixture_digest_mismatch");
+assert(sceneContractReport.assetLedgerSha256 === "bc8dc412b38eb85c7a46cb96a5292f806e430fcfa2956f188d39a07fcd9f6d85", "stage3_asset_fixture_digest_mismatch");
+assert(sceneContractReport.generationLedgerSha256 === "39ef74d47488966b8e9b4df9541ba039085260a2a8fb75d9add3804558491c51", "stage3_generation_fixture_digest_mismatch");
 
 const referenceLedger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
 assert(referenceLedger.schemaVersion === 1, "invalid_reference_ledger_schema");

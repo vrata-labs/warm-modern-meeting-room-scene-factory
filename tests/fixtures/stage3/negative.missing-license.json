@@ -1,0 +1,1 @@
+{"name":"missing-license","target":"assetLedger","path":"records.0.license","delete":true,"expectedIssue":"schema_asset_ledger:records:0:required"}

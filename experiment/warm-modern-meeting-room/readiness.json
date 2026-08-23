@@ -735,6 +735,22 @@
       "evidence": "interactive-user-approval"
     }
   },
+  "stage3": {
+    "status": "contract-and-diagnostics-scaffold",
+    "sceneSpecSchemaPath": "schemas/scene-spec.schema.json",
+    "assetLedgerSchemaPath": "schemas/asset-ledger.schema.json",
+    "generationLedgerSchemaPath": "schemas/generation-ledger.schema.json",
+    "validatorPath": "compiler/scene-contract.mjs",
+    "schemaEngine": "Ajv 8.17.1 with ajv-formats 3.0.1",
+    "validFixturePath": "tests/fixtures/stage3/scene-spec.valid.json",
+    "validAssetLedgerFixturePath": "tests/fixtures/stage3/asset-ledger.valid.json",
+    "validGenerationLedgerFixturePath": "tests/fixtures/stage3/generation-ledger.valid.json",
+    "negativeFixtureCount": 6,
+    "stableDiagnostics": true,
+    "approvedCandidateSpecificationCreated": false,
+    "blenderCompilerImplemented": false,
+    "byteIdenticalExportsVerified": false
+  },
   "resolved": {
     "githubAdminAccess": true,
     "publicRepositoriesCreated": true,
@@ -780,7 +796,8 @@
     "humanRightsSignoff": true,
     "gpuGenerationProbe": true,
     "gpuWindowTrimGenerationProbe": true,
-    "greenAiFeasibilityGate": true
+    "greenAiFeasibilityGate": true,
+    "stage3ContractDiagnostics": true
   },
   "blocked": {
     "reviewCoordinator": null,

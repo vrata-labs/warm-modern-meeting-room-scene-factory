@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "warm-modern-meeting-room-candidate-01",
+  "records": [
+    {
+      "id": "asset-chair-input",
+      "kind": "project-authored-input",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/inputs/chair.png" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "allowedUse": { "staging": true, "production": false, "webRuntime": false, "screenshots": true, "optimization": true, "redistribution": false },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    },
+    {
+      "id": "asset-chair-output",
+      "kind": "generated-output",
+      "source": { "classification": "generated", "publicUrl": null, "repositoryPath": "source/generated/chair.glb" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Synthetic-Fixture", "reference": "provenance/licenses/synthetic-fixture.txt", "commercialUse": true, "redistribution": true, "mlProcessing": false },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "allowedUse": { "staging": true, "production": false, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": ["meshopt-simplification"],
+      "outputSha256": ["eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
+      "attribution": null
+    },
+    {
+      "id": "asset-material-project",
+      "kind": "material",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/materials/pilot-materials.json" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "allowedUse": { "staging": true, "production": true, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    },
+    {
+      "id": "asset-window-project",
+      "kind": "mesh",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/architecture/window.json" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "allowedUse": { "staging": true, "production": true, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    },
+    {
+      "id": "asset-exterior-project",
+      "kind": "mesh",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/exterior/procedural-city.json" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "allowedUse": { "staging": true, "production": true, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    },
+    {
+      "id": "asset-table-project",
+      "kind": "mesh",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/components/conference-table.json" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "allowedUse": { "staging": true, "production": true, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    },
+    {
+      "id": "asset-fixtures-project",
+      "kind": "mesh",
+      "source": { "classification": "project-authored", "publicUrl": null, "repositoryPath": "source/components/fixtures.json" },
+      "authorProvider": "project-team",
+      "license": { "name": "LicenseRef-Project-Owned", "reference": "provenance/licenses/project-owned.txt", "commercialUse": true, "redistribution": true, "mlProcessing": true },
+      "acquiredOn": "2026-08-23",
+      "originalSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "allowedUse": { "staging": true, "production": true, "webRuntime": true, "screenshots": true, "optimization": true, "redistribution": true },
+      "modifications": [],
+      "outputSha256": [],
+      "attribution": null
+    }
+  ]
+}

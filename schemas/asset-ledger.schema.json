@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/asset-ledger.schema.json",
+  "title": "Warm Modern Meeting Room Asset Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "records"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "records": { "type": "array", "items": { "$ref": "#/$defs/record" }, "minItems": 1 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "source", "authorProvider", "license", "acquiredOn", "originalSha256", "allowedUse", "modifications", "outputSha256", "attribution"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "generated-output" } }, "required": ["kind"] },
+          "then": { "properties": { "source": { "type": "object", "properties": { "classification": { "const": "generated" } } } } }
+        },
+        {
+          "if": { "properties": { "source": { "type": "object", "properties": { "classification": { "const": "generated" } }, "required": ["classification"] } }, "required": ["source"] },
+          "then": { "properties": { "kind": { "const": "generated-output" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "project-authored-input" } }, "required": ["kind"] },
+          "then": { "properties": { "source": { "type": "object", "properties": { "classification": { "const": "project-authored" } } } } }
+        }
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["generated-output", "hdri", "material", "mesh", "project-authored-input", "texture"] },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["classification", "publicUrl", "repositoryPath"],
+          "oneOf": [
+            { "properties": { "publicUrl": { "type": "string", "pattern": "^https://" }, "repositoryPath": { "type": "null" } } },
+            { "properties": { "publicUrl": { "type": "null" }, "repositoryPath": { "type": "string", "pattern": "^(?:source|provenance)/[a-zA-Z0-9._/-]+$" } } }
+          ],
+          "properties": {
+            "classification": { "enum": ["cc0", "generated", "project-authored"] },
+            "publicUrl": { "oneOf": [{ "type": "string", "pattern": "^https://" }, { "type": "null" }] },
+            "repositoryPath": { "oneOf": [{ "type": "string", "pattern": "^(?:source|provenance)/[a-zA-Z0-9._/-]+$" }, { "type": "null" }] }
+          }
+        },
+        "authorProvider": { "type": "string", "minLength": 1 },
+        "license": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "reference", "commercialUse", "redistribution", "mlProcessing"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "reference": { "type": "string", "minLength": 1 },
+            "commercialUse": { "type": "boolean" },
+            "redistribution": { "type": "boolean" },
+            "mlProcessing": { "type": "boolean" }
+          }
+        },
+        "acquiredOn": { "type": "string", "format": "date" },
+        "originalSha256": { "$ref": "#/$defs/sha256" },
+        "allowedUse": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["staging", "production", "webRuntime", "screenshots", "optimization", "redistribution"],
+          "properties": {
+            "staging": { "type": "boolean" },
+            "production": { "type": "boolean" },
+            "webRuntime": { "type": "boolean" },
+            "screenshots": { "type": "boolean" },
+            "optimization": { "type": "boolean" },
+            "redistribution": { "type": "boolean" }
+          }
+        },
+        "modifications": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "outputSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "maxItems": 128, "uniqueItems": true },
+        "attribution": { "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+      }
+    }
+  }
+}

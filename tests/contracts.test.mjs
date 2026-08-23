@@ -22,6 +22,9 @@ test("scene specification requires the shared functional contract", async () => 
   assert.equal(schema.properties.seats.maxItems, 8);
   assert.deepEqual(schema.$defs.surface.properties.surfaceId.enum, ["debug-main", "whiteboard-wall"]);
   assert.equal(schema.$defs.anchor.properties.id.const, "main");
+  assert.equal(schema.properties.room.properties.polygon.minItems, 4);
+  assert.equal(schema.properties.architecturalDetails.minItems, 4);
+  assert.equal(schema.properties.reviewViews.minItems, 4);
 });
 
 test("functional contract reserves neutral anchors and semantic views", async () => {
@@ -52,6 +55,9 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.successfulCount, 2);
   assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.requiredSuccessfulCount, 2);
   assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.productionPublicationApproved, false);
+  assert.equal(readiness.resolved.stage3ContractDiagnostics, true);
+  assert.equal(readiness.stage3.approvedCandidateSpecificationCreated, false);
+  assert.equal(readiness.stage3.blenderCompilerImplemented, false);
 });
 
 test("restricted storage is private, encrypted, and bounded", async () => {

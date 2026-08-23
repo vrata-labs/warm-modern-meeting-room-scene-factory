@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "warm-modern-meeting-room-candidate-01",
+  "records": [
+    {
+      "id": "generation-chair-01",
+      "componentId": "chair-01",
+      "status": "accepted",
+      "codeRevision": "1111111111111111111111111111111111111111",
+      "modelRevision": "trellis-image-large@25e0d31ffbebe4b5a97464dd851910efc3002d96",
+      "weightsSha256": ["3333333333333333333333333333333333333333333333333333333333333333"],
+      "dependencyLockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198",
+      "providerRegion": "ru-central1-a",
+      "prompt": "project-authored warm modern task chair fixture",
+      "seed": 42,
+      "inputAssetIds": ["asset-chair-input"],
+      "rawOutputSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "cleanupMinutes": 12,
+      "rejectionReasons": [],
+      "outputSha256": ["eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"]
+    }
+  ]
+}
