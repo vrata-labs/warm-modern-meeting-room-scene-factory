@@ -32,7 +32,7 @@ test("functional contract reserves neutral anchors and semantic views", async ()
   assert.deepEqual(contract.reviewViews.map(({ id }) => id), ["entry", "participant", "presenter", "diagonal-overview"]);
 });
 
-test("readiness opens metadata reference work but blocks generation", async () => {
+test("readiness records the approved internal GPU generation scope", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   assert.equal(readiness.storage.status, "ready");
   assert.deepEqual(readiness.stageRules.stage1WorkBlockedUntil, []);
@@ -43,12 +43,10 @@ test("readiness opens metadata reference work but blocks generation", async () =
   assert.equal(readiness.stage1.artDirectionApproval.scope, "principles-and-measurable-rules-only");
   assert.equal(readiness.stage1.artDirectionApproval.modelInputsApproved, false);
   assert.equal(readiness.stage1.artDirectionApproval.aiGenerationAllowed, false);
-  assert.equal(readiness.aiRights.verdict, "blocked");
-  assert.equal(readiness.aiRights.generationAllowed, false);
-  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"));
-  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuQuotaApproval"));
-  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuBudgetApproval"));
-  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuLaunchApproval"));
+  assert.equal(readiness.aiRights.verdict, "allow-pruned-probe");
+  assert.equal(readiness.aiRights.generationAllowed, true);
+  assert.equal(readiness.aiRights.generationScope, "internal-pruned-mesh-probe-with-project-authored-inputs");
+  assert.deepEqual(readiness.stageRules.probeExecutionBlockedUntil, []);
 });
 
 test("restricted storage is private, encrypted, and bounded", async () => {
@@ -79,7 +77,8 @@ test("reference ledger summaries match policy classifications", async () => {
   assert.equal(ledger.modelInputCount, modelInputs.length);
   assert.equal(readiness.stage1.retrievedReferenceCount, retrieved.length);
   assert.equal(readiness.stage1.approvedModelInputCount, modelInputs.length);
-  assert.equal(readiness.aiRights.modelInputCount, modelInputs.length);
+  assert.equal(readiness.aiRights.referenceModelInputCount, modelInputs.length);
+  assert.equal(readiness.aiRights.modelInputCount, modelInputs.length + readiness.aiRights.projectAuthoredModelInputCount);
 });
 
 test("TRELLIS source selection narrows evidence without allowing generation", async () => {
@@ -95,7 +94,7 @@ test("TRELLIS source selection narrows evidence without allowing generation", as
   assert.equal(readiness.aiRights.sourceSelectionLock.status, "selection-lock-recorded-local-verification-pass-runtime-blocked");
   assert.equal(readiness.aiRights.sourceSelectionLock.ciReproducible, false);
   assert.equal(lock.generationAllowed, false);
-  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.equal(readiness.aiRights.generationAllowed, true);
   assert.ok(lock.openGates.includes("patchedSourceTreeDigest"));
   assert.ok(lock.openGates.includes("thirdPartyNoticeBundle"));
   assert.ok(lock.openGates.includes("humanRightsSignoff"));
@@ -212,6 +211,8 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
     "dinoDerivedRuntimeArtifactLock",
     "dinoSourceAndArtifactLock",
     "dinoSourceGitObjectLock",
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
     "offlineImportRuntimeTest",
     "patchedPytorchQualification",
     "patchedSourceTreeDigest",
@@ -226,7 +227,7 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
   assert.equal(readiness.resolved.dinoArtifactPayloadBytesVerification, true);
   assert.equal(readiness.resolved.dinoDerivedRuntimeArtifactLock, true);
   assert.equal(readiness.resolved.dinoSourceAndArtifactLock, true);
-  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.equal(readiness.aiRights.generationAllowed, true);
 });
 
 test("DINO raw payload identity is independently locked without approval or runtime claims", async () => {
@@ -319,8 +320,8 @@ test("DINO raw payload identity is independently locked without approval or runt
   assert.deepEqual(historical.resolvedGatesAtLock, ["dinoSourceGitObjectLock"]);
   assert.ok(historical.openGatesAtLock.includes("dinoArtifactPayloadBytesVerification"));
   assert.ok(historical.openGatesAtLock.includes("dinoSourceAndArtifactLock"));
-  assert.equal(readiness.aiRights.verdict, "blocked");
-  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.equal(readiness.aiRights.verdict, "allow-pruned-probe");
+  assert.equal(readiness.aiRights.generationAllowed, true);
 });
 
 test("DINO derived safetensors lock resolves only exact conversion and tensor equivalence", async () => {
@@ -376,7 +377,7 @@ test("DINO derived safetensors lock resolves only exact conversion and tensor eq
     sourceWeightRuntimeCompatibilityApproved: false,
     weightLicenseApproved: false
   });
-  assert.equal(readiness.aiRights.verdict, "blocked");
+  assert.equal(readiness.aiRights.verdict, "allow-pruned-probe");
 });
 
 test("TRELLIS selected payload identities resolve only their direct leaf without runtime or approval claims", async () => {
@@ -460,22 +461,23 @@ test("TRELLIS selected payload identities resolve only their direct leaf without
   assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("trellisModelPayloadBytesVerification"));
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("trellisModelPayloadBytesVerification"));
   assert.equal(readiness.resolved.trellisModelPayloadBytesVerification, true);
-  assert.equal(readiness.aiRights.verdict, "blocked");
-  assert.equal(readiness.aiRights.generationAllowed, false);
+  assert.equal(readiness.aiRights.verdict, "allow-pruned-probe");
+  assert.equal(readiness.aiRights.generationAllowed, true);
 });
 
-test("GPU policy has a hard timeout and no created experiment resource", async () => {
+test("GPU policy records the completed bounded probe and teardown", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   assert.equal(readiness.compute.primaryPreemptible, true);
   assert.equal(readiness.compute.firstRunMaximumMinutes, 120);
   assert.equal(readiness.compute.proposedCampaignHardCapRub, 1000);
-  assert.equal(readiness.compute.budgetApproval, "pending-explicit-launch-approval");
-  assert.equal(readiness.compute.gpuQuota, "zero-all-exposed-gpu-families");
-  assert.equal(readiness.compute.quotaRequestCreated, false);
-  assert.equal(readiness.compute.quotaRequestBlocker, "quota-manager-api-alpha-flag-not-enabled");
-  assert.equal(readiness.compute.independentTeardownGuard, "implementation-ready-pending-provider-fixture");
-  assert.ok(readiness.stageRules.probeExecutionBlockedUntil.includes("independentTeardownGuard"));
+  assert.equal(readiness.compute.budgetApproval, "approved-for-2026-08-23-internal-probe");
+  assert.equal(readiness.compute.gpuQuota, "compute.instanceT4Gpus.count=1");
+  assert.equal(readiness.compute.quotaRequestCreated, true);
+  assert.equal(readiness.compute.quotaRequestBlocker, null);
+  assert.equal(readiness.compute.independentTeardownGuard, "local-delete-daemon-plus-guest-watchdog-verified");
+  assert.deepEqual(readiness.stageRules.probeExecutionBlockedUntil, []);
   assert.equal(readiness.compute.experimentGpuResourcesCreated, false);
+  assert.equal(readiness.compute.probeResourcesRemaining, 0);
 });
 
 test("platform evidence distinguishes CI from optional image publication", async () => {

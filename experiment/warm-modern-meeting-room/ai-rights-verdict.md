@@ -1,9 +1,11 @@
 # AI Rights Verdict
 
-Verdict date: 2026-08-22.
+Verdict date: 2026-08-23.
 
-Current verdict: `BLOCK` for generation. The stock TRELLIS package path is not
-approved. A deterministic source artifact for the purpose-built
+Current verdict: `allow-pruned-probe` for internal generation with
+project-authored inputs. The stock TRELLIS package path remains prohibited, and
+generated binaries are not approved for public or production publication. A
+deterministic source artifact for the purpose-built
 image-to-raw-mesh path is now materialized and passes static policy and syntax
 verification. The publisher Git revision, configs, and LFS pointer identities
 for TRELLIS-image-large are also locked. The four selected raw TRELLIS payload
@@ -22,10 +24,16 @@ mesh grid and FlexiCubes device allocation until mesh extraction. The complete
 PyTorch `2.7.1+cu118` passed a synthetic weights-only security regression. In a
 separate no-network run, all 58 expected DINO/TRELLIS modules imported and the
 DINO state plus all four selected TRELLIS states strict-loaded with no missing
-or unexpected keys. No model forward, model input, CUDA initialization,
-inference, or generation occurred. Generation remains blocked because final
-OCI, SBOM/vulnerability, GPU parity/VRAM, provider snapshot, complete notices,
-rights, and human-signoff gates remain open.
+or unexpected keys in the historical offline qualification. A subsequent
+no-network Tesla T4 run used one deterministic project-authored RGBA input and
+completed inference plus mesh generation in 83.416 seconds. Peak allocated and
+reserved VRAM were 10416818176 and 12937330688 bytes. It produced 253646
+vertices and 507226 colored triangles, and no prohibited module entered
+`sys.modules`. `gpu-generation-probe-lock.json` records the public-safe evidence
+with semantic digest
+`e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7`.
+Final OCI, SBOM/vulnerability, provider snapshot, complete notices, production
+rights review, and production human signoff remain open for publication.
 
 This is a conservative technical rights record, not legal advice.
 
@@ -41,7 +49,8 @@ This is a conservative technical rights record, not legal advice.
 | DINOv2 source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 root license with a conflicting repository README caveat | Source Git-object identity and exact 12-file runtime selection locked; offline import and strict-load qualification pass; repository-scope rights caveat remains unresolved |
 | DINOv2 ViT-L/14 reg4 weights | raw opaque PTH SHA-256 `36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51`; derived safetensors SHA-256 `30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc`; publisher URL transitively bound through the historical source lock | Apache-2.0 model-card evidence only | Raw identity, isolated weights-only conversion, derived artifact identity, exact tensor equivalence, and strict source-compatible load locked; redistribution, rights approval, and human signoff remain unresolved |
 
-No model input images were downloaded. The DINO raw publisher payload, its
+No external model input images were downloaded. The probe input was generated
+locally from project-authored Blender geometry. The DINO raw publisher payload, its
 derived safetensors artifact, and four selected raw TRELLIS payloads were
 acquired or created and retained outside public Git under the point-in-time
 controls recorded below; all known local model-byte copies were then deleted.
@@ -91,20 +100,13 @@ restrictions:
 7. rejects non-finite mesh vertices or attributes and out-of-bounds triangle
    indices before returning the mesh representation.
 
-A future probe may be reconsidered only with the exact qualified tree, DINO
-module, wheel set, and model payloads. Identity, dependency, offline import, and
-strict-load controls are now closed; the remaining probe controls are:
-
-1. assemble and lock the final OCI image, native-library inventory, Syft SBOM,
-   vulnerability scan, and complete dependency notice bundle;
-2. obtain provider snapshot, rights approval, human signoff, GPU quota, budget,
-   launch approval, and an independently verified teardown guard;
-3. run with outbound network disabled, inject only the strict-loaded qualified
-   DINO module, enforce the runtime audit policy, and assert after inference that
-   no prohibited module entered `sys.modules`;
-4. validate and serialize finite vertices, triangle indices, and optional
-   vertex colors to binary little-endian PLY without `to_glb` or rendering;
-5. record GPU parity, peak VRAM, and output hashes under the approved cost cap.
+The internal probe closed GPU execution, VRAM measurement, project-authored
+input, raw mesh validation, output hashing, restricted-storage readback, and
+teardown checks. Future internal runs must use the exact qualified tree, DINO
+module, wheel set, model payloads, and generation harness recorded in the probe
+lock. Production publication still requires a final OCI digest, native-library
+inventory, Syft SBOM, vulnerability scan, complete dependency notice bundle,
+provider snapshot, production rights review, and separate publication signoff.
 
 ## Locked Upstream Source Selection
 
@@ -180,10 +182,12 @@ license has SHA-256
 The complete OCI third-party notice bundle remains open until notices are
 assembled from the now-locked dependency set. FlexiCubes `DCO.txt`, both upstream READMEs,
 `.gitmodules`, and serialized attention are omitted from the shipping tree.
-No weight payloads were added to public Git, and no model inputs, generated
-outputs, containers, or compute resources were added or created. The raw DINO
-payload and four selected raw TRELLIS payloads are retained only under the
-point-in-time restricted-storage attestations described below.
+No weight payloads, model inputs, generated outputs, or containers were added to
+public Git. Disposable compute resources were created for the approved probe and
+deleted after full output readback; postflight found zero probe VM or disk
+resources. The raw DINO payload and four selected raw TRELLIS payloads are
+retained only under the point-in-time restricted-storage attestations described
+below.
 
 ## Publisher Model Git/LFS Identity Lock
 
@@ -616,10 +620,11 @@ raw SHA-256
 
 ## Open Security And Reproducibility Failures
 
-- The four selected TRELLIS raw payload byte identities now match their publisher
-  LFS pointer SHA-256 values and strict-load against the revised source, but this
-  does not establish model-card scope, redistribution rights, model-input or
-  output rights, generation approval, or human signoff.
+- The four selected TRELLIS raw payload byte identities match their publisher
+  LFS pointer SHA-256 values and strict-load against the revised source. The
+  internal project-authored-input probe is approved and complete, but this does
+  not establish model-card scope, redistribution rights, production output
+  rights, or publication signoff.
 - No publisher SHA-256 was found in the reviewed pinned evidence, HEAD, or GET
   metadata for the official `dinov2_vitl14_reg` PyTorch artifact. The raw
   1217607321-byte payload has only the independently observed SHA-256 and
@@ -663,17 +668,23 @@ or proprietary inputs.
 
 Provider use is therefore conditional on all inputs being internal-original or
 separately cleared CC0, non-personal, and non-sensitive. A dated copy of the
-applicable account agreement and public terms must be stored in restricted
-evidence before launch.
+applicable account agreement and public terms remains required before production
+publication or a broader campaign. The experiment sponsor explicitly accepted
+the narrower internal run without treating that exception as production
+approval.
 
 ## Required Human Decision
 
 The assigned public role is `experiment-sponsor`; the identity record remains
-restricted. That owner must sign one of:
+restricted. The sponsor approved `allow-pruned-probe` for the exact internal
+project-authored input and paid Yandex T4 execution on 2026-08-23. For production
+publication, that owner must separately sign one of:
 
-- `allow-pruned-probe`: every condition above is closed for the exact image;
+- `allow-production-publication`: every remaining publication condition is
+  closed for the exact artifacts;
 - `deny`: the remaining model/data/provider risk is unacceptable;
 - `defer`: evidence is incomplete, which has the same runtime effect as deny.
 
-No signoff exists yet. Until it does, no FLUX or TRELLIS generation may run and
-no model input may be uploaded to compute.
+No production-publication signoff exists yet. Internal pruned TRELLIS generation
+may use only project-authored inputs and the exact locked probe boundary;
+generated binaries must remain outside public Git until publication approval.

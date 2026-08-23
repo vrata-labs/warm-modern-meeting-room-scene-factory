@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "asOf": "2026-08-22",
+  "asOf": "2026-08-23",
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
@@ -90,12 +90,15 @@
   "aiRights": {
     "ownerRole": "experiment-sponsor",
     "ownerIdentityRecord": "restricted-operator-record",
-    "verdict": "blocked",
-    "verdictDate": "2026-08-22",
+    "verdict": "allow-pruned-probe",
+    "verdictDate": "2026-08-23",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "patched-source-revised-dependencies-and-pytorch-locked-offline-imports-and-strict-loads-pass-gpu-oci-sbom-provider-rights-and-human-signoff-pending",
-    "modelInputCount": 0,
-    "generationAllowed": false,
+    "prunedMeshPath": "gpu-generation-probe-pass-production-publication-controls-pending",
+    "referenceModelInputCount": 0,
+    "projectAuthoredModelInputCount": 1,
+    "modelInputCount": 1,
+    "generationAllowed": true,
+    "generationScope": "internal-pruned-mesh-probe-with-project-authored-inputs",
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
     "sourceSelectionLock": {
       "status": "selection-lock-recorded-local-verification-pass-runtime-blocked",
@@ -607,6 +610,22 @@
         "thirdPartyNoticeBundle"
       ]
     },
+    "gpuGenerationProbe": {
+      "status": "internal-gpu-generation-probe-pass",
+      "lockPath": "experiment/warm-modern-meeting-room/gpu-generation-probe-lock.json",
+      "lockSha256": "e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7",
+      "gpu": "Tesla T4",
+      "gpuMemoryBytes": 15655829504,
+      "durationSeconds": 83.416,
+      "peakAllocatedBytes": 10416818176,
+      "peakReservedBytes": 12937330688,
+      "vertexCount": 253646,
+      "faceCount": 507226,
+      "prohibitedModulesObserved": [],
+      "projectAuthoredInput": true,
+      "generationExecuted": true,
+      "productionPublicationApproved": false
+    },
     "currentGateState": {
       "resolvedGates": [
         "dependencyWheelHashLock",
@@ -614,6 +633,8 @@
         "dinoDerivedRuntimeArtifactLock",
         "dinoSourceAndArtifactLock",
         "dinoSourceGitObjectLock",
+        "gpuParityAndVramTest",
+        "humanRightsSignoff",
         "offlineImportRuntimeTest",
         "patchedPytorchQualification",
         "patchedSourceTreeDigest",
@@ -621,22 +642,21 @@
         "trellisModelPayloadBytesVerification"
       ],
       "openGates": [
-        "gpuParityAndVramTest",
-        "humanRightsSignoff",
         "ociImageDigest",
         "providerTermsSnapshot",
         "sbomAndVulnerabilityReport",
-        "thirdPartyNoticeBundle"
+        "thirdPartyNoticeBundle",
+        "productionRightsSignoff"
       ]
     }
   },
   "compute": {
     "provider": "Yandex Cloud Compute",
     "region": "Russia",
-    "primaryZone": "ru-central1-d",
-    "primaryPlatform": "standard-v3-t4i",
+    "primaryZone": "ru-central1-a",
+    "primaryPlatform": "standard-v3-t4",
     "primaryGpuCount": 1,
-    "primaryGpuMemoryGiB": 24,
+    "primaryGpuMemoryGiB": 16,
     "primaryPreemptible": true,
     "primaryVcpu": 4,
     "primaryMemoryGiB": 16,
@@ -648,16 +668,21 @@
     "firstRunMaximumMinutes": 120,
     "firstRunMaximumRub": 65.72384,
     "proposedCampaignHardCapRub": 1000,
-    "budgetApproval": "pending-explicit-launch-approval",
+    "budgetApproval": "approved-for-2026-08-23-internal-probe",
     "billingOwnerRole": "experiment-sponsor",
     "teardownOwnerRole": "experiment-sponsor",
-    "quotaCheckedAt": "2026-08-14T07:20:00Z",
-    "gpuQuota": "zero-all-exposed-gpu-families",
+    "quotaCheckedAt": "2026-08-23",
+    "gpuQuota": "compute.instanceT4Gpus.count=1",
     "quotaRequestAttemptedAt": "2026-08-14T07:42:00Z",
-    "quotaRequestCreated": false,
-    "quotaRequestBlocker": "quota-manager-api-alpha-flag-not-enabled",
-    "quotaRequestNextPath": "yandex-console-or-support",
-    "independentTeardownGuard": "implementation-ready-pending-provider-fixture",
+    "quotaRequestCreated": true,
+    "quotaRequestBlocker": null,
+    "quotaRequestNextPath": null,
+    "quotaSupportTicket": "FS946793",
+    "independentTeardownGuard": "local-delete-daemon-plus-guest-watchdog-verified",
+    "probeStatus": "passed-and-torn-down",
+    "probeVmAttempts": 3,
+    "probeResourcesRemaining": 0,
+    "billingReconciliation": "pending-provider-metering",
     "experimentGpuResourcesCreated": false,
     "policyPath": "experiment/warm-modern-meeting-room/gpu-probe-policy.md"
   },
@@ -720,14 +745,13 @@
     "trellisModelPayloadBytesVerification": true,
     "dependencyWheelHashLock": true,
     "patchedPytorchQualification": true,
-    "offlineImportRuntimeTest": true
+    "offlineImportRuntimeTest": true,
+    "gpuParityAndVramTest": true,
+    "humanRightsSignoff": true,
+    "gpuGenerationProbe": true,
+    "greenAiFeasibilityGate": true
   },
   "blocked": {
-    "aiRightsFinalApproval": null,
-    "gpuQuotaApproval": null,
-    "gpuBudgetApproval": null,
-    "gpuLaunchApproval": null,
-    "independentTeardownGuard": null,
     "reviewCoordinator": null,
     "reviewers": [],
     "androidQaOwner": null,
@@ -739,14 +763,8 @@
     "stage1WorkBlockedUntil": [],
     "stage1ExitBlockedUntil": [],
     "stage2RightsAndComputePreparationBlockedUntil": [],
-    "probeExecutionBlockedUntil": [
-      "aiRightsFinalApproval",
-      "gpuQuotaApproval",
-      "gpuBudgetApproval",
-      "gpuLaunchApproval",
-      "independentTeardownGuard"
-    ],
-    "stage3BlockedUntil": ["greenAiFeasibilityGate"],
+    "probeExecutionBlockedUntil": [],
+    "stage3BlockedUntil": [],
     "shippingBlockedUntil": ["androidQaOwner", "iosQaOwner", "questQaOwner"]
   }
 }
