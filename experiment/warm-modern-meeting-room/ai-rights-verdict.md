@@ -32,6 +32,8 @@ vertices and 507226 colored triangles, and no prohibited module entered
 `sys.modules`. `gpu-generation-probe-lock.json` records the public-safe evidence
 with semantic digest
 `e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7`.
+This closes the first component probe only; the AI feasibility gate remains open
+until at least one of the two remaining planned component probes also passes.
 Final OCI, SBOM/vulnerability, provider snapshot, complete notices, production
 rights review, and production human signoff remain open for publication.
 

@@ -748,8 +748,7 @@
     "offlineImportRuntimeTest": true,
     "gpuParityAndVramTest": true,
     "humanRightsSignoff": true,
-    "gpuGenerationProbe": true,
-    "greenAiFeasibilityGate": true
+    "gpuGenerationProbe": true
   },
   "blocked": {
     "reviewCoordinator": null,
@@ -764,7 +763,7 @@
     "stage1ExitBlockedUntil": [],
     "stage2RightsAndComputePreparationBlockedUntil": [],
     "probeExecutionBlockedUntil": [],
-    "stage3BlockedUntil": [],
+    "stage3BlockedUntil": ["greenAiFeasibilityGate"],
     "shippingBlockedUntil": ["androidQaOwner", "iosQaOwner", "questQaOwner"]
   }
 }

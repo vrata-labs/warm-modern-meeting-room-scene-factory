@@ -523,10 +523,11 @@ assert(readiness.resolved.offlineImportRuntimeTest === true, "offline_runtime_ga
 assert(readiness.resolved.gpuParityAndVramTest === true, "gpu_parity_gate_not_resolved");
 assert(readiness.resolved.humanRightsSignoff === true, "internal_probe_signoff_not_resolved");
 assert(readiness.resolved.gpuGenerationProbe === true, "gpu_generation_probe_not_resolved");
-assert(readiness.resolved.greenAiFeasibilityGate === true, "ai_feasibility_gate_not_green");
+assert(!Object.hasOwn(readiness.resolved, "greenAiFeasibilityGate"), "ai_feasibility_gate_closed_after_only_one_probe");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.length === 0, "completed_probe_must_not_remain_blocked");
+assert(JSON.stringify(readiness.stageRules.stage3BlockedUntil) === JSON.stringify(["greenAiFeasibilityGate"]), "stage_3_must_wait_for_second_successful_probe");
 
 const referenceLedger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
 assert(referenceLedger.schemaVersion === 1, "invalid_reference_ledger_schema");
