@@ -1,0 +1,1 @@
+{"name":"overlapping-openings","target":"scene","path":"openings.1.wall","value":"south","expectedIssue":"opening_overlap:main-door:main-window"}

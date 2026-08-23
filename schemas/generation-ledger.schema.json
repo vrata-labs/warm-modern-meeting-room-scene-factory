@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/generation-ledger.schema.json",
+  "title": "Warm Modern Meeting Room Generation Ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "records"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "records": { "type": "array", "items": { "$ref": "#/$defs/record" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "componentId", "status", "codeRevision", "modelRevision", "weightsSha256", "dependencyLockSha256", "providerRegion", "prompt", "seed", "inputAssetIds", "rawOutputSha256", "cleanupMinutes", "rejectionReasons", "outputSha256"],
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "accepted" } }, "required": ["status"] },
+          "then": { "properties": { "rejectionReasons": { "type": "array", "maxItems": 0 }, "outputSha256": { "type": "array", "minItems": 1 } } },
+          "else": { "properties": { "rejectionReasons": { "type": "array", "minItems": 1 } } }
+        }
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "componentId": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["accepted", "rejected"] },
+        "codeRevision": { "$ref": "#/$defs/sha1" },
+        "modelRevision": { "type": "string", "minLength": 1 },
+        "weightsSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "minItems": 1, "maxItems": 128, "uniqueItems": true },
+        "dependencyLockSha256": { "$ref": "#/$defs/sha256" },
+        "providerRegion": { "type": "string", "minLength": 1 },
+        "prompt": { "type": "string", "minLength": 1 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "inputAssetIds": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "uniqueItems": true },
+        "rawOutputSha256": { "$ref": "#/$defs/sha256" },
+        "cleanupMinutes": { "type": "number", "minimum": 0, "maximum": 45 },
+        "rejectionReasons": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "outputSha256": { "type": "array", "items": { "$ref": "#/$defs/sha256" }, "maxItems": 128, "uniqueItems": true }
+      }
+    }
+  }
+}

@@ -41,19 +41,19 @@ style bible and `style-sheet.md` were approved at the art-direction gate on
 2026-08-14. The approval covers principles and measurable rules only; it does
 not license reference images or approve model inputs.
 
-AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
-path and records the evidence still required for a pruned mesh-only probe. The
-current mesh-only source revision defers mesh-grid CUDA allocation until mesh
-extraction. A complete 41-wheel CUDA 11.8 dependency set, patched PyTorch
-qualification, offline imports, and strict state loading for DINO plus four
-TRELLIS model families are now locked. These results do not approve inference,
-GPU use, model inputs, generation, rights, or launch; OCI, SBOM, GPU parity,
-provider snapshot, notices, rights, and human-signoff gates remain open.
-`gpu-probe-policy.md` records the proposed disposable machine, exact cost
-boundary, zero account GPU quota, and mandatory teardown behavior. The
-provider-side reconciler in `scripts/gpu-probe-janitor/` is locally tested but
-not deployed or provider-fixture-verified. No experiment GPU resource has been
-created.
+Internal pruned TRELLIS generation is allowed only for the exact locked boundary
+and project-authored inputs. Chair and window/trim component probes passed on
+disposable Tesla T4 instances, all probe resources were deleted, and the required
+two-of-three AI feasibility threshold is green. This unblocks Stage 3 contract
+and compiler work. Production/public publication remains blocked on DINO/model
+rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separate
+publication signoff.
+
+The first Stage 3 slice defines exact scene, asset-ledger, and generation-ledger
+schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The checked-in
+scene specification is a neutral synthetic contract fixture, not an approved
+candidate design. Blender geometry compilation and byte-identical export
+qualification remain separate follow-up slices.
 
 ## Validation
 
@@ -65,4 +65,5 @@ pnpm test
 
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
-scorecard, fairness protocol, and cross-repository lock structure.
+scorecard, fairness protocol, cross-repository locks, and the Stage 3 scene and
+provenance contract fixtures.
