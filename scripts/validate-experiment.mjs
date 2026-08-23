@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 import {
   isAllOfGateResolved,
   loadWmmrDinoSourceArtifactLock
@@ -12,6 +14,7 @@ import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
 
 const root = resolve(import.meta.dirname, "..");
+const execFileAsync = promisify(execFile);
 
 function assert(condition, code) {
   if (!condition) throw new Error(code);
@@ -78,7 +81,7 @@ assert(sourceSelection.openGates.includes("thirdPartyNoticeBundle"), "source_sel
 assert(sourceSelection.openGates.includes("humanRightsSignoff"), "source_selection_missing_human_signoff_gate");
 const patchedSource = await verifyPatchedTree();
 const artifactLock = await json(readiness.aiRights.patchedSourceArtifact.lockPath);
-assert(readiness.aiRights.patchedSourceArtifact.status === "materialized-static-verified-runtime-blocked", "patched_source_status_invalid");
+assert(readiness.aiRights.patchedSourceArtifact.status === "materialized-static-verified-constructor-allocation-deferred-runtime-blocked", "patched_source_status_invalid");
 assert(readiness.aiRights.patchedSourceArtifact.treePath === artifactLock.artifact.path, "patched_source_tree_path_mismatch");
 assert(readiness.aiRights.patchedSourceArtifact.fileCount === artifactLock.artifact.fileCount, "patched_source_file_count_mismatch");
 assert(readiness.aiRights.patchedSourceArtifact.pythonFileCount === 46, "patched_source_python_file_count_invalid");
@@ -87,13 +90,14 @@ assert(readiness.aiRights.patchedSourceArtifact.artifactSha256 === artifactLock.
 assert(readiness.aiRights.patchedSourceArtifact.sourceSelectionSha256 === sourceSelection.selection.selectionSha256, "patched_source_selection_digest_mismatch");
 assert(readiness.aiRights.patchedSourceArtifact.sourcePolicySha256 === sourceSelection.policySha256, "patched_source_policy_digest_mismatch");
 assert(readiness.aiRights.patchedSourceArtifact.sourceToArtifactSha256 === artifactLock.sourceToArtifact.sha256, "patched_source_mapping_digest_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.constructorDeviceAllocationDeferred === true, "patched_source_constructor_allocation_not_deferred");
 assert(readiness.aiRights.patchedSourceArtifact.staticPolicySyntaxVerificationCiReproducible === true, "patched_source_static_verification_not_reproducible");
 assert(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted === false, "patched_source_runtime_claim_invalid");
 assert(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed === false, "patched_source_runtime_gate_must_remain_open");
 assert(readiness.aiRights.patchedSourceArtifact.generationAllowed === false, "patched_source_generation_must_remain_blocked");
-assert(readiness.aiRights.patchedSourceArtifact.gateSnapshot === "historical-at-materialization", "patched_source_gate_snapshot_invalid");
-assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtMaterialization) === JSON.stringify(artifactLock.resolvedGates), "patched_source_resolved_gates_mismatch");
-assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.openGatesAtMaterialization) === JSON.stringify(artifactLock.openGates), "patched_source_open_gates_mismatch");
+assert(readiness.aiRights.patchedSourceArtifact.gateSnapshot === "historical-at-artifact-revision", "patched_source_gate_snapshot_invalid");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtRevision) === JSON.stringify(artifactLock.resolvedGates), "patched_source_resolved_gates_mismatch");
+assert(JSON.stringify(readiness.aiRights.patchedSourceArtifact.openGatesAtRevision) === JSON.stringify(artifactLock.openGates), "patched_source_open_gates_mismatch");
 assert(patchedSource.artifactSha256 === artifactLock.artifactSha256, "patched_source_verifier_artifact_mismatch");
 assert(patchedSource.treeSha256 === artifactLock.artifact.treeSha256, "patched_source_verifier_tree_mismatch");
 assert(patchedSource.staticVerification.verificationKind === "static-policy-and-syntax", "patched_source_verification_kind_invalid");
@@ -373,22 +377,76 @@ assert(dinoPayload.openGates.includes("dinoDerivedRuntimeArtifactLock"), "dino_h
 assert(JSON.stringify(dinoDerivedSummary.resolvedGatesAtLock) === JSON.stringify(dinoDerived.resolvedGates), "dino_derived_resolved_gates_mismatch");
 assert(JSON.stringify(dinoDerivedSummary.openGatesAtLock) === JSON.stringify(dinoDerived.openGates), "dino_derived_open_gates_mismatch");
 assert(JSON.stringify(dinoDerived.gateEffect.directlyResolvedGates) === JSON.stringify(["dinoDerivedRuntimeArtifactLock"]), "dino_derived_direct_gate_effect_invalid");
+await execFileAsync(process.env.PYTHON ?? "python3", ["scripts/verify-runtime-wheel-lock.py", "--lock-only"], {
+  cwd: root,
+  maxBuffer: 4 * 1024 * 1024
+});
+await execFileAsync(process.env.PYTHON ?? "python3", ["scripts/verify-patched-pytorch-lock.py"], {
+  cwd: root,
+  maxBuffer: 4 * 1024 * 1024
+});
+await execFileAsync(process.env.PYTHON ?? "python3", ["scripts/verify-offline-runtime-lock.py"], {
+  cwd: root,
+  maxBuffer: 4 * 1024 * 1024
+});
+const dependencySummary = readiness.aiRights.dependencyWheelHashLock;
+const dependencyLock = await json(dependencySummary.lockPath);
+assert(dependencySummary.status === dependencyLock.status, "dependency_lock_status_mismatch");
+assert(dependencySummary.lockSha256 === dependencyLock.lockSha256, "dependency_lock_digest_mismatch");
+assert(dependencySummary.wheelCount === dependencyLock.wheelSet.count, "dependency_wheel_count_mismatch");
+assert(dependencySummary.totalByteLength === dependencyLock.wheelSet.totalByteLength, "dependency_wheel_bytes_mismatch");
+assert(dependencySummary.wheelInventorySha256 === dependencyLock.wheelSet.wheelInventorySha256, "dependency_inventory_digest_mismatch");
+assert(dependencySummary.offlineNoIndexInstallOperatorAttested === true, "dependency_offline_install_attestation_missing");
+assert(dependencySummary.offlineWheelhouseResolutionReportVerified === true, "dependency_offline_resolution_report_missing");
+assert(dependencySummary.sourceBuildsAllowed === false, "dependency_source_build_boundary_invalid");
+assert(dependencySummary.operatorRecordRawSha256 === dependencyLock.restrictedStorage.operatorRecord.rawRecordSha256, "dependency_operator_record_mismatch");
+assert(JSON.stringify(dependencySummary.resolvedGatesAtLock) === JSON.stringify(dependencyLock.resolvedGates), "dependency_resolved_gates_mismatch");
+assert(JSON.stringify(dependencySummary.openGatesAtLock) === JSON.stringify(dependencyLock.openGates), "dependency_open_gates_mismatch");
+const pytorchSummary = readiness.aiRights.patchedPytorchQualification;
+const pytorchLock = await json(pytorchSummary.lockPath);
+assert(pytorchSummary.status === pytorchLock.status, "pytorch_qualification_status_mismatch");
+assert(pytorchSummary.lockSha256 === pytorchLock.lockSha256, "pytorch_qualification_digest_mismatch");
+assert(pytorchSummary.dependencyWheelLockSha256 === dependencyLock.lockSha256, "pytorch_dependency_binding_mismatch");
+assert(pytorchSummary.torchVersion === pytorchLock.qualificationEnvironment.torchVersion, "pytorch_version_mismatch");
+assert(pytorchSummary.torchWheelSha256 === pytorchLock.dependencyWheelLock.torchWheel.sha256, "pytorch_wheel_digest_mismatch");
+assert(pytorchSummary.safeWeightsOnlyRoundTrip === true, "pytorch_safe_round_trip_missing");
+assert(pytorchSummary.legacyTarRejectedBeforeUnpickling === true, "pytorch_legacy_tar_rejection_missing");
+assert(pytorchSummary.sideEffectObserved === false, "pytorch_side_effect_observed");
+assert(JSON.stringify(pytorchSummary.resolvedGatesAtLock) === JSON.stringify(pytorchLock.resolvedGates), "pytorch_resolved_gates_mismatch");
+assert(JSON.stringify(pytorchSummary.openGatesAtLock) === JSON.stringify(pytorchLock.openGates), "pytorch_open_gates_mismatch");
+const offlineSummary = readiness.aiRights.offlineRuntimeQualification;
+const offlineLock = await json(offlineSummary.lockPath);
+assert(offlineSummary.status === offlineLock.status, "offline_runtime_status_mismatch");
+assert(offlineSummary.lockSha256 === offlineLock.lockSha256, "offline_runtime_digest_mismatch");
+assert(offlineSummary.wheelInventorySha256 === offlineLock.prerequisites.dependencyWheelLock.wheelInventorySha256, "offline_runtime_wheel_binding_mismatch");
+assert(offlineSummary.trellisTreeSha256 === offlineLock.sourceMaterialization.trellisTreeSha256, "offline_runtime_trellis_binding_mismatch");
+assert(offlineSummary.dinoSelectionSha256 === offlineLock.sourceMaterialization.dinoSelectionSha256, "offline_runtime_dino_binding_mismatch");
+assert(offlineSummary.expectedModuleCount === offlineLock.imports.expectedModuleCount, "offline_runtime_expected_import_count_mismatch");
+assert(offlineSummary.importedModuleCount === offlineLock.imports.importedModuleCount, "offline_runtime_import_count_mismatch");
+assert(offlineSummary.dinoStrictLoadPassed === true && offlineLock.strictLoads.dino.missingKeyCount === 0 && offlineLock.strictLoads.dino.unexpectedKeyCount === 0, "offline_runtime_dino_strict_load_invalid");
+assert(offlineSummary.trellisStrictLoadCount === offlineLock.strictLoads.trellis.length, "offline_runtime_trellis_load_count_mismatch");
+assert(offlineLock.imports.successfulAuditedProcessLaunchCount === 0 && offlineLock.imports.successfulAuditedSocketOperationCount === 0, "offline_runtime_side_effect_boundary_invalid");
+assert(offlineSummary.prohibitedModulesObserved.length === 0, "offline_runtime_prohibited_module_observed");
+assert(offlineSummary.runtimeImportsExecuted === true && offlineSummary.strictStateDictLoadExecuted === true, "offline_runtime_positive_evidence_missing");
+assert(offlineSummary.inferenceExecuted === false && offlineSummary.modelInputUsed === false && offlineSummary.cudaExecuted === false && offlineSummary.generationAllowed === false, "offline_runtime_boundary_invalid");
+assert(JSON.stringify(offlineSummary.resolvedGatesAtLock) === JSON.stringify(offlineLock.resolvedGates), "offline_runtime_resolved_gates_mismatch");
+assert(JSON.stringify(offlineSummary.openGatesAtLock) === JSON.stringify(offlineLock.openGates), "offline_runtime_open_gates_mismatch");
 const expectedCurrentResolvedGates = [
+  "dependencyWheelHashLock",
   "dinoArtifactPayloadBytesVerification",
   "dinoDerivedRuntimeArtifactLock",
   "dinoSourceAndArtifactLock",
   "dinoSourceGitObjectLock",
+  "offlineImportRuntimeTest",
+  "patchedPytorchQualification",
   "patchedSourceTreeDigest",
   "trellisModelArtifactLock",
   "trellisModelPayloadBytesVerification"
 ];
 const expectedCurrentOpenGates = [
-  "dependencyWheelHashLock",
   "gpuParityAndVramTest",
   "humanRightsSignoff",
   "ociImageDigest",
-  "offlineImportRuntimeTest",
-  "patchedPytorchQualification",
   "providerTermsSnapshot",
   "sbomAndVulnerabilityReport",
   "thirdPartyNoticeBundle"
@@ -426,6 +484,9 @@ assert(readiness.resolved.dinoArtifactPayloadBytesVerification === true, "dino_p
 assert(readiness.resolved.dinoDerivedRuntimeArtifactLock === true, "dino_derived_runtime_artifact_gate_not_resolved");
 assert(readiness.resolved.dinoSourceAndArtifactLock === true, "dino_source_and_artifact_gate_not_resolved");
 assert(readiness.resolved.trellisModelPayloadBytesVerification === true, "trellis_payload_bytes_gate_not_resolved");
+assert(readiness.resolved.dependencyWheelHashLock === true, "dependency_wheel_gate_not_resolved");
+assert(readiness.resolved.patchedPytorchQualification === true, "patched_pytorch_gate_not_resolved");
+assert(readiness.resolved.offlineImportRuntimeTest === true, "offline_runtime_gate_not_resolved");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
 assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");

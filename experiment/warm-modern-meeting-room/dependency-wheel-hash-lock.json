@@ -1,0 +1,1097 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198",
+  "status": "production-runtime-wheel-identities-and-offline-resolution-locked-runtime-blocked",
+  "runtimeContract": {
+    "artifactRevisionLock": {
+      "path": "experiment/warm-modern-meeting-room/artifact-revision-lock.json",
+      "artifactSha256": "03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916"
+    },
+    "dinoSourceLock": {
+      "path": "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+      "lockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9",
+      "runtimeSelectionSha256": "5d9fe22b05aad04a77e33b20faecf72a176fb0de5d977128127415196f87fd4d"
+    },
+    "target": {
+      "implementation": "cpython",
+      "pythonVersion": "3.12.11",
+      "pythonTag": "cp312",
+      "abi": "cp312-or-abi3",
+      "platform": "linux-x86_64-manylinux_2_28",
+      "cudaRuntime": "11.8"
+    }
+  },
+  "wheelSet": {
+    "representation": "complete-direct-and-transitive-binary-wheel-set",
+    "directRequirements": [
+      "numpy==2.2.6",
+      "pillow==11.3.0",
+      "safetensors==0.5.3",
+      "spconv-cu118==2.3.8",
+      "torch==2.7.1+cu118",
+      "xformers==0.0.31.post1"
+    ],
+    "count": 41,
+    "totalByteLength": 3036864277,
+    "wheelInventorySha256": "7ef3a07c4d9e0d62b4dfca3eff1bcb639d4747a6048f91422320add47d32bc9c",
+    "wheels": [
+      {
+        "distribution": "ccimport",
+        "version": "0.4.4",
+        "filename": "ccimport-0.4.4-py3-none-any.whl",
+        "byteLength": 27287,
+        "sha256": "7c78f1258d372de787b7ebe351fb56890f2141b8643c3a45b1842b23828d5245",
+        "metadataSha256": "da2e42852e934c8f24751bac7657c05a36fd805845653f904fd3e0a61761ee2d",
+        "wheelMetadataSha256": "195f5a3138703ffe28342b6f102d9e737a9462eb6059e033925ae8ff49b85894",
+        "requiresPython": ">=3.6",
+        "requiresDist": [
+          "dataclasses; python_version == \"3.6\"",
+          "importlib-metadata>=2.0; python_version < \"3.8\"",
+          "ninja",
+          "pybind11",
+          "requests"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "certifi",
+        "version": "2026.7.22",
+        "filename": "certifi-2026.7.22-py3-none-any.whl",
+        "byteLength": 136983,
+        "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+        "metadataSha256": "ef5af1638fbb23676ac3c5777dfcfc2cd9c348fe4172ed5ba3d277655b248090",
+        "wheelMetadataSha256": "2b6eb4118ce7cd7b09601406aa623c553c4476265836f0d9c16f5c061f7efcc0",
+        "requiresPython": ">=3.7",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "charset-normalizer",
+        "version": "3.5.1",
+        "filename": "charset_normalizer-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "byteLength": 248801,
+        "sha256": "b9af956078716df40d985fb0dfeb2c2120c5ca92ba4ff4b388acfd01cdc14d08",
+        "metadataSha256": "955c93827d59f1280f6d6a76b1e11bfb999cc65a55df83a6f9b28b7bc0e467f6",
+        "wheelMetadataSha256": "797631520e4ac7d96fb6e40cd3e5f2d32e39caeb9cf024f466babe3777b7c296",
+        "requiresPython": ">=3.7",
+        "requiresDist": [],
+        "tags": [
+          "cp312-cp312-manylinux2014_x86_64",
+          "cp312-cp312-manylinux_2_17_x86_64",
+          "cp312-cp312-manylinux_2_28_x86_64"
+        ]
+      },
+      {
+        "distribution": "cumm-cu118",
+        "version": "0.7.11",
+        "filename": "cumm_cu118-0.7.11-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "byteLength": 25605413,
+        "sha256": "5ef923bb0de45513e9b48b6065b12625b30d71502dd50ec826a2304b21a85f0e",
+        "metadataSha256": "50e5615c2b43d7127470344d50f4267a7ad48dcfdac8ea0f1126946fd41d7ff4",
+        "wheelMetadataSha256": "b51cea16e2ba7858e96dfdb14cdbd4ec4df12f6cb4d12fcd589bf2ab17a3dc10",
+        "requiresPython": ">=3.8",
+        "requiresDist": [
+          "contextvars; python_version == \"3.6\"",
+          "fire",
+          "numpy",
+          "pccm>=0.4.15",
+          "pybind11>=2.6.0",
+          "sympy"
+        ],
+        "tags": [
+          "cp312-cp312-manylinux2014_x86_64",
+          "cp312-cp312-manylinux_2_17_x86_64"
+        ]
+      },
+      {
+        "distribution": "filelock",
+        "version": "3.32.3",
+        "filename": "filelock-3.32.3-py3-none-any.whl",
+        "byteLength": 98901,
+        "sha256": "7f0ca4bcc0e181c60dbbd8aa9ab5b120ebb99e4e064e83636340056f833a1f09",
+        "metadataSha256": "2d80f43bd905689145c00b3133bc95895d654ced70a96a1802e9237e0d66599f",
+        "wheelMetadataSha256": "ccec20e2307acd7da453dd7437e70c6b08e2bc3ead3bc3445af135da37b56d59",
+        "requiresPython": ">=3.10",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "fire",
+        "version": "0.7.1",
+        "filename": "fire-0.7.1-py3-none-any.whl",
+        "byteLength": 115945,
+        "sha256": "e43fd8a5033a9001e7e2973bab96070694b9f12f2e0ecf96d4683971b5ab1882",
+        "metadataSha256": "fd4cf680aadcfa80f49825bcb39bd41a8fd84c4928e5325d943a4b4f0909eebe",
+        "wheelMetadataSha256": "ff309ddcdd65ebd02bc724dbf2bcc4a0ff53a5b61792a44548d383e4ebb19d3b",
+        "requiresPython": ">=3.7",
+        "requiresDist": [
+          "hypothesis<6.136.0; extra == \"test\"",
+          "levenshtein<=0.27.1; extra == \"test\"",
+          "pip; extra == \"test\"",
+          "pylint<3.3.8; extra == \"test\"",
+          "pytest-pylint<=1.1.2; extra == \"test\"",
+          "pytest-runner<7.0.0; extra == \"test\"",
+          "pytest<=8.4.1; extra == \"test\"",
+          "setuptools<=80.9.0; extra == \"test\"",
+          "termcolor",
+          "termcolor<3.2.0; extra == \"test\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "fsspec",
+        "version": "2026.7.0",
+        "filename": "fsspec-2026.7.0-py3-none-any.whl",
+        "byteLength": 206583,
+        "sha256": "b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279",
+        "metadataSha256": "88b1657585de14e3bb82aa5278aa9595b30aa4ca74ead073d8950615c808099d",
+        "wheelMetadataSha256": "942926c567d0b1273d09f20295879abd37507845f6b683eab9f87d808df91100",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "adlfs; extra == 'abfs'",
+          "adlfs; extra == 'adl'",
+          "adlfs; extra == 'full'",
+          "adlfs; extra == 'test-full'",
+          "aiobotocore<3.0.0,>=2.5.4; extra == 'test-downstream'",
+          "aiohttp!=4.0.0a0,!=4.0.0a1; extra == 'full'",
+          "aiohttp!=4.0.0a0,!=4.0.0a1; extra == 'http'",
+          "aiohttp!=4.0.0a0,!=4.0.0a1; extra == 'test'",
+          "aiohttp!=4.0.0a0,!=4.0.0a1; extra == 'test-full'",
+          "backports-zstd; (python_version < '3.14') and extra == 'test-full'",
+          "cloudpickle; extra == 'test-full'",
+          "dask; extra == 'dask'",
+          "dask; extra == 'full'",
+          "dask; extra == 'test-full'",
+          "dask[dataframe,test]; extra == 'test-downstream'",
+          "distributed; extra == 'dask'",
+          "distributed; extra == 'full'",
+          "distributed; extra == 'test-full'",
+          "dropbox; extra == 'dropbox'",
+          "dropbox; extra == 'full'",
+          "dropbox; extra == 'test-full'",
+          "dropboxdrivefs; extra == 'dropbox'",
+          "dropboxdrivefs; extra == 'full'",
+          "dropboxdrivefs; extra == 'test-full'",
+          "fastparquet; extra == 'test-full'",
+          "fusepy; extra == 'full'",
+          "fusepy; extra == 'fuse'",
+          "fusepy; extra == 'test-full'",
+          "gcsfs>=2026.4.0; extra == 'full'",
+          "gcsfs>=2026.4.0; extra == 'gcs'",
+          "gcsfs>=2026.4.0; extra == 'gs'",
+          "gcsfs>=2026.4.0; extra == 'test-full'",
+          "jinja2; extra == 'test-full'",
+          "kerchunk; extra == 'test-full'",
+          "libarchive-c; extra == 'full'",
+          "libarchive-c; extra == 'libarchive'",
+          "libarchive-c; extra == 'test-full'",
+          "lz4; extra == 'test-full'",
+          "moto[server]<5,>4; extra == 'test-downstream'",
+          "notebook; extra == 'test-full'",
+          "numpy; extra == 'test'",
+          "numpy; extra == 'test-full'",
+          "numpydoc; extra == 'doc'",
+          "ocifs; extra == 'full'",
+          "ocifs; extra == 'oci'",
+          "ocifs; extra == 'test-full'",
+          "pandas<3.0.0; extra == 'test-full'",
+          "panel; extra == 'full'",
+          "panel; extra == 'gui'",
+          "panel; extra == 'test-full'",
+          "paramiko; extra == 'full'",
+          "paramiko; extra == 'sftp'",
+          "paramiko; extra == 'ssh'",
+          "paramiko; extra == 'test-full'",
+          "pre-commit; extra == 'dev'",
+          "pyarrow>=1; extra == 'arrow'",
+          "pyarrow>=1; extra == 'full'",
+          "pyarrow>=1; extra == 'hdfs'",
+          "pyarrow>=1; extra == 'test-full'",
+          "pyftpdlib; extra == 'test-full'",
+          "pygit2; extra == 'full'",
+          "pygit2; extra == 'git'",
+          "pygit2; extra == 'test-full'",
+          "pytest-asyncio!=0.22.0; extra == 'test'",
+          "pytest-asyncio!=0.22.0; extra == 'test-full'",
+          "pytest-benchmark; extra == 'test'",
+          "pytest-benchmark; extra == 'test-full'",
+          "pytest-cov; extra == 'test'",
+          "pytest-cov; extra == 'test-full'",
+          "pytest-mock; extra == 'test'",
+          "pytest-mock; extra == 'test-full'",
+          "pytest-recording; extra == 'test'",
+          "pytest-recording; extra == 'test-full'",
+          "pytest-rerunfailures; extra == 'test'",
+          "pytest-rerunfailures; extra == 'test-full'",
+          "pytest-timeout; extra == 'test-downstream'",
+          "pytest; extra == 'test'",
+          "pytest; extra == 'test-full'",
+          "python-snappy; extra == 'test-full'",
+          "requests; extra == 'dropbox'",
+          "requests; extra == 'full'",
+          "requests; extra == 'github'",
+          "requests; extra == 'test'",
+          "requests; extra == 'test-full'",
+          "ruff>=0.5; extra == 'dev'",
+          "s3fs>=2026.6.0; extra == 'full'",
+          "s3fs>=2026.6.0; extra == 's3'",
+          "s3fs>=2026.6.0; extra == 'test-full'",
+          "smbprotocol; extra == 'full'",
+          "smbprotocol; extra == 'smb'",
+          "smbprotocol; extra == 'test-full'",
+          "sphinx-design; extra == 'doc'",
+          "sphinx-rtd-theme; extra == 'doc'",
+          "sphinx; extra == 'doc'",
+          "tqdm; extra == 'full'",
+          "tqdm; extra == 'test-full'",
+          "tqdm; extra == 'tqdm'",
+          "urllib3; extra == 'test-full'",
+          "xarray; extra == 'test-downstream'",
+          "yarl; extra == 'doc'",
+          "zarr<3.2.0; extra == 'test-full'",
+          "zstandard; (python_version < '3.14') and extra == 'test-full'"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "idna",
+        "version": "3.19",
+        "filename": "idna-3.19-py3-none-any.whl",
+        "byteLength": 68550,
+        "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4",
+        "metadataSha256": "4d113161aca8582e8d28fddf3ea50f19b607209c2b3e4364379a163454680084",
+        "wheelMetadataSha256": "ff23073da055face9f40cc14a28f3735275308cddcf315d6157461a9a7cdfbb6",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "coverage >= 7.10.0 ; extra == \"all\"",
+          "hypothesis >= 6.141.1 ; extra == \"all\"",
+          "mypy >= 1.11.2 ; extra == \"all\"",
+          "pytest >= 8.3.2 ; extra == \"all\"",
+          "ruff >= 0.16.0 ; extra == \"all\"",
+          "ty >= 0.0.37 ; extra == \"all\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "jinja2",
+        "version": "3.1.6",
+        "filename": "jinja2-3.1.6-py3-none-any.whl",
+        "byteLength": 134899,
+        "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+        "metadataSha256": "68c5548fb67c4132a13898d9b31ec50c6bea2abdd915d921f214355c3a6499c8",
+        "wheelMetadataSha256": "ff6a3334508b59cf776cae1628708ef9e0d410d0e5a3e76073d714deaa2460ee",
+        "requiresPython": ">=3.7",
+        "requiresDist": [
+          "Babel>=2.7 ; extra == \"i18n\"",
+          "MarkupSafe>=2.0"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "lark",
+        "version": "1.3.1",
+        "filename": "lark-1.3.1-py3-none-any.whl",
+        "byteLength": 113151,
+        "sha256": "c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12",
+        "metadataSha256": "730d3f056045a9096bc0a65e4faccae53fe7f3634055174d4b8245cd19cb4cde",
+        "wheelMetadataSha256": "ff309ddcdd65ebd02bc724dbf2bcc4a0ff53a5b61792a44548d383e4ebb19d3b",
+        "requiresPython": ">=3.8",
+        "requiresDist": [
+          "atomicwrites; extra == \"atomic-cache\"",
+          "interegular<0.4.0,>=0.3.1; extra == \"interegular\"",
+          "js2py; extra == \"nearley\"",
+          "regex; extra == \"regex\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "markupsafe",
+        "version": "3.0.3",
+        "filename": "markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "byteLength": 22947,
+        "sha256": "d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d",
+        "metadataSha256": "12b4cc61a7fa288cf7667ee3f213786d9619db57fb33ff6f934afbcb5c12ec81",
+        "wheelMetadataSha256": "0f1467590cfe2a9f7ee1ae217431ec4afd0a502dc7eec37d35b79fdfef118d75",
+        "requiresPython": ">=3.9",
+        "requiresDist": [],
+        "tags": [
+          "cp312-cp312-manylinux2014_x86_64",
+          "cp312-cp312-manylinux_2_17_x86_64",
+          "cp312-cp312-manylinux_2_28_x86_64"
+        ]
+      },
+      {
+        "distribution": "mpmath",
+        "version": "1.3.0",
+        "filename": "mpmath-1.3.0-py3-none-any.whl",
+        "byteLength": 536198,
+        "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+        "metadataSha256": "44b66ea444b9c0d19ae94815d356bf047ae6b680c19268b5c265687cd6a81406",
+        "wheelMetadataSha256": "db07a93359e4e034b8785a58ad6d534ea3dca0635f1e184efe2e66e1c3a299ba",
+        "requiresPython": null,
+        "requiresDist": [
+          "codecov ; extra == 'develop'",
+          "gmpy2 (>=2.1.0a4) ; (platform_python_implementation != \"PyPy\") and extra == 'gmpy'",
+          "pycodestyle ; extra == 'develop'",
+          "pytest (>=4.6) ; extra == 'develop'",
+          "pytest (>=4.6) ; extra == 'tests'",
+          "pytest-cov ; extra == 'develop'",
+          "sphinx ; extra == 'docs'",
+          "wheel ; extra == 'develop'"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "networkx",
+        "version": "3.6.1",
+        "filename": "networkx-3.6.1-py3-none-any.whl",
+        "byteLength": 2068504,
+        "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+        "metadataSha256": "aca5d94a97d1f70f301d033addb635f6e66be8973a00aba4127637eed2ef316a",
+        "wheelMetadataSha256": "ff309ddcdd65ebd02bc724dbf2bcc4a0ff53a5b61792a44548d383e4ebb19d3b",
+        "requiresPython": "!=3.14.1,>=3.11",
+        "requiresDist": [
+          "asv; extra == \"benchmarking\"",
+          "build>=0.10; extra == \"release\"",
+          "cairocffi>=1.7; extra == \"example\"",
+          "changelist==0.5; extra == \"release\"",
+          "contextily>=1.6; extra == \"example\"",
+          "igraph>=0.11; extra == \"example\"",
+          "intersphinx-registry; extra == \"doc\"",
+          "iplotx>=0.9.0; extra == \"example\"",
+          "lxml>=4.6; extra == \"extra\"",
+          "matplotlib>=3.8; extra == \"default\"",
+          "momepy>=0.7.2; extra == \"example\"",
+          "mypy>=1.15; extra == \"developer\"",
+          "myst-nb>=1.1; extra == \"doc\"",
+          "numpy>=1.25; extra == \"default\"",
+          "numpydoc>=1.8.0; extra == \"doc\"",
+          "osmnx>=2.0.0; extra == \"example\"",
+          "pandas>=2.0; extra == \"default\"",
+          "pillow>=10; extra == \"doc\"",
+          "pre-commit>=4.1; extra == \"developer\"",
+          "pydata-sphinx-theme>=0.16; extra == \"doc\"",
+          "pydot>=3.0.1; extra == \"extra\"",
+          "pygraphviz>=1.14; extra == \"extra\"",
+          "pytest-cov>=4.0; extra == \"test\"",
+          "pytest-mpl; extra == \"test-extras\"",
+          "pytest-randomly; extra == \"test-extras\"",
+          "pytest-xdist>=3.0; extra == \"test\"",
+          "pytest>=7.2; extra == \"test\"",
+          "scikit-learn>=1.5; extra == \"example\"",
+          "scipy>=1.11.2; extra == \"default\"",
+          "seaborn>=0.13; extra == \"example\"",
+          "sphinx-gallery>=0.18; extra == \"doc\"",
+          "sphinx>=8.0; extra == \"doc\"",
+          "sympy>=1.10; extra == \"extra\"",
+          "texext>=0.6.7; extra == \"doc\"",
+          "twine>=4.0; extra == \"release\"",
+          "virtualenv; extra == \"benchmarking\"",
+          "wheel>=0.40; extra == \"release\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "ninja",
+        "version": "1.13.0",
+        "filename": "ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "byteLength": 180716,
+        "sha256": "fb46acf6b93b8dd0322adc3a4945452a4e774b75b91293bafcc7b7f8e6517dfa",
+        "metadataSha256": "8d76fc4e382cedcd22bcaeaa748af39b3fa7931b72442396d15cb181659d0a4e",
+        "wheelMetadataSha256": "cf33b04debb15ec1ce4fd415fef719935857f4a24051da890fb7beda3189c4b0",
+        "requiresPython": ">=3.8",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64",
+          "py3-none-manylinux_2_17_x86_64"
+        ]
+      },
+      {
+        "distribution": "numpy",
+        "version": "2.2.6",
+        "filename": "numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "byteLength": 16527618,
+        "sha256": "fd83c01228a688733f1ded5201c678f0c53ecc1006ffbc404db9f7a899ac6249",
+        "metadataSha256": "22d648f53848429464ca643b40d73b49a920d47876fc77c395d4dca4e834904a",
+        "wheelMetadataSha256": "dea2037170a4e7bec05e22b7a4389f3be804f54fcc61660682d0fbf202dadbf5",
+        "requiresPython": ">=3.10",
+        "requiresDist": [],
+        "tags": [
+          "cp312-cp312-manylinux2014_x86_64",
+          "cp312-cp312-manylinux_2_17_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cublas-cu11",
+        "version": "11.11.3.6",
+        "filename": "nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 417870460,
+        "sha256": "60252822adea5d0b10cd990a7dc7bedf7435f30ae40083c7a624a85a43225abc",
+        "metadataSha256": "0a3c9c93332786a7ffb50964efb18459ef9b13b378cb9793661d4da00354c858",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cuda-cupti-cu11",
+        "version": "11.8.87",
+        "filename": "nvidia_cuda_cupti_cu11-11.8.87-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 13093662,
+        "sha256": "4191a17913a706b5098681280cd089cd7d8d3df209a6f5cb79384974a96d24f2",
+        "metadataSha256": "5f2d5957246cfee3c54f4743388b4a55f884b1c8ee94214bfe09d9f4153a9fe5",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cuda-nvrtc-cu11",
+        "version": "11.8.89",
+        "filename": "nvidia_cuda_nvrtc_cu11-11.8.89-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 23173745,
+        "sha256": "a8d02f3cba345be56b1ffc3e74d8f61f02bb758dd31b0f20e12277a5a244f756",
+        "metadataSha256": "20ab10ceac6958bf935434731853fe2af4f1affe0f652608bfd979b31b6f1f18",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cuda-runtime-cu11",
+        "version": "11.8.89",
+        "filename": "nvidia_cuda_runtime_cu11-11.8.89-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 875592,
+        "sha256": "92d04069a987e1fbc9213f8376d265df0f7bb42617d44f5eda1f496acea7f2d1",
+        "metadataSha256": "d5a79397c1342ec813b750a479e5bf5df558173b67ea9fb732d519a78159ec83",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cudnn-cu11",
+        "version": "9.1.0.70",
+        "filename": "nvidia_cudnn_cu11-9.1.0.70-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 663919573,
+        "sha256": "e6135ac63fe9d5b0b89cfb35c3fc1c1349f2b995becadf2e9dc21bca89d9633d",
+        "metadataSha256": "4a2e43134debff85fd2247550dd29420c1545aa7f0e4e21a29116ce0eae9f483",
+        "wheelMetadataSha256": "5c34ecdf021b704f817113b4f1526566903acfd39a0b598e28f086186c2e3368",
+        "requiresPython": ">=3",
+        "requiresDist": [
+          "nvidia-cublas-cu11"
+        ],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cufft-cu11",
+        "version": "10.9.0.58",
+        "filename": "nvidia_cufft_cu11-10.9.0.58-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 168405419,
+        "sha256": "e21037259995243cc370dd63c430d77ae9280bedb68d5b5a18226bfc92e5d748",
+        "metadataSha256": "f194dcd09d08f0842f93775a1f493658aeb6258a66d9af570da2f7814cd95c0f",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-curand-cu11",
+        "version": "10.3.0.86",
+        "filename": "nvidia_curand_cu11-10.3.0.86-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 58124497,
+        "sha256": "cd4cffbf78bb06580206b4814d5dc696d1161c902aae37b2bba00056832379e6",
+        "metadataSha256": "899cd3d86e8313750a9c23665dc09b82b7ac363fe26cd73dbb81c0dcf8e05e8f",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cusolver-cu11",
+        "version": "11.4.1.48",
+        "filename": "nvidia_cusolver_cu11-11.4.1.48-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 128246438,
+        "sha256": "ea9fb1ad8c644ca9ed55af13cc39af3b7ba4c3eb5aef18471fe1fe77d94383cb",
+        "metadataSha256": "d8accfc9a9b10df0d629b47f32b89565c33f229664e536a446fde694007402ff",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [
+          "nvidia-cublas-cu11"
+        ],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-cusparse-cu11",
+        "version": "11.7.5.86",
+        "filename": "nvidia_cusparse_cu11-11.7.5.86-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 204126227,
+        "sha256": "8d7cf1628fd8d462b5d2ba6678fae34733a48ecb80495b9c68672ec6a6dde5ef",
+        "metadataSha256": "e53414b5c68444c28a895ea93e410a9c599518bde7006383674938bb051c038e",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-nccl-cu11",
+        "version": "2.21.5",
+        "filename": "nvidia_nccl_cu11-2.21.5-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 147811630,
+        "sha256": "49d8350629c7888701d1fd200934942671cb5c728f49acc5a0b3a768820bed29",
+        "metadataSha256": "151afedf99042cd0b284db2504ae6ef0c556168190bd28e03d7c1c357c1591ba",
+        "wheelMetadataSha256": "5c34ecdf021b704f817113b4f1526566903acfd39a0b598e28f086186c2e3368",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "nvidia-nvtx-cu11",
+        "version": "11.8.86",
+        "filename": "nvidia_nvtx_cu11-11.8.86-py3-none-manylinux2014_x86_64.whl",
+        "byteLength": 99130,
+        "sha256": "979f5b2aef5da164c5c53c64c85c3dfa61b8b4704f4f963bb568bf98fa8472e8",
+        "metadataSha256": "4a140547f52163d7ec0a9dd12538a935ca1bd68a6b1ec5e95b1d1665e98dec58",
+        "wheelMetadataSha256": "e8d4cecf28da47ef5a27126abaa7745f4991b6ae0c518b0fd30fe9a4b7045644",
+        "requiresPython": ">=3",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "pccm",
+        "version": "0.4.16",
+        "filename": "pccm-0.4.16-py3-none-any.whl",
+        "byteLength": 73731,
+        "sha256": "97e97c341c50c40965bb8f9a8a1ad201868d64e8baa06f9581bedeb3bc223eec",
+        "metadataSha256": "545ac655ef9d4bf72574f7a147ba31a3aafca1c824671c23d9b6fa21b6257936",
+        "wheelMetadataSha256": "715c5c07d026b93717aa6c2bb4f84d2bcf1dafb211fdbeaa6a04e3d14bc811b6",
+        "requiresPython": ">=3.6",
+        "requiresDist": [
+          "ccimport>=0.3.1",
+          "fire",
+          "lark>=1.0.0",
+          "portalocker>=2.3.2",
+          "pybind11>=2.6.0"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "pillow",
+        "version": "11.3.0",
+        "filename": "pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+        "byteLength": 6645236,
+        "sha256": "676b2815362456b5b3216b4fd5bd89d362100dc6f4945154ff172e206a22c024",
+        "metadataSha256": "d53d4d78f8a8efe182396711ef76840386d2ba4ccdad421f58cc00c3b3401f73",
+        "wheelMetadataSha256": "d5cac0c6b007e6b51bbd6518d54474972de8eca9d3d63a34ffdf15f11639f853",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "check-manifest; extra == \"tests\"",
+          "coverage>=7.4.2; extra == \"tests\"",
+          "defusedxml; extra == \"tests\"",
+          "defusedxml; extra == \"xmp\"",
+          "furo; extra == \"docs\"",
+          "markdown2; extra == \"tests\"",
+          "olefile; extra == \"docs\"",
+          "olefile; extra == \"fpx\"",
+          "olefile; extra == \"mic\"",
+          "olefile; extra == \"tests\"",
+          "packaging; extra == \"tests\"",
+          "pyarrow; extra == \"test-arrow\"",
+          "pyroma; extra == \"tests\"",
+          "pytest-cov; extra == \"tests\"",
+          "pytest-timeout; extra == \"tests\"",
+          "pytest-xdist; extra == \"tests\"",
+          "pytest; extra == \"tests\"",
+          "sphinx-autobuild; extra == \"docs\"",
+          "sphinx-copybutton; extra == \"docs\"",
+          "sphinx-inline-tabs; extra == \"docs\"",
+          "sphinx>=8.2; extra == \"docs\"",
+          "sphinxext-opengraph; extra == \"docs\"",
+          "trove-classifiers>=2024.10.12; extra == \"tests\"",
+          "typing-extensions; python_version < \"3.10\" and extra == \"typing\""
+        ],
+        "tags": [
+          "cp312-cp312-manylinux_2_27_x86_64",
+          "cp312-cp312-manylinux_2_28_x86_64"
+        ]
+      },
+      {
+        "distribution": "portalocker",
+        "version": "4.1.0",
+        "filename": "portalocker-4.1.0-py3-none-any.whl",
+        "byteLength": 65914,
+        "sha256": "d985a430d265adf31adf12bc0bf3501aea59efc495e9104c057e5dfb7394c226",
+        "metadataSha256": "206826369fd8031fb8652bc4fda425f96a82e8d69812447b028ae7928127aa13",
+        "wheelMetadataSha256": "96b3b9303d565405b371b372fcbd81c2d7cfadc33729f505a5b2985cb9095f80",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "coverage-conditional-plugin>=0.9 ; extra == 'tests'",
+          "fakeredis>=2.31.0 ; extra == 'tests'",
+          "furo ; extra == 'docs'",
+          "portalocker[redis] ; extra == 'tests'",
+          "pytest-cov>=2.8.1 ; extra == 'tests'",
+          "pytest-rerunfailures>=15.1 ; extra == 'tests'",
+          "pytest-timeout>=2.1.0 ; extra == 'tests'",
+          "pytest>=5.4.1 ; extra == 'tests'",
+          "pywin32>=226 ; sys_platform == 'win32' and extra == 'win32'",
+          "redis>=5.0 ; extra == 'redis'",
+          "sphinx>=7 ; extra == 'docs'",
+          "types-pywin32>=310.0.0.20250429 ; extra == 'tests'"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "pybind11",
+        "version": "3.1.0",
+        "filename": "pybind11-3.1.0-py3-none-any.whl",
+        "byteLength": 319402,
+        "sha256": "b8488090f8acffbcb6b5d6a85571a6827a0a2981ffb75e5a0b27b87c4a6b7dd0",
+        "metadataSha256": "b00ce3708f23fe41c44be8cd46545c9a16c91d9a3e1c51a4047ac683cebe060c",
+        "wheelMetadataSha256": "0c905b07e20c5b2edec8fbd2766e4bdadf816eb50bb7078959fd180be6e5925d",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "pybind11-global==3.1.0; extra == \"global\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "requests",
+        "version": "2.34.2",
+        "filename": "requests-2.34.2-py3-none-any.whl",
+        "byteLength": 73075,
+        "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+        "metadataSha256": "8c384ba3e979480faae2859d3c5e6c1276dd2c3616e322e124d52c8cfc556f27",
+        "wheelMetadataSha256": "69e6228a0d35958183cc1812f07c565ce837b95eb51bd8a33acba9fa4f68d6c9",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "PySocks!=1.5.7,>=1.5.6; extra == \"socks\"",
+          "certifi>=2023.5.7",
+          "chardet<8,>=3.0.2; extra == \"use-chardet-on-py3\"",
+          "charset_normalizer<4,>=2",
+          "idna<4,>=2.5",
+          "urllib3<3,>=1.26"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "safetensors",
+        "version": "0.5.3",
+        "filename": "safetensors-0.5.3-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "byteLength": 471642,
+        "sha256": "cead1fa41fc54b1e61089fa57452e8834f798cb1dc7a09ba3524f1eb08e0317a",
+        "metadataSha256": "fe7d581363ed20b204701623da8f90dd8a3b9995e9a9290b616788d80356adbf",
+        "wheelMetadataSha256": "c668077eb6677a44e736c540549386ba2ec7f075df2eef39cb928175c7e694bf",
+        "requiresPython": ">=3.7",
+        "requiresDist": [
+          "black==22.3 ; extra == 'quality'",
+          "click==8.0.4 ; extra == 'quality'",
+          "flake8>=3.8.3 ; extra == 'quality'",
+          "flax>=0.6.3 ; extra == 'jax'",
+          "h5py>=3.7.0 ; extra == 'testing'",
+          "huggingface-hub>=0.12.1 ; extra == 'testing'",
+          "hypothesis>=6.70.2 ; extra == 'testing'",
+          "isort>=5.5.4 ; extra == 'quality'",
+          "jax>=0.3.25 ; extra == 'jax'",
+          "jaxlib>=0.3.25 ; extra == 'jax'",
+          "mlx>=0.0.9 ; extra == 'mlx'",
+          "numpy>=1.21.6 ; extra == 'numpy'",
+          "paddlepaddle>=2.4.1 ; extra == 'paddlepaddle'",
+          "pytest-benchmark>=4.0.0 ; extra == 'testing'",
+          "pytest>=7.2.0 ; extra == 'testing'",
+          "safetensors[all] ; extra == 'dev'",
+          "safetensors[jax] ; extra == 'all'",
+          "safetensors[numpy] ; extra == 'all'",
+          "safetensors[numpy] ; extra == 'jax'",
+          "safetensors[numpy] ; extra == 'paddlepaddle'",
+          "safetensors[numpy] ; extra == 'pinned-tf'",
+          "safetensors[numpy] ; extra == 'tensorflow'",
+          "safetensors[numpy] ; extra == 'testing'",
+          "safetensors[numpy] ; extra == 'torch'",
+          "safetensors[paddlepaddle] ; extra == 'all'",
+          "safetensors[pinned-tf] ; extra == 'all'",
+          "safetensors[quality] ; extra == 'all'",
+          "safetensors[testing] ; extra == 'all'",
+          "safetensors[torch] ; extra == 'all'",
+          "setuptools-rust>=1.5.2 ; extra == 'testing'",
+          "tensorflow==2.18.0 ; extra == 'pinned-tf'",
+          "tensorflow>=2.11.0 ; extra == 'tensorflow'",
+          "torch>=1.10 ; extra == 'torch'"
+        ],
+        "tags": [
+          "cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64"
+        ]
+      },
+      {
+        "distribution": "setuptools",
+        "version": "84.0.0",
+        "filename": "setuptools-84.0.0-py3-none-any.whl",
+        "byteLength": 818216,
+        "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+        "metadataSha256": "3ef2975718dd31cabdd5829455e9b868ca14dbf79ed8fed2de0af4e87347006e",
+        "wheelMetadataSha256": "61532836a2b3111b7ec23519c09df7c41180c27165fb872a6d8913b566b88ad1",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "build[virtualenv]>=1.0.3; extra == \"test\"",
+          "filelock>=3.4.0; extra == \"test\"",
+          "furo; extra == \"doc\"",
+          "importlib_metadata>=6; python_version < \"3.10\" and extra == \"core\"",
+          "importlib_metadata>=7.0.2; python_version < \"3.10\" and extra == \"type\"",
+          "ini2toml[lite]>=0.14; extra == \"test\"",
+          "jaraco.develop>=7.21; (python_version >= \"3.9\" and sys_platform != \"cygwin\") and extra == \"test\"",
+          "jaraco.develop>=7.21; sys_platform != \"cygwin\" and extra == \"type\"",
+          "jaraco.envs>=2.2; extra == \"test\"",
+          "jaraco.functools>=4; extra == \"core\"",
+          "jaraco.packaging>=9.3; extra == \"doc\"",
+          "jaraco.path>=3.7.2; extra == \"test\"",
+          "jaraco.test>=5.5; extra == \"test\"",
+          "jaraco.text>=3.7; extra == \"core\"",
+          "jaraco.tidelift>=1.4; extra == \"doc\"",
+          "more_itertools; extra == \"core\"",
+          "more_itertools>=8.8; extra == \"core\"",
+          "mypy==1.18.*; extra == \"type\"",
+          "packaging>=24.2; extra == \"core\"",
+          "packaging>=24.2; extra == \"test\"",
+          "pip>=19.1; extra == \"test\"",
+          "pygments-github-lexers==0.0.5; extra == \"doc\"",
+          "pyproject-hooks!=1.1; extra == \"doc\"",
+          "pyproject-hooks!=1.1; extra == \"test\"",
+          "pytest!=8.1.*,>=6; extra == \"test\"",
+          "pytest-checkdocs>=2.14; extra == \"check\"",
+          "pytest-cov; extra == \"cover\"",
+          "pytest-enabler>=3.4; extra == \"enabler\"",
+          "pytest-home>=0.5; extra == \"test\"",
+          "pytest-mypy>=1.0.1; platform_python_implementation != \"PyPy\" and extra == \"type\"",
+          "pytest-perf; sys_platform != \"cygwin\" and extra == \"test\"",
+          "pytest-ruff>=0.2.1; sys_platform != \"cygwin\" and extra == \"check\"",
+          "pytest-subprocess; extra == \"test\"",
+          "pytest-timeout; extra == \"test\"",
+          "pytest-xdist>=3; extra == \"test\"",
+          "rst.linker>=1.9; extra == \"doc\"",
+          "ruff>=0.13.0; sys_platform != \"cygwin\" and extra == \"check\"",
+          "sphinx-favicon; extra == \"doc\"",
+          "sphinx-inline-tabs; extra == \"doc\"",
+          "sphinx-lint; extra == \"doc\"",
+          "sphinx-notfound-page<2,>=1; extra == \"doc\"",
+          "sphinx-reredirects; extra == \"doc\"",
+          "sphinx>=3.5; extra == \"doc\"",
+          "sphinxcontrib-towncrier; extra == \"doc\"",
+          "tomli-w>=1.0.0; extra == \"test\"",
+          "tomli>=2.0.1; python_version < \"3.11\" and extra == \"core\"",
+          "towncrier<24.7; extra == \"doc\"",
+          "virtualenv>=13.0.0; extra == \"test\"",
+          "wheel>=0.43.0; extra == \"core\"",
+          "wheel>=0.44.0; extra == \"test\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "spconv-cu118",
+        "version": "2.3.8",
+        "filename": "spconv_cu118-2.3.8-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "byteLength": 75893623,
+        "sha256": "40a1779ef90b6ecd6085073eec656b99a9e02d10c09784e9483d73d01dd3f3c5",
+        "metadataSha256": "a56e03cc316fcea4e29149f139f06a303194bf23eb9ecfd17778a5eddc9abbd7",
+        "wheelMetadataSha256": "b51cea16e2ba7858e96dfdb14cdbd4ec4df12f6cb4d12fcd589bf2ab17a3dc10",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "ccimport>=0.4.4",
+          "cumm-cu118<0.8.0,>=0.7.11",
+          "fire",
+          "numpy",
+          "pccm>=0.4.16",
+          "pybind11>=2.6.0"
+        ],
+        "tags": [
+          "cp312-cp312-manylinux2014_x86_64",
+          "cp312-cp312-manylinux_2_17_x86_64"
+        ]
+      },
+      {
+        "distribution": "sympy",
+        "version": "1.14.0",
+        "filename": "sympy-1.14.0-py3-none-any.whl",
+        "byteLength": 6299353,
+        "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+        "metadataSha256": "b756c2fbfd5be05ac5bdb0ebca61f55618f30f633ed92d88a5687429313a7595",
+        "wheelMetadataSha256": "4a63b1614ee9ccd281a804af409ec38d7dd719417dda5ac684c6f747afe28aa2",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "hypothesis>=6.70.0; extra == \"dev\"",
+          "mpmath<1.4,>=1.1.0",
+          "pytest>=7.1.0; extra == \"dev\""
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "termcolor",
+        "version": "3.3.0",
+        "filename": "termcolor-3.3.0-py3-none-any.whl",
+        "byteLength": 7734,
+        "sha256": "cf642efadaf0a8ebbbf4bc7a31cec2f9b5f21a9f726f4ccbb08192c9c26f43a5",
+        "metadataSha256": "880aeaba6300677d4ecc022fb63f8adcd57a753b6fd2b5ec17841f722f910196",
+        "wheelMetadataSha256": "58b82a17209f9bf2804afe161f2632d0fde933f9bb2792fd936b2474a2e2ac2f",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "pytest-cov; extra == 'tests'",
+          "pytest; extra == 'tests'"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "torch",
+        "version": "2.7.1+cu118",
+        "filename": "torch-2.7.1+cu118-cp312-cp312-manylinux_2_28_x86_64.whl",
+        "byteLength": 905201474,
+        "sha256": "91454dcfdb81f181fdf216d6d6d9912fbd8795578b90384b3b8b8132737072bb",
+        "metadataSha256": "c6cd29576101c63ff85b41d641e5f38a14388c568ece91b79905286c8023189a",
+        "wheelMetadataSha256": "cb3f571351231a4a9a606de0273e77fbf9ea6af98dc4cebdf6e75a4eb8838542",
+        "requiresPython": ">=3.9.0",
+        "requiresDist": [
+          "filelock",
+          "fsspec",
+          "jinja2",
+          "networkx",
+          "nvidia-cublas-cu11==11.11.3.6; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cuda-cupti-cu11==11.8.87; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cuda-nvrtc-cu11==11.8.89; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cuda-runtime-cu11==11.8.89; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cudnn-cu11==9.1.0.70; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cufft-cu11==10.9.0.58; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-curand-cu11==10.3.0.86; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cusolver-cu11==11.4.1.48; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-cusparse-cu11==11.7.5.86; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-nccl-cu11==2.21.5; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "nvidia-nvtx-cu11==11.8.86; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "opt-einsum>=3.3; extra == \"opt-einsum\"",
+          "optree>=0.13.0; extra == \"optree\"",
+          "setuptools; python_version >= \"3.12\"",
+          "sympy>=1.13.3",
+          "triton==3.3.1; platform_system == \"Linux\" and platform_machine == \"x86_64\"",
+          "typing-extensions>=4.10.0"
+        ],
+        "tags": [
+          "cp312-cp312-manylinux_2_28_x86_64"
+        ]
+      },
+      {
+        "distribution": "triton",
+        "version": "3.3.1",
+        "filename": "triton-3.3.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+        "byteLength": 155669138,
+        "sha256": "9999e83aba21e1a78c1f36f21bce621b77bcaa530277a50484a7cb4a822f6e43",
+        "metadataSha256": "34d1dcbf4948d86b691e0dc803a1aa9e9d884af8ea1281394371809b0a8e234d",
+        "wheelMetadataSha256": "d5cac0c6b007e6b51bbd6518d54474972de8eca9d3d63a34ffdf15f11639f853",
+        "requiresPython": null,
+        "requiresDist": [
+          "autopep8; extra == \"tests\"",
+          "cmake>=3.20; extra == \"build\"",
+          "isort; extra == \"tests\"",
+          "lit; extra == \"build\"",
+          "llnl-hatchet; extra == \"tests\"",
+          "matplotlib; extra == \"tutorials\"",
+          "numpy; extra == \"tests\"",
+          "pandas; extra == \"tutorials\"",
+          "pytest-forked; extra == \"tests\"",
+          "pytest-xdist; extra == \"tests\"",
+          "pytest; extra == \"tests\"",
+          "scipy>=1.7.1; extra == \"tests\"",
+          "setuptools>=40.8.0",
+          "tabulate; extra == \"tutorials\""
+        ],
+        "tags": [
+          "cp312-cp312-manylinux_2_27_x86_64",
+          "cp312-cp312-manylinux_2_28_x86_64"
+        ]
+      },
+      {
+        "distribution": "typing-extensions",
+        "version": "4.16.0",
+        "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+        "byteLength": 45571,
+        "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+        "metadataSha256": "b05084ca1d50879865178d9fff9fabeab61bdfb1f361bfbde95421ffc8f9be46",
+        "wheelMetadataSha256": "1b68144734c4b66791f27add5d425f3620775585718a03d0f9b110ba3a4d88db",
+        "requiresPython": ">=3.9",
+        "requiresDist": [],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "urllib3",
+        "version": "2.7.0",
+        "filename": "urllib3-2.7.0-py3-none-any.whl",
+        "byteLength": 131087,
+        "sha256": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897",
+        "metadataSha256": "66147856d30bbb6bed01c6ce3326d0f48d84ed5f286ac177633a1486b82eace5",
+        "wheelMetadataSha256": "41c708c5adba6e097513ab8ccb9f1d7865a2fb469e22491a9e01dcc64da459fc",
+        "requiresPython": ">=3.10",
+        "requiresDist": [
+          "backports-zstd>=1.0.0; (python_version < '3.14') and extra == 'zstd'",
+          "brotli>=1.2.0; (platform_python_implementation == 'CPython') and extra == 'brotli'",
+          "brotlicffi>=1.2.0.0; (platform_python_implementation != 'CPython') and extra == 'brotli'",
+          "h2<5,>=4; extra == 'h2'",
+          "pysocks!=1.5.7,<2.0,>=1.5.6; extra == 'socks'"
+        ],
+        "tags": [
+          "py3-none-any"
+        ]
+      },
+      {
+        "distribution": "xformers",
+        "version": "0.0.31.post1",
+        "filename": "xformers-0.0.31.post1-cp39-abi3-manylinux_2_28_x86_64.whl",
+        "byteLength": 13310212,
+        "sha256": "c938925b2fed8641efc62ac8fec98e56cb3f78f40c25d2e768654b99fdb05d0c",
+        "metadataSha256": "90839d32958d7c84e423d9e0126e2740119562a31ee22ad599b3bd3ece48e871",
+        "wheelMetadataSha256": "b5e5bbd0b1210f39248c1d2c9964cfb1586f6cf79359fc7938a05c9e6098cea6",
+        "requiresPython": ">=3.9",
+        "requiresDist": [
+          "numpy",
+          "torch==2.7.1"
+        ],
+        "tags": [
+          "cp39-abi3-manylinux_2_28_x86_64"
+        ]
+      }
+    ]
+  },
+  "resolution": {
+    "resolver": "pip",
+    "pipVersion": "25.0.1",
+    "imageDigest": "sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7",
+    "offlineNoIndexInstallOperatorAttested": true,
+    "offlineWheelhouseResolutionReportVerified": true,
+    "sourceBuildsAllowed": false,
+    "sdistsAllowed": false,
+    "missingDependencyCount": 0,
+    "conflictCount": 0,
+    "unsupportedWheelCount": 0,
+    "resolverReportSha256": "91c79ccb31f8ecdaf6bbfb53cfa9ec68dc94b7d0153ed59e8085dad8afb0542f",
+    "offlineInstallAttestor": {
+      "path": "scripts/attest-offline-wheel-install.py",
+      "sourceSha256": "cebcb66e39135e3e5f36a45b0de4377db46e16d85278984d1e32a7263923194b"
+    },
+    "offlineInstallReportSha256": "12106a92d279a0485109726dcfab630c0a62d27685eb05813233cc183b1831a7",
+    "installedDistributionCount": 41,
+    "installedDistributionInventorySha256": "4cd968c1f790b530a032fb241b04cf3cddeb3ed1fe96adf233c669fb7a98014b",
+    "installedDirectoryCount": 1152,
+    "installedDirectorySetSha256": "20b5aa154e2a4bcecaf634274513e68de11278390cbaf19c4783af05e285d66c",
+    "installedFileCount": 16397,
+    "checkedWheelRecordCount": 16309,
+    "installedFileSetSha256": "9f89554a989aafe7ec7440a6cf53b0a6c0c8f7852f438d41a0926be9805ef260"
+  },
+  "restrictedStorage": {
+    "evidenceScope": "operator-attested-point-in-time",
+    "retainedAtVerification": true,
+    "fullReadbackVerified": true,
+    "operatorRecord": {
+      "schemaVersion": 3,
+      "visibility": "restricted-evidence-retention",
+      "rawRecordSha256": "f149291f1b60aa3ebf56adc4be2985700636f7811b42bdb12f82478ab2b2c6a3"
+    }
+  },
+  "normalCi": {
+    "scope": "canonical-public-lock-only/no-wheel-or-restricted-record-access",
+    "wheelAccessAllowed": false,
+    "restrictedRecordAccessAllowed": false,
+    "networkRequestInitiatedByVerifier": false,
+    "wheelVerificationCoverage": "synthetic-fixtures-only"
+  },
+  "boundaries": {
+    "offlineInstallationOperatorAttested": true,
+    "sourceBuildExecuted": false,
+    "runtimeImportsExecuted": false,
+    "patchedPytorchQualified": false,
+    "modelArtifactsRead": false,
+    "modelInputUsed": false,
+    "gpuExecuted": false,
+    "finalProductionOciLocked": false,
+    "rightsApproved": false,
+    "generationAllowed": false
+  },
+  "gateSnapshot": "historical-at-dependency-wheel-lock",
+  "resolvedGates": [
+    "dependencyWheelHashLock",
+    "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
+    "dinoSourceAndArtifactLock",
+    "dinoSourceGitObjectLock",
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock",
+    "trellisModelPayloadBytesVerification"
+  ],
+  "openGates": [
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle"
+  ],
+  "gateEffect": {
+    "directlyResolvedGates": [
+      "dependencyWheelHashLock"
+    ],
+    "doesNotResolveCompositeGates": true,
+    "doesNotResolveOtherGates": true
+  }
+}

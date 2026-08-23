@@ -11,6 +11,11 @@ coverage/
 *.safetensors
 *.ckpt
 *.onnx
+*.whl
+*.so
+*.pyd
+*.dll
+*.dylib
 *.png
 *.jpg
 *.jpeg

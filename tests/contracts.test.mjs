@@ -99,23 +99,24 @@ test("TRELLIS source selection narrows evidence without allowing generation", as
   assert.ok(lock.openGates.includes("patchedSourceTreeDigest"));
   assert.ok(lock.openGates.includes("thirdPartyNoticeBundle"));
   assert.ok(lock.openGates.includes("humanRightsSignoff"));
-  assert.equal(readiness.aiRights.patchedSourceArtifact.status, "materialized-static-verified-runtime-blocked");
+  assert.equal(readiness.aiRights.patchedSourceArtifact.status, "materialized-static-verified-constructor-allocation-deferred-runtime-blocked");
   assert.equal(readiness.aiRights.patchedSourceArtifact.fileCount, 50);
   assert.equal(readiness.aiRights.patchedSourceArtifact.pythonFileCount, 46);
   assert.equal(readiness.aiRights.patchedSourceArtifact.treeSha256, artifact.artifact.treeSha256);
   assert.equal(readiness.aiRights.patchedSourceArtifact.artifactSha256, artifact.artifactSha256);
   assert.equal(readiness.aiRights.patchedSourceArtifact.sourceToArtifactSha256, artifact.sourceToArtifact.sha256);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.constructorDeviceAllocationDeferred, true);
   assert.equal(readiness.aiRights.patchedSourceArtifact.staticPolicySyntaxVerificationCiReproducible, true);
   assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportsExecuted, false);
   assert.equal(readiness.aiRights.patchedSourceArtifact.runtimeImportGateClosed, false);
   assert.equal(readiness.aiRights.patchedSourceArtifact.generationAllowed, false);
-  assert.equal(readiness.aiRights.patchedSourceArtifact.gateSnapshot, "historical-at-materialization");
-  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtMaterialization, artifact.resolvedGates);
-  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.openGatesAtMaterialization, artifact.openGates);
-  assert.deepEqual(artifact.resolvedGates, ["patchedSourceTreeDigest"]);
+  assert.equal(readiness.aiRights.patchedSourceArtifact.gateSnapshot, "historical-at-artifact-revision");
+  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.resolvedGatesAtRevision, artifact.resolvedGates);
+  assert.deepEqual(readiness.aiRights.patchedSourceArtifact.openGatesAtRevision, artifact.openGates);
+  assert.ok(artifact.resolvedGates.includes("patchedSourceTreeDigest"));
   assert.ok(artifact.openGates.includes("offlineImportRuntimeTest"));
   assert.ok(artifact.openGates.includes("thirdPartyNoticeBundle"));
-  assert.ok(artifact.openGates.includes("trellisModelArtifactLock"));
+  assert.ok(artifact.resolvedGates.includes("trellisModelArtifactLock"));
   assert.equal(readiness.resolved.trellisPatchedSourceTreeDigest, true);
   assert.equal(readiness.resolved.trellisStaticPolicySyntaxVerificationCiReproducible, true);
 });
@@ -206,10 +207,13 @@ test("DINO source and HEAD metadata lock resolves only source identity", async (
   assert.deepEqual(summary.resolvedGatesAtLock, lock.resolvedGates);
   assert.deepEqual(summary.openGatesAtLock, lock.openGates);
   assert.deepEqual(readiness.aiRights.currentGateState.resolvedGates, [
+    "dependencyWheelHashLock",
     "dinoArtifactPayloadBytesVerification",
     "dinoDerivedRuntimeArtifactLock",
     "dinoSourceAndArtifactLock",
     "dinoSourceGitObjectLock",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
     "patchedSourceTreeDigest",
     "trellisModelArtifactLock",
     "trellisModelPayloadBytesVerification"
@@ -356,8 +360,8 @@ test("DINO derived safetensors lock resolves only exact conversion and tensor eq
   assert.ok(historical.openGatesAtLock.includes("dinoDerivedRuntimeArtifactLock"));
   assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("dinoDerivedRuntimeArtifactLock"));
   assert.ok(!readiness.aiRights.currentGateState.openGates.includes("dinoDerivedRuntimeArtifactLock"));
-  assert.ok(readiness.aiRights.currentGateState.openGates.includes("offlineImportRuntimeTest"));
-  assert.ok(readiness.aiRights.currentGateState.openGates.includes("patchedPytorchQualification"));
+  assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("offlineImportRuntimeTest"));
+  assert.ok(readiness.aiRights.currentGateState.resolvedGates.includes("patchedPytorchQualification"));
   assert.equal(summary.deserializedWithWeightsOnly, true);
   assert.equal(summary.sealedInputCopy, true);
   assert.equal(summary.strictStateDictLoadExecuted, false);

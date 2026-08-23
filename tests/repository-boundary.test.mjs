@@ -36,6 +36,12 @@ test("repository boundary scans force-added node_modules and rejects disguised b
     );
 
     await git(directory, "rm", "--cached", "-q", "node_modules/cache/model.safetensors");
+    await writeFile(join(directory, "runtime.whl"), "not-a-wheel\n");
+    await assert.rejects(
+      checkRepositoryBoundary(directory),
+      /forbidden_scene_binary:runtime\.whl/
+    );
+    await rm(join(directory, "runtime.whl"));
     await writeFile(join(directory, "disguised.txt"), Buffer.from([0x67, 0x6c, 0x54, 0x46, 0x00]));
     await git(directory, "add", "disguised.txt");
     await assert.rejects(
