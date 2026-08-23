@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "ba9ef8896650ad1704100671f33ae52045fdcdd980e053e401e1fe8e0843ef79",
+  "status": "locked-offline-imports-and-strict-state-loads-qualified-generation-blocked",
+  "prerequisites": {
+    "artifactRevisionLock": {
+      "path": "experiment/warm-modern-meeting-room/artifact-revision-lock.json",
+      "artifactSha256": "03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916",
+      "treeSha256": "8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff"
+    },
+    "dependencyWheelLock": {
+      "path": "experiment/warm-modern-meeting-room/dependency-wheel-hash-lock.json",
+      "lockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198",
+      "wheelInventorySha256": "7ef3a07c4d9e0d62b4dfca3eff1bcb639d4747a6048f91422320add47d32bc9c"
+    },
+    "patchedPytorchLock": {
+      "path": "experiment/warm-modern-meeting-room/patched-pytorch-qualification-lock.json",
+      "lockSha256": "5e1ab0cae4a4161da26f541638e8b763e2fdd8dc81ca901f02540fae5f604d69"
+    },
+    "dinoSourceLock": {
+      "path": "experiment/warm-modern-meeting-room/dino-source-artifact-metadata-lock.json",
+      "lockSha256": "d20a7721c8618b557f7b93ae0d88914a46eee25d4db0af071b2e6651c030faf9"
+    },
+    "dinoDerivedLock": {
+      "path": "experiment/warm-modern-meeting-room/dino-derived-runtime-artifact-lock.json",
+      "lockSha256": "947b7b7adb9bcde2d6c63948e789d6b8236045f05d3c8688a2062e20e60b8bb6"
+    },
+    "trellisModelLock": {
+      "path": "experiment/warm-modern-meeting-room/trellis-model-artifact-lock.json",
+      "lockSha256": "d0046a083406c02dd67fd508b917750bc52f8e893527b4e39fa71abda0a6baa9"
+    },
+    "trellisPayloadLock": {
+      "path": "experiment/warm-modern-meeting-room/trellis-payload-bytes-lock.json",
+      "lockSha256": "d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d"
+    }
+  },
+  "environment": {
+    "qualificationBaseImageDigest": "sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7",
+    "dependencyWheelLockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198",
+    "pythonVersion": "3.12.11",
+    "pythonIsolatedMode": true,
+    "siteInitializationDisabled": true,
+    "bytecodeWritesDisabled": true,
+    "pythonPathEnvironmentPresent": false,
+    "torchVersion": "2.7.1+cu118",
+    "torchRelativeImportOrigin": "torch/__init__.py",
+    "compiledCudaVersion": "11.8",
+    "cudaInitialized": false,
+    "installedDistributionCount": 41,
+    "installedDistributionInventorySha256": "4cd968c1f790b530a032fb241b04cf3cddeb3ed1fe96adf233c669fb7a98014b",
+    "offlineInstallReportSha256": "12106a92d279a0485109726dcfab630c0a62d27685eb05813233cc183b1831a7",
+    "installedDirectoryCount": 1152,
+    "installedDirectorySetSha256": "20b5aa154e2a4bcecaf634274513e68de11278390cbaf19c4783af05e285d66c",
+    "installedFileCount": 16397,
+    "installedFileSetSha256": "9f89554a989aafe7ec7440a6cf53b0a6c0c8f7852f438d41a0926be9805ef260",
+    "peakRssKiB": 3861208
+  },
+  "sourceMaterialization": {
+    "trellisFileCount": 50,
+    "trellisTreeSha256": "8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff",
+    "dinoFileCount": 12,
+    "dinoSelectionSha256": "5d9fe22b05aad04a77e33b20faecf72a176fb0de5d977128127415196f87fd4d",
+    "selectedModelMetadataCount": 5
+  },
+  "imports": {
+    "expectedModuleCount": 58,
+    "importedModuleCount": 58,
+    "modulePlanSha256": "943a62d4e4bc34b231d0fc70d40815ba3936d1e059dde62d3cf5ac071cc2cba0",
+    "moduleOriginPlanSha256": "ed486f816642a26e94bd60b9e9cb664d1591fd50c990972fb3c4d00164df08a9",
+    "everySourceModuleOriginVerified": true,
+    "prohibitedModulePrefixes": [
+      "diffoctreerast",
+      "diff_gaussian_rasterization",
+      "nvdiffrast",
+      "open3d",
+      "plyfile",
+      "rembg",
+      "torchsparse",
+      "trellis.renderers",
+      "trellis.representations.gaussian",
+      "trellis.representations.radiance_field",
+      "trellis.utils.postprocessing_utils",
+      "trellis.utils.render_utils",
+      "vox2seq"
+    ],
+    "prohibitedModulesObserved": [],
+    "blockedAuditEventCounts": {
+      "os.exec": 0,
+      "os.fork": 0,
+      "os.forkpty": 0,
+      "os.posix_spawn": 0,
+      "os.spawn": 0,
+      "os.system": 0,
+      "socket.__new__": 0,
+      "socket.bind": 0,
+      "socket.connect": 0,
+      "socket.getaddrinfo": 0,
+      "subprocess.Popen": 1
+    },
+    "blockedCummNvccProbeAttempts": 1,
+    "sideEffectObservationScope": "python-audit-events-plus-container-network-and-seccomp-observation",
+    "successfulAuditedProcessLaunchCount": 0,
+    "successfulAuditedSocketOperationCount": 0,
+    "torchHubInvocationCount": 0
+  },
+  "strictLoads": {
+    "dino": {
+      "callable": "dinov2.models.vision_transformer.vit_large",
+      "arguments": {
+        "block_chunks": 0,
+        "ffn_layer": "mlp",
+        "img_size": 518,
+        "init_values": 1,
+        "interpolate_antialias": true,
+        "interpolate_offset": 0,
+        "num_register_tokens": 4,
+        "patch_size": 14
+      },
+      "artifactSha256": "30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc",
+      "tensorCount": 344,
+      "totalElements": 304372736,
+      "structureSha256": "5edf3994b1d63144d8f6469582dfb5c9d17256191f658fefdd042b3d18e8c73d",
+      "strict": true,
+      "missingKeyCount": 0,
+      "unexpectedKeyCount": 0
+    },
+    "trellis": [
+      {
+        "key": "slat_decoder_mesh",
+        "className": "SLatMeshDecoder",
+        "configSha256": "293900795cb69cc972d1a20a4940ee12f7e007952c2ae92d128dda91b96ac317",
+        "payloadSha256": "3e87aba94b5786407eb06d0502c1ed0885a0027a3f2b8537bfe15b0a92c01859",
+        "tensorCount": 120,
+        "totalElements": 90926693,
+        "structureSha256": "0585830ef3b10683c2ba14ff8d7ee9305d4c5d34587dae52a13575a6fc1a66b2",
+        "strict": true,
+        "missingKeyCount": 0,
+        "unexpectedKeyCount": 0
+      },
+      {
+        "key": "slat_flow_model",
+        "className": "SLatFlowModel",
+        "configSha256": "c0a9bd57227f55cf75ff02562c27bb05c50174f06955f56a79dea2982fd7a8f9",
+        "payloadSha256": "693fb2a58ad497bd222007301eeec49d14d60f8c12d2f2f00c221fa747b4c66c",
+        "tensorCount": 526,
+        "totalElements": 600432520,
+        "structureSha256": "88e92ddcc04d7a676a93e779428905a70318182352571d0b2c0ebde022496f36",
+        "strict": true,
+        "missingKeyCount": 0,
+        "unexpectedKeyCount": 0
+      },
+      {
+        "key": "sparse_structure_decoder",
+        "className": "SparseStructureDecoder",
+        "configSha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5",
+        "payloadSha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a",
+        "tensorCount": 74,
+        "totalElements": 73671201,
+        "structureSha256": "cbd3b529c739a1198d447b242cab1f9290e4860cd8620dfc2b1d7fbee2a6fb54",
+        "strict": true,
+        "missingKeyCount": 0,
+        "unexpectedKeyCount": 0
+      },
+      {
+        "key": "sparse_structure_flow_model",
+        "className": "SparseStructureFlowModel",
+        "configSha256": "bf69161da7ece9a87394dd4441f0cfa6d4261696a214a8f68388c81fa9a6b5b7",
+        "payloadSha256": "96dc6bfd4136fd950af564dd16b4ae533c9ba6af8f26c670646b2a9f2789b1db",
+        "tensorCount": 489,
+        "totalElements": 559737864,
+        "structureSha256": "26ec6ff7e323cde6d6d9498e94ecc0b1290909968e1203c6480474d6bc915147",
+        "strict": true,
+        "missingKeyCount": 0,
+        "unexpectedKeyCount": 0
+      }
+    ]
+  },
+  "harness": {
+    "path": "scripts/qualify-offline-runtime.py",
+    "sourceSha256": "83e22471c1d80de546af94769f7f46a100199eae99d07cab090a1818d650802a",
+    "reportSha256": "ea226a98960df7fcd370af636bac9d955aac412a4523c7f5e44256935d5e3fe9"
+  },
+  "isolation": {
+    "networkNamespace": "none",
+    "cloudCredentialsPassed": false,
+    "rootFilesystemReadOnly": true,
+    "inputsReadOnly": true,
+    "nonRoot": true,
+    "capabilitiesDropped": true,
+    "noNewPrivileges": true,
+    "pythonIsolatedMode": true,
+    "siteInitializationDisabled": true,
+    "bytecodeWritesDisabled": true,
+    "memoryLimitBytes": 15032385536,
+    "cpuLimit": 4,
+    "pidsLimit": 128,
+    "observed": {
+      "effectiveUid": 1000,
+      "effectiveGid": 1000,
+      "effectiveCapabilitiesHex": "0000000000000000",
+      "noNewPrivileges": true,
+      "seccompMode": 2,
+      "seccompFilterCount": 1,
+      "networkInterfaces": [
+        "lo"
+      ],
+      "rootFilesystemReadOnly": true,
+      "inputsReadOnly": true,
+      "cloudCredentialsObserved": false
+    }
+  },
+  "restrictedStorage": {
+    "evidenceScope": "operator-attested-point-in-time",
+    "reportReadbackVerified": true,
+    "operatorRecord": {
+      "schemaVersion": 3,
+      "visibility": "restricted-evidence-retention",
+      "rawRecordSha256": "f9696cfd60fdb6577c707e24f523e80513236a3aa9a47e1922bd25e4a9a573d9"
+    }
+  },
+  "normalCi": {
+    "scope": "canonical-public-lock-and-harness-only/no-wheel-model-report-or-restricted-record-access",
+    "realRuntimeExecuted": false,
+    "modelArtifactAccessAllowed": false,
+    "restrictedRecordAccessAllowed": false,
+    "networkRequestInitiatedByVerifier": false,
+    "runtimeVerificationCoverage": "synthetic-protocol-fixtures-only"
+  },
+  "boundaries": {
+    "runtimeImportsExecuted": true,
+    "strictStateDictLoadExecuted": true,
+    "modelForwardCalls": 0,
+    "inferenceExecuted": false,
+    "modelInputUsed": false,
+    "cudaExecuted": false,
+    "generationExecuted": false,
+    "outputArtifactCreated": false,
+    "modelPayloadCopiesDeletedAfterQualification": true,
+    "finalProductionOciLocked": false,
+    "rightsApproved": false,
+    "generationAllowed": false
+  },
+  "gateSnapshot": "historical-at-offline-runtime-qualification",
+  "resolvedGates": [
+    "dependencyWheelHashLock",
+    "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
+    "dinoSourceAndArtifactLock",
+    "dinoSourceGitObjectLock",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock",
+    "trellisModelPayloadBytesVerification"
+  ],
+  "openGates": [
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle"
+  ],
+  "gateEffect": {
+    "directlyResolvedGates": [
+      "offlineImportRuntimeTest"
+    ],
+    "doesNotResolveCompositeGates": true,
+    "doesNotResolveOtherGates": true
+  }
+}

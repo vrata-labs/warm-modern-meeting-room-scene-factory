@@ -29,16 +29,25 @@ class MeshExtractResult:
 
 
 class SparseFeatures2Mesh:
-    def __init__(self, device="cuda", res=64, use_color=True):
-        self.device = device
+    def __init__(self, res=64, use_color=True):
+        self.device = None
         self.res = res
-        self.mesh_extractor = FlexiCubes(device=device)
+        self.mesh_extractor = None
         self.sdf_bias = -1.0 / res
-        verts, cubes = construct_dense_grid(self.res, self.device)
-        self.reg_c = cubes.to(self.device)
-        self.reg_v = verts.to(self.device)
+        self.reg_c = None
+        self.reg_v = None
         self.use_color = use_color
         self._calc_layout()
+
+    def _ensure_device(self, device):
+        device = torch.device(device)
+        if self.device == device:
+            return
+        self.device = device
+        self.mesh_extractor = FlexiCubes(device=device)
+        verts, cubes = construct_dense_grid(self.res, device)
+        self.reg_c = cubes
+        self.reg_v = verts
 
     def _calc_layout(self):
         self.layouts = SimpleNamespace(
@@ -64,6 +73,7 @@ class SparseFeatures2Mesh:
     def __call__(self, cubefeats: SparseTensor):
         coords = cubefeats.coords[:, 1:]
         feats = cubefeats.feats
+        self._ensure_device(feats.device)
         sdf = self.get_layout(feats, "sdf")
         deform = self.get_layout(feats, "deform")
         color = self.get_layout(feats, "color")

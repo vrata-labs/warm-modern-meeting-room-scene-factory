@@ -11,12 +11,14 @@ const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const defaultExperimentDirectory = resolve(repositoryRoot, "experiment/warm-modern-meeting-room");
 const defaultArtifactLockPath = resolve(defaultExperimentDirectory, "artifact-lock.json");
+const defaultArtifactRevisionLockPath = resolve(defaultExperimentDirectory, "artifact-revision-lock.json");
 const defaultSourcePolicyPath = resolve(defaultExperimentDirectory, "trellis-source-selection-lock.json");
 const defaultTreeDirectory = resolve(defaultExperimentDirectory, "trellis-patched-tree");
 const scannerPath = resolve(import.meta.dirname, "scan-trellis-patched-tree.py");
 const treeCanonicalization = "sort by ASCII path, then concatenate UTF-8 path, NUL, mode, NUL, decimal size, NUL, lowercase SHA-256, and LF";
 const sourceMapCanonicalization = "sort by ASCII source path, then concatenate source path, NUL, source SHA-256, NUL, disposition, NUL, artifact path or empty, NUL, artifact SHA-256 or empty, and LF";
 const expectedArtifactPath = "experiment/warm-modern-meeting-room/trellis-patched-tree";
+const expectedBaseArtifactLockPath = "experiment/warm-modern-meeting-room/artifact-lock.json";
 const expectedLockPath = "experiment/warm-modern-meeting-room/trellis-source-selection-lock.json";
 const expectedOmissions = new Set([
   ".gitmodules",
@@ -41,6 +43,26 @@ const expectedOpenGates = new Set([
   "providerTermsSnapshot",
   "thirdPartyNoticeBundle",
   "humanRightsSignoff"
+]);
+const expectedCurrentOpenGates = new Set([
+  "dependencyWheelHashLock",
+  "gpuParityAndVramTest",
+  "humanRightsSignoff",
+  "ociImageDigest",
+  "offlineImportRuntimeTest",
+  "patchedPytorchQualification",
+  "providerTermsSnapshot",
+  "sbomAndVulnerabilityReport",
+  "thirdPartyNoticeBundle"
+]);
+const expectedCurrentResolvedGates = new Set([
+  "dinoArtifactPayloadBytesVerification",
+  "dinoDerivedRuntimeArtifactLock",
+  "dinoSourceAndArtifactLock",
+  "dinoSourceGitObjectLock",
+  "patchedSourceTreeDigest",
+  "trellisModelArtifactLock",
+  "trellisModelPayloadBytesVerification"
 ]);
 const glideOrigin = Object.freeze({
   repository: "https://github.com/openai/glide-text2im.git",
@@ -138,6 +160,12 @@ export function canonicalTreeDigest(files) {
 }
 
 export function canonicalArtifactDigest(lock) {
+  const semantics = structuredClone(lock);
+  delete semantics.artifactSha256;
+  return sha256(stableJson(semantics));
+}
+
+export function canonicalArtifactRevisionDigest(lock) {
   const semantics = structuredClone(lock);
   delete semantics.artifactSha256;
   return sha256(stableJson(semantics));
@@ -393,6 +421,145 @@ export function validateArtifactLock(lock, sourcePolicy) {
   return lock;
 }
 
+export function validateArtifactRevisionLock(lock, baseLock, sourcePolicy) {
+  const issues = [];
+  requireExactKeys(lock, [
+    "artifact",
+    "artifactSha256",
+    "baseArtifactLock",
+    "boundaries",
+    "gateEffect",
+    "gateSnapshot",
+    "openGates",
+    "replacements",
+    "resolvedGates",
+    "schemaVersion",
+    "sourceToArtifact",
+    "status"
+  ], "artifact_revision_lock", issues);
+  if (lock?.schemaVersion !== 1) issues.push("artifact_revision_schema_invalid");
+  if (lock?.status !== "materialized-static-verified-constructor-allocation-deferred-runtime-blocked") {
+    issues.push("artifact_revision_status_invalid");
+  }
+  if (!/^[0-9a-f]{64}$/.test(lock?.artifactSha256 ?? "")) issues.push("artifact_revision_digest_invalid");
+  else if (lock.artifactSha256 !== canonicalArtifactRevisionDigest(lock)) issues.push("artifact_revision_digest_mismatch");
+  if (hasTimestampKey(lock)) issues.push("artifact_revision_timestamp_forbidden");
+
+  requireExactKeys(lock?.baseArtifactLock, ["artifactSha256", "path", "treeSha256"], "artifact_revision_base", issues);
+  if (lock?.baseArtifactLock?.path !== expectedBaseArtifactLockPath) issues.push("artifact_revision_base_path_invalid");
+  if (lock?.baseArtifactLock?.artifactSha256 !== baseLock.artifactSha256) issues.push("artifact_revision_base_digest_mismatch");
+  if (lock?.baseArtifactLock?.treeSha256 !== baseLock.artifact.treeSha256) issues.push("artifact_revision_base_tree_mismatch");
+
+  requireExactKeys(lock?.artifact, ["fileCount", "path", "revision", "treeSha256"], "artifact_revision_tree", issues);
+  if (lock?.artifact?.path !== expectedArtifactPath) issues.push("artifact_revision_path_invalid");
+  if (lock?.artifact?.revision !== 2) issues.push("artifact_revision_number_invalid");
+  if (lock?.artifact?.fileCount !== baseLock.artifact.fileCount) issues.push("artifact_revision_file_count_invalid");
+
+  const replacements = lock?.replacements;
+  const replacementPaths = new Set();
+  const files = structuredClone(baseLock.artifact.files);
+  const filesByPath = new Map(files.map((file) => [file.path, file]));
+  if (!Array.isArray(replacements) || replacements.length !== 1) {
+    issues.push("artifact_replacements_invalid");
+  } else {
+    for (const [index, replacement] of replacements.entries()) {
+      requireExactKeys(
+        replacement,
+        ["path", "previousSha256", "previousSize", "reason", "sha256", "size"],
+        `artifact_replacement:${replacement?.path ?? "missing"}`,
+        issues
+      );
+      if (!isSafeRelativePath(replacement?.path) || !allowedArtifactPath(replacement.path)) {
+        issues.push(`artifact_replacement_path_invalid:${replacement?.path ?? "missing"}`);
+      }
+      if (replacementPaths.has(replacement?.path)) issues.push(`artifact_replacement_duplicate:${replacement.path}`);
+      replacementPaths.add(replacement?.path);
+      if (index > 0 && asciiCompare(replacements[index - 1].path, replacement.path) >= 0) {
+        issues.push("artifact_replacements_not_ascii_sorted");
+      }
+      const previous = filesByPath.get(replacement?.path);
+      if (!previous) issues.push(`artifact_replacement_base_missing:${replacement?.path ?? "missing"}`);
+      if (replacement?.previousSize !== previous?.size) issues.push(`artifact_replacement_previous_size_mismatch:${replacement?.path ?? "missing"}`);
+      if (replacement?.previousSha256 !== previous?.sha256) issues.push(`artifact_replacement_previous_hash_mismatch:${replacement?.path ?? "missing"}`);
+      if (!Number.isSafeInteger(replacement?.size) || replacement.size < 0) issues.push(`artifact_replacement_size_invalid:${replacement?.path ?? "missing"}`);
+      if (!/^[0-9a-f]{64}$/.test(replacement?.sha256 ?? "")) issues.push(`artifact_replacement_hash_invalid:${replacement?.path ?? "missing"}`);
+      if (replacement?.sha256 === previous?.sha256) issues.push(`artifact_replacement_unchanged:${replacement?.path ?? "missing"}`);
+      if (typeof replacement?.reason !== "string" || !replacement.reason) issues.push(`artifact_replacement_reason_missing:${replacement?.path ?? "missing"}`);
+      if (previous) Object.assign(previous, { size: replacement.size, sha256: replacement.sha256 });
+    }
+  }
+  if (!replacementPaths.has("trellis/representations/mesh/cube2mesh.py")) {
+    issues.push("artifact_mesh_revision_missing");
+  }
+  if (lock?.artifact?.treeSha256 !== canonicalTreeDigest(files)) issues.push("artifact_revision_tree_digest_mismatch");
+
+  requireExactKeys(lock?.sourceToArtifact, ["canonicalization", "sha256"], "artifact_revision_source_map", issues);
+  if (lock?.sourceToArtifact?.canonicalization !== sourceMapCanonicalization) {
+    issues.push("artifact_revision_source_map_canonicalization_invalid");
+  }
+  if (lock?.sourceToArtifact?.sha256 !== canonicalSourceToArtifactDigest(baseLock.sourceInputDispositions, sourcePolicy, files)) {
+    issues.push("artifact_revision_source_map_digest_mismatch");
+  }
+
+  requireExactKeys(lock?.boundaries, [
+    "constructorDeviceAllocationDeferred",
+    "generationAllowed",
+    "runtimeImportGateClosed",
+    "staticPolicySyntaxVerificationCiReproducible",
+    "strictStateDictLoadExecuted",
+    "weightsIncluded"
+  ], "artifact_revision_boundaries", issues);
+  if (lock?.boundaries?.constructorDeviceAllocationDeferred !== true) issues.push("artifact_revision_deferred_allocation_claim_missing");
+  if (lock?.boundaries?.staticPolicySyntaxVerificationCiReproducible !== true) issues.push("artifact_revision_static_verification_claim_missing");
+  for (const field of ["generationAllowed", "runtimeImportGateClosed", "strictStateDictLoadExecuted", "weightsIncluded"]) {
+    if (lock?.boundaries?.[field] !== false) issues.push(`artifact_revision_boundary_must_be_false:${field}`);
+  }
+  if (lock?.gateSnapshot !== "historical-at-artifact-revision") issues.push("artifact_revision_gate_snapshot_invalid");
+  const openGates = sortedUniqueStrings(lock?.openGates, "artifact_revision_open_gates", issues);
+  if (!setEquals(openGates, expectedCurrentOpenGates)) issues.push("artifact_revision_open_gate_set_invalid");
+  const resolvedGates = sortedUniqueStrings(lock?.resolvedGates, "artifact_revision_resolved_gates", issues);
+  if (!setEquals(resolvedGates, expectedCurrentResolvedGates)) issues.push("artifact_revision_resolved_gate_set_invalid");
+  requireExactKeys(lock?.gateEffect, [
+    "directlyResolvedGates",
+    "doesNotResolveCompositeGates",
+    "doesNotResolveOtherGates"
+  ], "artifact_revision_gate_effect", issues);
+  if (stableJson(lock?.gateEffect?.directlyResolvedGates) !== stableJson(["patchedSourceTreeDigest"])) {
+    issues.push("artifact_revision_direct_gate_effect_invalid");
+  }
+  if (lock?.gateEffect?.doesNotResolveCompositeGates !== true || lock?.gateEffect?.doesNotResolveOtherGates !== true) {
+    issues.push("artifact_revision_gate_boundary_invalid");
+  }
+  if (issues.length > 0) throw new PatchedTreeError([...new Set(issues)]);
+  return {
+    ...structuredClone(baseLock),
+    artifactSha256: lock.artifactSha256,
+    status: lock.status,
+    artifact: {
+      ...structuredClone(baseLock.artifact),
+      treeSha256: lock.artifact.treeSha256,
+      files
+    },
+    sourceToArtifact: structuredClone(lock.sourceToArtifact),
+    boundaries: structuredClone(lock.boundaries),
+    openGates: structuredClone(lock.openGates),
+    resolvedGates: structuredClone(lock.resolvedGates)
+  };
+}
+
+export async function loadCurrentPatchedTreeLock({
+  artifactLockPath = defaultArtifactLockPath,
+  artifactRevisionLockPath = defaultArtifactRevisionLockPath,
+  sourcePolicyPath = defaultSourcePolicyPath
+} = {}) {
+  const sourcePolicy = await loadSelectionPolicy(resolve(sourcePolicyPath));
+  const baseLock = JSON.parse(await readFile(resolve(artifactLockPath), "utf8"));
+  validateArtifactLock(baseLock, sourcePolicy);
+  const revisionLock = JSON.parse(await readFile(resolve(artifactRevisionLockPath), "utf8"));
+  const effectiveLock = validateArtifactRevisionLock(revisionLock, baseLock, sourcePolicy);
+  return { baseLock, effectiveLock, revisionLock, sourcePolicy };
+}
+
 async function walkTree(root) {
   const files = [];
   const directories = [];
@@ -496,18 +663,21 @@ export async function runStaticPolicyScan(
 
 export async function verifyPatchedTree({
   artifactLockPath = defaultArtifactLockPath,
+  artifactRevisionLockPath = defaultArtifactRevisionLockPath,
   sourcePolicyPath = defaultSourcePolicyPath,
   treeDirectory = defaultTreeDirectory,
   pythonExecutable
 } = {}) {
-  const sourcePolicy = await loadSelectionPolicy(resolve(sourcePolicyPath));
-  const lock = JSON.parse(await readFile(resolve(artifactLockPath), "utf8"));
-  validateArtifactLock(lock, sourcePolicy);
+  const { effectiveLock: lock } = await loadCurrentPatchedTreeLock({
+    artifactLockPath,
+    artifactRevisionLockPath,
+    sourcePolicyPath
+  });
   const tree = await verifyTreeBytes(lock, resolve(treeDirectory));
   const staticScan = await runStaticPolicyScan(treeDirectory, sourcePolicyPath, { pythonExecutable });
   return {
     schemaVersion: 1,
-    status: "materialized-static-verified-runtime-blocked",
+    status: lock.status,
     artifactSha256: lock.artifactSha256,
     treeSha256: tree.treeSha256,
     fileCount: tree.fileCount,

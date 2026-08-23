@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "artifactSha256": "03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916",
+  "status": "materialized-static-verified-constructor-allocation-deferred-runtime-blocked",
+  "baseArtifactLock": {
+    "path": "experiment/warm-modern-meeting-room/artifact-lock.json",
+    "artifactSha256": "816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51",
+    "treeSha256": "e1f2d1caeabc0a9dc795ef9d7c72cffd1ee7ed5501d04a7f70743983ccdcd575"
+  },
+  "artifact": {
+    "path": "experiment/warm-modern-meeting-room/trellis-patched-tree",
+    "revision": 2,
+    "fileCount": 50,
+    "treeSha256": "8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff"
+  },
+  "replacements": [
+    {
+      "path": "trellis/representations/mesh/cube2mesh.py",
+      "previousSize": 4175,
+      "previousSha256": "cb78e29e388f25fe9dd4d6ca634570441c60dc75895e4f5b84484947479dab93",
+      "size": 4409,
+      "sha256": "2f8c752cb6d07a5df828269a7cc2d7eefe4949fa2b252d5fc7a3602b25296b9a",
+      "reason": "Defer FlexiCubes and dense-grid device allocation until the first mesh extraction call so model construction and strict state loading do not require CUDA or allocate the mesh grid."
+    }
+  ],
+  "sourceToArtifact": {
+    "canonicalization": "sort by ASCII source path, then concatenate source path, NUL, source SHA-256, NUL, disposition, NUL, artifact path or empty, NUL, artifact SHA-256 or empty, and LF",
+    "sha256": "eafe70e85740c2df70e7e15e2d52c0f800d3e3df3b94972140f5e26e2cd9d799"
+  },
+  "boundaries": {
+    "constructorDeviceAllocationDeferred": true,
+    "generationAllowed": false,
+    "runtimeImportGateClosed": false,
+    "staticPolicySyntaxVerificationCiReproducible": true,
+    "strictStateDictLoadExecuted": false,
+    "weightsIncluded": false
+  },
+  "gateSnapshot": "historical-at-artifact-revision",
+  "openGates": [
+    "dependencyWheelHashLock",
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "patchedPytorchQualification",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle"
+  ],
+  "resolvedGates": [
+    "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
+    "dinoSourceAndArtifactLock",
+    "dinoSourceGitObjectLock",
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock",
+    "trellisModelPayloadBytesVerification"
+  ],
+  "gateEffect": {
+    "directlyResolvedGates": [
+      "patchedSourceTreeDigest"
+    ],
+    "doesNotResolveCompositeGates": true,
+    "doesNotResolveOtherGates": true
+  }
+}

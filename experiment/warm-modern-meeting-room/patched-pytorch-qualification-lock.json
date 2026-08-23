@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "5e1ab0cae4a4161da26f541638e8b763e2fdd8dc81ca901f02540fae5f604d69",
+  "status": "locked-pytorch-wheel-synthetic-weights-only-security-qualified-runtime-blocked",
+  "dependencyWheelLock": {
+    "path": "experiment/warm-modern-meeting-room/dependency-wheel-hash-lock.json",
+    "lockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198",
+    "wheelInventorySha256": "7ef3a07c4d9e0d62b4dfca3eff1bcb639d4747a6048f91422320add47d32bc9c",
+    "torchWheel": {
+      "filename": "torch-2.7.1+cu118-cp312-cp312-manylinux_2_28_x86_64.whl",
+      "byteLength": 905201474,
+      "sha256": "91454dcfdb81f181fdf216d6d6d9912fbd8795578b90384b3b8b8132737072bb"
+    }
+  },
+  "advisory": {
+    "ghsa": "GHSA-53q9-r3pm-6pq6",
+    "cve": "CVE-2025-32434",
+    "source": "https://api.github.com/advisories/GHSA-53q9-r3pm-6pq6",
+    "snapshotSha256": "02aa69900e4b0eb2ee2f05f0d9fc0257f66598bbdc9eee587a1468ba2bf493ff",
+    "affectedVersions": "<2.6.0",
+    "firstPatchedVersion": "2.6.0",
+    "fixCommit": "8d4b8a920a2172523deb95bf20e8e52d50649c04"
+  },
+  "qualificationEnvironment": {
+    "imageDigest": "sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7",
+    "platform": "linux-x86_64-manylinux_2_28",
+    "pythonVersion": "3.12.11",
+    "torchVersion": "2.7.1+cu118",
+    "torchGitVersion": "e2d141dbde55c2a4370fac5165b0561b6af4798b",
+    "compiledCudaVersion": "11.8",
+    "torchConfigSha256": "4691ff97d394599c5b691bdab6eea97d7d65bad5941c0a839a96258c707e226b",
+    "installedDistributionCount": 41,
+    "installedDistributionInventorySha256": "4cd968c1f790b530a032fb241b04cf3cddeb3ed1fe96adf233c669fb7a98014b",
+    "installedDirectoryCount": 1152,
+    "installedDirectorySetSha256": "20b5aa154e2a4bcecaf634274513e68de11278390cbaf19c4783af05e285d66c",
+    "installedFileCount": 16397,
+    "installedFileSetSha256": "9f89554a989aafe7ec7440a6cf53b0a6c0c8f7852f438d41a0926be9805ef260",
+    "offlineInstallReportSha256": "12106a92d279a0485109726dcfab630c0a62d27685eb05813233cc183b1831a7",
+    "torchImportOrigin": "torch/__init__.py",
+    "torchWheelInstalledFileCount": 11011,
+    "torchWheelInstalledFileSetSha256": "f8b182a78087fd7f2c8a13c76f10eda4fe8c7b7c713b55fff6e2d60732878601"
+  },
+  "harness": {
+    "path": "scripts/qualify-patched-pytorch.py",
+    "sourceSha256": "e1fbbcbca6f59eb410b34bf14ac4924ea69dbd843954ecb3f4d78ab1b166d510",
+    "reportSha256": "de7b5cdf7bd97a773ff8ecc744c946b99d61392e3bc45f66a5baca4c2c439f83"
+  },
+  "securityQualification": {
+    "safeSyntheticStateDictLoadedWithWeightsOnly": true,
+    "safeSyntheticStateDictMatched": true,
+    "legacyTarRejectedBeforeUnpickling": true,
+    "legacyTarSideEffectObserved": false,
+    "unsafeTorchLoadExecuted": false,
+    "cveClassification": "unaffected-version-and-regression-pass"
+  },
+  "isolation": {
+    "networkAllowed": false,
+    "cloudCredentialsPassed": false,
+    "rootFilesystemReadOnly": true,
+    "nonRoot": true,
+    "capabilitiesDropped": true,
+    "noNewPrivileges": true,
+    "pidsLimit": 64,
+    "memoryLimitBytes": 4294967296,
+    "cpuLimit": 2,
+    "observed": {
+      "effectiveUid": 1000,
+      "effectiveGid": 1000,
+      "effectiveCapabilitiesHex": "0000000000000000",
+      "noNewPrivileges": true,
+      "seccompMode": 2,
+      "seccompFilterCount": 1,
+      "networkInterfaces": [
+        "lo"
+      ],
+      "rootFilesystemReadOnly": true,
+      "inputsReadOnly": true,
+      "cloudCredentialsObserved": false
+    }
+  },
+  "restrictedStorage": {
+    "evidenceScope": "operator-attested-point-in-time",
+    "fullReadbackVerified": true,
+    "operatorRecord": {
+      "schemaVersion": 3,
+      "visibility": "restricted-evidence-retention",
+      "rawRecordSha256": "0b6fa69f5be1c18a539344e72d83b6933ae9df0cc1d2a19ac164af485cbc4a9b"
+    }
+  },
+  "normalCi": {
+    "scope": "canonical-public-lock-and-harness-only/no-wheel-report-or-restricted-record-access",
+    "realWheelAccessAllowed": false,
+    "realReportAccessAllowed": false,
+    "restrictedRecordAccessAllowed": false,
+    "networkRequestInitiatedByVerifier": false,
+    "qualificationCoverage": "synthetic-protocol-fixtures-only"
+  },
+  "boundaries": {
+    "applicationRuntimeImported": false,
+    "modelArtifactsRead": false,
+    "strictStateDictLoadExecuted": false,
+    "inferenceExecuted": false,
+    "gpuExecuted": false,
+    "modelInputUsed": false,
+    "allVulnerabilitiesCleared": false,
+    "finalProductionOciLocked": false,
+    "rightsApproved": false,
+    "generationAllowed": false
+  },
+  "gateSnapshot": "historical-at-patched-pytorch-qualification",
+  "resolvedGates": [
+    "dependencyWheelHashLock",
+    "dinoArtifactPayloadBytesVerification",
+    "dinoDerivedRuntimeArtifactLock",
+    "dinoSourceAndArtifactLock",
+    "dinoSourceGitObjectLock",
+    "patchedPytorchQualification",
+    "patchedSourceTreeDigest",
+    "trellisModelArtifactLock",
+    "trellisModelPayloadBytesVerification"
+  ],
+  "openGates": [
+    "gpuParityAndVramTest",
+    "humanRightsSignoff",
+    "ociImageDigest",
+    "offlineImportRuntimeTest",
+    "providerTermsSnapshot",
+    "sbomAndVulnerabilityReport",
+    "thirdPartyNoticeBundle"
+  ],
+  "gateEffect": {
+    "directlyResolvedGates": [
+      "patchedPytorchQualification"
+    ],
+    "doesNotResolveCompositeGates": true,
+    "doesNotResolveOtherGates": true
+  }
+}

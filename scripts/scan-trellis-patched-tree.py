@@ -605,6 +605,45 @@ def scan(tree_root: Path, policy_path: Path) -> dict:
         if marker not in mesh_source:
             issues.append(f"mesh_output_validation_missing:{marker}")
 
+    mesh_tree = parsed.get("trellis/representations/mesh/cube2mesh.py")
+    sparse_features_class = next(
+        (
+            node
+            for node in (mesh_tree.body if mesh_tree else [])
+            if isinstance(node, ast.ClassDef) and node.name == "SparseFeatures2Mesh"
+        ),
+        None,
+    )
+    mesh_methods = {
+        node.name: node
+        for node in (sparse_features_class.body if sparse_features_class else [])
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    constructor = mesh_methods.get("__init__")
+    deferred_initializer = mesh_methods.get("_ensure_device")
+    mesh_call = mesh_methods.get("__call__")
+    constructor_calls = {
+        dotted_name(node.func)
+        for node in (ast.walk(constructor) if constructor else [])
+        if isinstance(node, ast.Call)
+    }
+    deferred_calls = {
+        dotted_name(node.func)
+        for node in (ast.walk(deferred_initializer) if deferred_initializer else [])
+        if isinstance(node, ast.Call)
+    }
+    call_calls = {
+        dotted_name(node.func)
+        for node in (ast.walk(mesh_call) if mesh_call else [])
+        if isinstance(node, ast.Call)
+    }
+    if {"FlexiCubes", "construct_dense_grid"} & constructor_calls:
+        issues.append("mesh_constructor_allocates_device_state")
+    if not {"FlexiCubes", "construct_dense_grid"}.issubset(deferred_calls):
+        issues.append("mesh_deferred_device_initializer_missing")
+    if "self._ensure_device" not in call_calls:
+        issues.append("mesh_call_device_initialization_missing")
+
     if issues:
         raise ScanFailure(sorted(set(issues)))
     return {

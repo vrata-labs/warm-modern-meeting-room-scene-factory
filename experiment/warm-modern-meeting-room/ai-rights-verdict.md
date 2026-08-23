@@ -1,6 +1,6 @@
 # AI Rights Verdict
 
-Verdict date: 2026-08-20.
+Verdict date: 2026-08-22.
 
 Current verdict: `BLOCK` for generation. The stock TRELLIS package path is not
 approved. A deterministic source artifact for the purpose-built
@@ -16,10 +16,16 @@ isolated CPU conversion environment with patched PyTorch `2.7.1+cpu`,
 `weights_only=True`, no network, and no cloud credentials. The resulting
 safetensors artifact is content-addressed, restricted-retained, reproducible
 across two conversion runs, and bound to an exact 344-tensor manifest and
-byte-level tensor-equivalence record. The TRELLIS payloads remain unparsed.
-Generation remains blocked because DINO source-versus-weight rights, strict
-loading, runtime imports, production dependencies and container, SBOM, GPU,
-provider, rights, and human-signoff gates remain open.
+byte-level tensor-equivalence record. A revised mesh-only tree defers its dense
+mesh grid and FlexiCubes device allocation until mesh extraction. The complete
+41-wheel CUDA 11.8 runtime set is content-addressed and offline-installable;
+PyTorch `2.7.1+cu118` passed a synthetic weights-only security regression. In a
+separate no-network run, all 58 expected DINO/TRELLIS modules imported and the
+DINO state plus all four selected TRELLIS states strict-loaded with no missing
+or unexpected keys. No model forward, model input, CUDA initialization,
+inference, or generation occurred. Generation remains blocked because final
+OCI, SBOM/vulnerability, GPU parity/VRAM, provider snapshot, complete notices,
+rights, and human-signoff gates remain open.
 
 This is a conservative technical rights record, not legal advice.
 
@@ -30,10 +36,10 @@ This is a conservative technical rights record, not legal advice.
 | FLUX.1-schnell model | `741f7c3ce8b383c54771c7003378a50191e9efe9` | Apache-2.0 model metadata | Conditional; gated access and exact artifact/dependency lock remain open |
 | FLUX source | `802fb4713906133fcbd0d8dc5351620ca4773036` | Apache-2.0 | Conditional |
 | TRELLIS source | `442aa1e1afb9014e80681d3bf604e8d728a86ee7` | MIT root license | Stock import path blocked by narrower file-level terms |
-| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata only | Four selected raw payload byte identities independently match the publisher LFS pointers and are point-in-time restricted-retained; runtime compatibility, rights approval, and human signoff remain unresolved; no standalone license file |
+| TRELLIS-image-large | `25e0d31ffbebe4b5a97464dd851910efc3002d96` | MIT model-card metadata only | Four selected raw payload identities match the publisher LFS pointers and strict-load against the revised mesh-only source; rights approval and human signoff remain unresolved; no standalone license file |
 | Modified FlexiCubes | `815e075a2a400d06c48d94c347674344ed6ae5c5` | Apache-2.0 | Allowed only inside the pruned mesh path |
-| DINOv2 source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 root license with a conflicting repository README caveat | Source Git-object identity locked; repository-scope caveat and runtime qualification remain unresolved |
-| DINOv2 ViT-L/14 reg4 weights | raw opaque PTH SHA-256 `36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51`; derived safetensors SHA-256 `30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc`; publisher URL transitively bound through the historical source lock | Apache-2.0 model-card evidence only | Raw identity, isolated weights-only conversion, derived artifact identity, and exact tensor equivalence locked; redistribution review, strict-load/runtime qualification, rights approval, and human signoff remain unresolved |
+| DINOv2 source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 root license with a conflicting repository README caveat | Source Git-object identity and exact 12-file runtime selection locked; offline import and strict-load qualification pass; repository-scope rights caveat remains unresolved |
+| DINOv2 ViT-L/14 reg4 weights | raw opaque PTH SHA-256 `36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51`; derived safetensors SHA-256 `30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc`; publisher URL transitively bound through the historical source lock | Apache-2.0 model-card evidence only | Raw identity, isolated weights-only conversion, derived artifact identity, exact tensor equivalence, and strict source-compatible load locked; redistribution, rights approval, and human signoff remain unresolved |
 
 No model input images were downloaded. The DINO raw publisher payload, its
 derived safetensors artifact, and four selected raw TRELLIS payloads were
@@ -85,19 +91,20 @@ restrictions:
 7. rejects non-finite mesh vertices or attributes and out-of-bounds triangle
    indices before returning the mesh representation.
 
-A future probe may be reconsidered only when the exact locked tree is used and
-the remaining runtime and artifact controls are added and qualified:
+A future probe may be reconsidered only with the exact qualified tree, DINO
+module, wheel set, and model payloads. Identity, dependency, offline import, and
+strict-load controls are now closed; the remaining probe controls are:
 
-1. use the locked candidate DINO runtime source selection and a separately
-   content-addressed runtime derivative of the now-verified raw PTH only after
-   conversion safety, tensor-equivalence, rights, and strict-load controls are
-   approved; do not rely only on the injected module name or publisher metadata;
-2. run with outbound network disabled, execute the runtime import denylist, and
-   assert after inference that no prohibited module entered `sys.modules`;
-3. validate and serialize finite vertices, triangle indices, and optional
+1. assemble and lock the final OCI image, native-library inventory, Syft SBOM,
+   vulnerability scan, and complete dependency notice bundle;
+2. obtain provider snapshot, rights approval, human signoff, GPU quota, budget,
+   launch approval, and an independently verified teardown guard;
+3. run with outbound network disabled, inject only the strict-loaded qualified
+   DINO module, enforce the runtime audit policy, and assert after inference that
+   no prohibited module entered `sys.modules`;
+4. validate and serialize finite vertices, triangle indices, and optional
    vertex colors to binary little-endian PLY without `to_glb` or rendering;
-4. record the OCI image digest, wheel hashes, native libraries, Syft SBOM,
-   vulnerability scan, complete notices, peak VRAM, and output hashes.
+5. record GPU parity, peak VRAM, and output hashes under the approved cost cap.
 
 ## Locked Upstream Source Selection
 
@@ -137,6 +144,16 @@ The exact selected-source to artifact-path/hash mapping is bound by SHA-256
 The complete timestamp-free artifact semantics are bound by SHA-256
 `816fcf72c8d4d7c57fe5d352824aa51b6ceec771611b3cdc8d2dae80dc419e51`.
 
+That base lock remains immutable. `artifact-revision-lock.json` replaces only
+`trellis/representations/mesh/cube2mesh.py`: FlexiCubes and the dense regular
+grid are now created on the first mesh extraction call using the input tensor's
+device, rather than during model construction. The revised full tree digest is
+`8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff`,
+the revised source-to-artifact digest is
+`eafe70e85740c2df70e7e15e2d52c0f800d3e3df3b94972140f5e26e2cd9d799`,
+and the revision-lock semantic digest is
+`03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916`.
+
 The gate arrays inside that content-addressed artifact lock and the per-lock gate
 arrays in `readiness.json` are historical snapshots from their respective lock
 times. They therefore preserve gates that were open when each lock was made.
@@ -144,23 +161,24 @@ Only `readiness.json` `currentGateState` is the unified current state. It is
 validated independently from the immutable per-lock snapshots and evaluates the
 DINO `allOf` composition from its members. It marks the TRELLIS pointer-identity
 and selected-payload byte-identity leaves, DINO source Git-object leaf, DINO raw
-payload byte-identity leaf, DINO derived runtime artifact leaf, and the DINO
+payload byte-identity leaf, DINO derived runtime artifact leaf, dependency wheel
+lock, patched PyTorch qualification, offline runtime qualification, and the DINO
 `allOf` composite resolved. The TRELLIS payload lock resolves no composite gate.
-Every other non-identity gate remains open.
 
 Normal CI can reproduce raw-byte hashes, sizes, modes, dispositions, both lock
 digests, the source-to-artifact mapping, Python syntax parsing, internal module
 paths and named imported-symbol references, the external import allowlist, and
 structural source policy. This static verification does not prove Python or ML
-runtime behavior, import TRELLIS, CUDA, spconv, xFormers, or model code, and is
-not the offline runtime import test.
+runtime behavior, import TRELLIS, CUDA, spconv, xFormers, or model code. The
+separate offline runtime qualification below supplies that evidence without
+changing this static verifier's claim.
 
 The source-level GLIDE issue is resolved for this tree: the attribution pins
 commit `69b530740eb6cef69442d6180579ef5ba9ef063e`, and the exact upstream MIT
 license has SHA-256
 `86bbb73e855821d7c401912fd4bf82e34313e6e3b6fd6f909f2b6cc9e209a53b`.
-The complete OCI third-party notice bundle remains open until all dependency
-artifacts are locked. FlexiCubes `DCO.txt`, both upstream READMEs,
+The complete OCI third-party notice bundle remains open until notices are
+assembled from the now-locked dependency set. FlexiCubes `DCO.txt`, both upstream READMEs,
 `.gitmodules`, and serialized attention are omitted from the shipping tree.
 No weight payloads were added to public Git, and no model inputs, generated
 outputs, containers, or compute resources were added or created. The raw DINO
@@ -520,12 +538,88 @@ composite or unrelated gate. Normal CI validates only the public lock, manifest,
 converter source hash, historical relationships, and gate boundaries without
 model bytes, restricted records, converter execution, or network access.
 
+## Production Runtime Wheel Lock
+
+`dependency-wheel-hash-lock.json` binds one complete 41-wheel CPython 3.12.11,
+Linux x86-64, CUDA 11.8 set totaling 3036864277 bytes. The complete inventory
+digest is
+`7ef3a07c4d9e0d62b4dfca3eff1bcb639d4747a6048f91422320add47d32bc9c`,
+and the lock semantic digest is
+`2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198`.
+Every wheel record binds filename, normalized distribution, version, byte
+length, SHA-256, METADATA and WHEEL hashes, tags, Python requirement, and exact
+Requires-Dist strings. Target-specific tags, direct requirements, transitive
+requirements, markers, and extras are validated independently. A clean
+`--network=none --no-index --only-binary --no-compile` install was
+operator-attested; its local-wheelhouse pip report was verified with no missing
+dependencies, conflicts, unsupported wheels, sdists, or source builds. The
+attestor matched 16309 hashed wheel RECORD entries to 16397 installed files and
+1152 directories, rejecting symlinks, special files, unowned files, and extra
+directories.
+
+The first resolver attempt selected an ABI-compatible xformers wheel from PyPI
+that was actually built for CUDA 12.6. Offline import rejected it on
+`libcudart.so.12`; that unaccepted restricted-storage prefix was deleted. The
+accepted set instead binds the PyTorch CUDA 11.8 index wheel with SHA-256
+`c938925b2fed8641efc62ac8fec98e56cb3f78f40c25d2e768654b99fdb05d0c`.
+The accepted wheel set and reports were fully read back from restricted SSE-KMS
+storage. No wheel bytes or private locators are in public Git.
+The schema-version-3 dependency operator record was fully read back with raw
+SHA-256
+`f149291f1b60aa3ebf56adc4be2985700636f7811b42bdb12f82478ab2b2c6a3`.
+
+## Patched PyTorch Qualification
+
+`patched-pytorch-qualification-lock.json` binds the exact
+`torch-2.7.1+cu118` wheel SHA-256
+`91454dcfdb81f181fdf216d6d6d9912fbd8795578b90384b3b8b8132737072bb`
+and has semantic digest
+`5e1ab0cae4a4161da26f541638e8b763e2fdd8dc81ca901f02540fae5f604d69`.
+The qualification is tied to CVE-2025-32434 / GHSA-53q9-r3pm-6pq6, first fixed
+in 2.6.0 by commit
+`8d4b8a920a2172523deb95bf20e8e52d50649c04`. In a no-network, non-root,
+read-only-root environment, a safe synthetic state dict round-tripped with
+`weights_only=True`; a malicious legacy tar was rejected before unpickling and
+its side-effect sentinel was absent. No application runtime or model artifact
+was read by this security harness. Before importing torch, the harness rehashed
+the entire attested runtime site and matched 11011 installed torch files to the
+exact locked wheel. The schema-version-3 PyTorch operator record was fully read
+back with raw SHA-256
+`0b6fa69f5be1c18a539344e72d83b6933ae9df0cc1d2a19ac164af485cbc4a9b`.
+
+## Offline Import And Strict-Load Qualification
+
+`offline-runtime-qualification-lock.json` has semantic digest
+`ba9ef8896650ad1704100671f33ae52045fdcdd980e053e401e1fe8e0843ef79`.
+It binds the revised TRELLIS tree, exact 12-file DINO selection, dependency and
+PyTorch locks, five model metadata blobs, four TRELLIS payloads, and the DINO
+derived safetensors artifact. All 58 expected project modules imported. No
+prohibited mesh-path module or torch Hub call was observed. All TRELLIS and DINO
+module origins matched their locked source trees, and the complete installed
+runtime site was rehashed again before imports. Python audit events recorded no
+successful audited process launch or socket operation; the run also observed a
+loopback-only network namespace, seccomp filter, zero effective capabilities,
+read-only inputs, and no cloud credentials. Locked cumm 0.7.11 attempted one import-time
+`nvcc --version` probe; the audit hook blocked `subprocess.Popen` before launch,
+and only that exact caught attempt is accepted.
+
+The DINO 344-tensor state and all four selected TRELLIS model families loaded
+strictly with zero missing or unexpected keys. Peak process RSS was 3861208
+KiB. Dense mesh-grid allocation remained deferred. The run used no model input,
+did not call any top-level model forward, did not initialize CUDA, and performed
+no inference, output creation, or generation. Temporary local model payload
+copies were deleted after qualification. This result does not establish GPU
+parity, final OCI composition, SBOM status, rights, or launch approval.
+The schema-version-3 offline-runtime operator record was fully read back with
+raw SHA-256
+`f9696cfd60fdb6577c707e24f523e80513236a3aa9a47e1922bd25e4a9a573d9`.
+
 ## Open Security And Reproducibility Failures
 
 - The four selected TRELLIS raw payload byte identities now match their publisher
-  LFS pointer SHA-256 values, but no safetensors parsing, tensor-key/shape/dtype
-  inspection, strict state-dict load, source compatibility test, runtime, model
-  input, generation, rights approval, or human signoff occurred.
+  LFS pointer SHA-256 values and strict-load against the revised source, but this
+  does not establish model-card scope, redistribution rights, model-input or
+  output rights, generation approval, or human signoff.
 - No publisher SHA-256 was found in the reviewed pinned evidence, HEAD, or GET
   metadata for the official `dinov2_vitl14_reg` PyTorch artifact. The raw
   1217607321-byte payload has only the independently observed SHA-256 and
@@ -533,20 +627,16 @@ model bytes, restricted records, converter execution, or network access.
   equivalence are now locked, but publisher-hash verification remains absent.
 - TRELLIS upstream does not pin DINO source, DINO weights, or most Python
   dependencies. The project locks now compensate for source, raw weight, and
-  derived artifact identity; source-versus-weight rights, strict-load runtime,
-  and production dependency gates remain open.
+  derived artifact identity, dependency closure, and strict-load compatibility;
+  source-versus-weight rights remain open.
 - The single ChannelAdaptive-DINO README in the complete DINO source snapshot
   contains broad research-only wording, contradictory present/future code
   statements, an absent referenced "CC by NC" license, and a future FAIR
   Non-Commercial weight statement, creating an unresolved scope question outside
   the candidate source selection.
-- The isolated conversion used patched PyTorch `2.7.1+cpu` with
-  `weights_only=True`, but the upstream runtime baseline is still PyTorch 2.4
-  and affected by CVE-2025-32434. The actual probe runtime must be requalified on
-  a patched version; conversion-only evidence does not close that gate.
-- No final base image, CPython build, NVIDIA driver/runtime set, transitive
-  wheel lock, or OCI digest exists yet. No dependency installation or real
-  runtime import qualification has been performed for the materialized tree.
+- PyTorch `2.7.1+cu118` and the full transitive wheel set are qualified for the
+  recorded import and strict-load scope, but no final OCI image digest, NVIDIA
+  driver qualification, Syft SBOM, or complete vulnerability result exists yet.
 - TRELLIS and DINO training-data provenance does not establish warranties for
   output ownership, exclusivity, non-infringement, trademarks, design rights,
   or memorization.

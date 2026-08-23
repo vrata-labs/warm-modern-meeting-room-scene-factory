@@ -6,3 +6,7 @@ experiment/warm-modern-meeting-room/dino-payload-bytes-lock.json text eol=lf
 experiment/warm-modern-meeting-room/trellis-payload-bytes-lock.json text eol=lf
 experiment/warm-modern-meeting-room/dino-derived-runtime-artifact-lock.json text eol=lf
 experiment/warm-modern-meeting-room/dino-derived-tensor-manifest.json text eol=lf
+experiment/warm-modern-meeting-room/artifact-revision-lock.json text eol=lf
+experiment/warm-modern-meeting-room/dependency-wheel-hash-lock.json text eol=lf
+experiment/warm-modern-meeting-room/patched-pytorch-qualification-lock.json text eol=lf
+experiment/warm-modern-meeting-room/offline-runtime-qualification-lock.json text eol=lf

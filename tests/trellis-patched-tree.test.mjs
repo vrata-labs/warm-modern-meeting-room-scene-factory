@@ -7,10 +7,13 @@ import test from "node:test";
 import {
   PatchedTreeError,
   canonicalArtifactDigest,
+  canonicalArtifactRevisionDigest,
   canonicalSourceToArtifactDigest,
   canonicalTreeDigest,
+  loadCurrentPatchedTreeLock,
   runStaticPolicyScan,
   validateArtifactLock,
+  validateArtifactRevisionLock,
   verifyPatchedTree,
   verifyTreeBytes
 } from "../scripts/verify-trellis-patched-tree.mjs";
@@ -32,16 +35,20 @@ async function temporaryTree() {
   return { directory, tree };
 }
 
+async function currentLock() {
+  return (await loadCurrentPatchedTreeLock()).effectiveLock;
+}
+
 test("materialized TRELLIS tree passes byte, provenance, syntax, and static policy verification", async () => {
-  const lock = await json(artifactLockPath);
-  const sourcePolicy = await loadSelectionPolicy(sourcePolicyPath);
+  const { baseLock, effectiveLock: lock, revisionLock, sourcePolicy } = await loadCurrentPatchedTreeLock();
   const result = await verifyPatchedTree();
   assert.equal(lock.artifact.fileCount, 50);
   assert.equal(lock.artifact.files.filter(({ path }) => path.endsWith(".py")).length, 46);
   assert.equal(canonicalTreeDigest([...lock.artifact.files].reverse()), lock.artifact.treeSha256);
-  assert.equal(canonicalArtifactDigest(lock), lock.artifactSha256);
+  assert.equal(canonicalArtifactDigest(baseLock), baseLock.artifactSha256);
+  assert.equal(canonicalArtifactRevisionDigest(revisionLock), revisionLock.artifactSha256);
   assert.equal(
-    canonicalSourceToArtifactDigest(lock.sourceInputDispositions, sourcePolicy, lock.artifact.files),
+    canonicalSourceToArtifactDigest(baseLock.sourceInputDispositions, sourcePolicy, lock.artifact.files),
     lock.sourceToArtifact.sha256
   );
   assert.equal(result.artifactSha256, lock.artifactSha256);
@@ -61,7 +68,7 @@ test("materialized TRELLIS tree passes byte, provenance, syntax, and static poli
 });
 
 test("tree verifier rejects hash drift and extra files", async () => {
-  const lock = await json(artifactLockPath);
+  const lock = await currentLock();
   const first = await temporaryTree();
   try {
     await appendFile(join(first.tree, "trellis/__init__.py"), "# tamper\n");
@@ -88,7 +95,7 @@ test("tree verifier rejects hash drift and extra files", async () => {
 });
 
 test("tree verifier rejects symlinks and executable mode drift", async (context) => {
-  const lock = await json(artifactLockPath);
+  const lock = await currentLock();
   const first = await temporaryTree();
   try {
     try {
@@ -121,7 +128,7 @@ test("tree verifier rejects symlinks and executable mode drift", async (context)
 });
 
 test("tree verifier rejects special mode bits and unexpected empty directories", async () => {
-  const lock = await json(artifactLockPath);
+  const lock = await currentLock();
   const first = await temporaryTree();
   try {
     await chmod(join(first.tree, "trellis/__init__.py"), 0o4644);
@@ -147,7 +154,7 @@ test("tree verifier rejects special mode bits and unexpected empty directories",
 });
 
 test("tree verifier rejects root directory mode drift", async () => {
-  const lock = await json(artifactLockPath);
+  const lock = await currentLock();
   const fixture = await temporaryTree();
   try {
     await chmod(fixture.tree, 0o777);
@@ -172,6 +179,49 @@ test("static scanner rejects a forbidden import without executing runtime import
   } finally {
     await rm(fixture.directory, { recursive: true, force: true });
   }
+});
+
+test("static scanner rejects eager mesh device allocation", async () => {
+  const fixture = await temporaryTree();
+  try {
+    const meshPath = join(fixture.tree, "trellis/representations/mesh/cube2mesh.py");
+    const source = await readFile(meshPath, "utf8");
+    await writeFile(
+      meshPath,
+      source.replace(
+        "        self.mesh_extractor = None\n",
+        "        self.mesh_extractor = FlexiCubes(device=\"cuda\")\n"
+      )
+    );
+    await assert.rejects(
+      runStaticPolicyScan(fixture.tree, sourcePolicyPath),
+      (error) => error instanceof PatchedTreeError
+        && error.issues.some((issue) => issue.includes("mesh_constructor_allocates_device_state"))
+    );
+  } finally {
+    await rm(fixture.directory, { recursive: true, force: true });
+  }
+});
+
+test("artifact revision lock rejects digest and replacement drift", async () => {
+  const { baseLock, revisionLock, sourcePolicy } = await loadCurrentPatchedTreeLock();
+
+  const digestDrift = structuredClone(revisionLock);
+  digestDrift.status = "approved";
+  assert.throws(
+    () => validateArtifactRevisionLock(digestDrift, baseLock, sourcePolicy),
+    (error) => error instanceof PatchedTreeError
+      && error.issues.includes("artifact_revision_digest_mismatch")
+  );
+
+  const replacementDrift = structuredClone(revisionLock);
+  replacementDrift.replacements[0].previousSha256 = "0".repeat(64);
+  replacementDrift.artifactSha256 = canonicalArtifactRevisionDigest(replacementDrift);
+  assert.throws(
+    () => validateArtifactRevisionLock(replacementDrift, baseLock, sourcePolicy),
+    (error) => error instanceof PatchedTreeError
+      && error.issues.includes("artifact_replacement_previous_hash_mismatch:trellis/representations/mesh/cube2mesh.py")
+  );
 });
 
 test("static scanner resolves aliases and rejects protected binding replacement", async () => {

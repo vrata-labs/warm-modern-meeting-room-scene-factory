@@ -43,9 +43,12 @@ not license reference images or approve model inputs.
 
 AI generation remains blocked. `ai-rights-verdict.md` rejects the stock TRELLIS
 path and records the evidence still required for a pruned mesh-only probe. The
-source-selection lock pins 53 upstream TRELLIS/FlexiCubes source, provenance,
-and license files for patch review, but it is not a patched runtime, dependency
-lock, model approval, or generation approval.
+current mesh-only source revision defers mesh-grid CUDA allocation until mesh
+extraction. A complete 41-wheel CUDA 11.8 dependency set, patched PyTorch
+qualification, offline imports, and strict state loading for DINO plus four
+TRELLIS model families are now locked. These results do not approve inference,
+GPU use, model inputs, generation, rights, or launch; OCI, SBOM, GPU parity,
+provider snapshot, notices, rights, and human-signoff gates remain open.
 `gpu-probe-policy.md` records the proposed disposable machine, exact cost
 boundary, zero account GPU quota, and mandatory teardown behavior. The
 provider-side reconciler in `scripts/gpu-probe-janitor/` is locally tested but
