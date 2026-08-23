@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "bdbc8d0f934885e56594ee39467720ffe6516838a096574a34b487ea817455d4",
+  "status": "internal-gpu-component-generation-probe-pass",
+  "probeDate": "2026-08-23",
+  "component": "window-and-trim-assembly",
+  "scope": "One project-authored RGBA image to a raw colored window-and-trim mesh on a disposable Yandex Cloud Tesla T4 VM",
+  "approval": {
+    "internalExperimentApproved": true,
+    "paidYandexGpuRunApproved": true,
+    "modelWeightsRedistributed": false,
+    "publicGeneratedBinaryPublished": false
+  },
+  "input": {
+    "id": "project-authored-window-trim-v1",
+    "origin": "deterministic-project-authored-blender-window-trim-render",
+    "generatorPath": "scripts/create-window-trim-probe-input.py",
+    "generatorSha256": "3e10e86743f3114223e92e0b9ff6dc6d8697109fd9827693f93629f9be23a05c",
+    "mode": "RGBA",
+    "width": 768,
+    "height": 768,
+    "byteLength": 422046,
+    "sha256": "5d2d5df9fb857af8ab19bdd3b5a42e25c5531c5618d073ea946d374833a4979f",
+    "functionalDimensionsMeters": {
+      "outerWidth": 2.6,
+      "outerHeight": 2.2,
+      "assemblyDepth": 0.32,
+      "sillDepth": 0.46,
+      "paneCount": 3
+    }
+  },
+  "source": {
+    "baseArtifactRevisionLock": {
+      "path": "experiment/warm-modern-meeting-room/artifact-revision-lock.json",
+      "artifactSha256": "03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916",
+      "treeSha256": "8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff"
+    },
+    "runtimeSourcePatch": {
+      "path": "trellis/representations/mesh/cube2mesh.py",
+      "baseSourceSha256": "2f8c752cb6d07a5df828269a7cc2d7eefe4949fa2b252d5fc7a3602b25296b9a",
+      "equivalentPatchedSourceSha256": "5bd144dfe002cca291b5f1625125119eb508c8ac19cc74960f3ec2b5871fece6",
+      "strategy": "in-memory-constructor-replacement"
+    },
+    "reproductionHarness": {
+      "path": "scripts/run-generation-probe.py",
+      "sha256": "09db0b3a29b0c5ead24fcba3db727c91759aeb6fd1bbca01a843d10b905212a5",
+      "appliesEquivalentInMemoryHotfix": true
+    },
+    "restrictedCodeBundle": {
+      "byteLength": 778240,
+      "sha256": "6065266a611da5279a21139e4259c184077cc70feb31e26e119a51f4c5a68fe8"
+    }
+  },
+  "models": {
+    "trellisModelCommit": "25e0d31ffbebe4b5a97464dd851910efc3002d96",
+    "dinoArtifactSha256": "30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc",
+    "trellisPayloadLockSha256": "d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d",
+    "dependencyWheelLockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198"
+  },
+  "environment": {
+    "provider": "Yandex Cloud Compute",
+    "zone": "ru-central1-a",
+    "platform": "standard-v3-t4",
+    "preemptible": true,
+    "gpu": "Tesla T4",
+    "gpuMemoryBytes": 15655829504,
+    "gpuCapability": [7, 5],
+    "pythonVersion": "3.12.11",
+    "torchVersion": "2.7.1+cu118",
+    "compiledCudaVersion": "11.8",
+    "networkNamespace": "none",
+    "readOnlyRootFilesystem": true,
+    "capabilitiesDropped": true,
+    "noNewPrivileges": true,
+    "seed": 42
+  },
+  "generation": {
+    "status": "gpu-generation-probe-pass",
+    "report": {
+      "byteLength": 1668,
+      "sha256": "4f4508578d9a7c815116013303fb81a57640145f193bd319f49c5138e2967e45"
+    },
+    "durationSeconds": 113.132,
+    "peakAllocatedBytes": 10865453056,
+    "peakReservedBytes": 14346616832,
+    "prohibitedModulesObserved": [],
+    "rawMesh": {
+      "format": "binary-little-endian-ply",
+      "vertexCount": 415342,
+      "faceCount": 830724,
+      "hasVertexColors": true,
+      "byteLength": 17029782,
+      "sha256": "2bd59e49793a954614bbe0fd8c2d4f1ad35f334726b8bdd17e0b9670952224a5",
+      "boundsMin": [-0.1663576066493988, -0.5003777146339417, -0.43393149971961975],
+      "boundsMax": [0.14827492833137512, 0.5003799796104431, 0.4367119073867798]
+    }
+  },
+  "reviewArtifacts": {
+    "preparationScriptPath": "scripts/prepare-gpu-component-probe-output.py",
+    "preparationScriptSha256": "8b7c81ff88dd14b5456c20947536b1ee33344b549b9a7bc49573f12e76617e0b",
+    "rawGlb": {
+      "byteLength": 24922236,
+      "sha256": "775c0de799452a89b7d1e81854abfd444e3ea1b65e24b6fe1ce0fda6bd86a338",
+      "restrictedRetention": false
+    },
+    "optimizedGlb": {
+      "byteLength": 715656,
+      "sha256": "5048e762a5d8079fee5a95cffb4ac222f0670433129e07db3910a976eb52620e",
+      "triangleCount": 149530,
+      "uploadVertexCount": 74745,
+      "compression": "EXT_meshopt_compression",
+      "validatorErrors": 0,
+      "validatorWarnings": 0
+    },
+    "optimizedPreview": {
+      "byteLength": 662809,
+      "sha256": "92c953d189224ddad23cc789a72e944dac4c5bce02d2e817724503cd9694cc32"
+    },
+    "validatorReport": {
+      "validatorVersion": "2.0.0-dev.3.10",
+      "byteLength": 1602,
+      "sha256": "1f1507a14cc048914e6ef1c609eb264f5d3a1ccff50c3dde49ee8b6ac9215fc2",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 2
+    },
+    "visualReview": {
+      "status": "pass",
+      "recognizableFeatures": ["three-panes", "structural-mullions", "graphite-frame", "oak-trim", "deep-reveal", "sill"],
+      "optimizedArtifactPreservedComponentShape": true
+    }
+  },
+  "restrictedRetention": {
+    "inputUploadedWithSseKms": true,
+    "codeBundleUploadedWithSseKms": true,
+    "rawMeshUploadedWithSseKms": true,
+    "reportUploadedWithSseKms": true,
+    "rawGlbUploadedWithSseKms": false,
+    "optimizedGlbUploadedWithSseKms": true,
+    "optimizedPreviewUploadedWithSseKms": true,
+    "validatorReportUploadedWithSseKms": true,
+    "fullReadbackHashesMatched": true,
+    "incompleteMultipartUploadCount": 0,
+    "operatorRecordVersion": 1,
+    "operatorRecordRawSha256": "6abdf02361266e1f6d925d3aad67267a2b4cdc26052f5d87fac4b3342de8e687",
+    "restrictedLocatorsPublished": false
+  },
+  "teardown": {
+    "probeVmCountRemaining": 0,
+    "probeDiskCountRemaining": 0,
+    "temporaryServiceAccountRemaining": false,
+    "temporaryStorageBindingRemaining": false,
+    "temporaryKmsBindingRemaining": false,
+    "billingReconciliation": "pending-provider-metering"
+  },
+  "boundaries": {
+    "modelTrainingExecuted": false,
+    "modelInputUsed": true,
+    "cudaExecuted": true,
+    "inferenceExecuted": true,
+    "generationExecuted": true,
+    "generatedBinaryAddedToPublicGit": false,
+    "productionPublicationApproved": false
+  }
+}
