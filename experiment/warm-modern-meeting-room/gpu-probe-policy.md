@@ -1,31 +1,32 @@
 # Disposable GPU Probe Policy
 
-Status: proposed and blocked. No experiment GPU VM, disk, snapshot, image,
-reservation, or IP has been created.
+Status: first internal probe passed on 2026-08-23. Three disposable VM attempts
+were created; the third completed generation. All probe VMs, auto-delete disks,
+temporary access bindings, and the temporary service account were deleted.
 
 ## Primary Probe Shape
 
 | Field | Value |
 |---|---|
 | Provider | Yandex Cloud Compute |
-| Region / zone | Russia / `ru-central1-d` |
-| Platform | `standard-v3-t4i` |
-| Accelerator | 1 T4i, 24 GB VRAM |
+| Region / zone | Russia / `ru-central1-a` |
+| Platform | `standard-v3-t4` |
+| Accelerator | 1 Tesla T4, 15655829504 reported bytes |
 | CPU / memory | 4 vCPU / 16 GB RAM |
 | Scheduling | Preemptible |
 | Boot disk | 100 GB network SSD, auto-delete |
 | Public address | Dynamic IPv4 only; never reserve it |
 | Base image | `fd8qb5sstf8h1lk8pmb8`, `ubuntu-2204-lts-cuda-12-2-v20260813` |
-| Maximum first-run wall time | 120 minutes |
+| In-guest watchdog | 45 minutes |
+| Approved campaign ceiling | 120 minutes / 65.72384 RUB |
 
-The T4i is a cost-first candidate with useful margin above TRELLIS's stated
-16 GB minimum. It is not named among upstream's verified A100/A6000 devices, so
-technical compatibility remains a measured probe result rather than an
-assumption.
+The originally planned T4i quota was unavailable. Yandex granted one T4 quota,
+so the approved run used the T4 shape. The measured probe passed; this is exact
+evidence for the recorded software boundary, not a general compatibility claim.
 
 ## Cost Boundary
 
-Current RU/RUB prices include VAT:
+The pre-run T4i estimate was:
 
 | Component | RUB/hour |
 |---|---:|
@@ -34,9 +35,11 @@ Current RU/RUB prices include VAT:
 | Active dynamic public IPv4 | 0.26352 |
 | Primary all-in floor | 32.86192 |
 
-The 120-minute first-run maximum is 65.72384 RUB before paid traffic or unusual
-request volume. The proposed Stage 2 compute hard cap is 1,000 RUB. This cap is
-not a spending target and is not approved merely by committing this policy.
+The 120-minute campaign ceiling was 65.72384 RUB before paid traffic or unusual
+request volume. Three T4 VM attempts were needed because the first metadata
+configuration was invalid and the second expired before workload completion.
+Actual provider metering is pending and must be reconciled before another paid
+run. The 1,000 RUB Stage 2 hard cap is not a spending target.
 
 An A100 fallback in `ru-central1-b` requires a separate explicit approval. Its
 preemptible 28 vCPU / 119 GB / one A100 shape with the same disk and IP costs
@@ -49,39 +52,31 @@ Official references:
 - `https://yandex.cloud/ru/docs/compute/pricing`;
 - `https://yandex.cloud/ru/docs/vpc/pricing`.
 
-## Current Capacity Blocker
+## Capacity Result
 
-The 2026-08-14 read-only quota check returned zero for every exposed GPU quota,
-including T4, T4i, V100, A100, and Gen2. Yandex exposes no read-only API for
-instantaneous host inventory. No launch can succeed until the account receives
-an explicit GPU quota and the selected zone has capacity.
+The initial 2026-08-14 check returned zero GPU quota. Support ticket `FS946793`
+subsequently resulted in `compute.instanceT4Gpus.count=1`; T4i remained zero.
+Zone `ru-central1-a` had T4 capacity for the successful run.
 
-An API request for one T4i quota was attempted without creating a resource. It
-was rejected before request creation because the cloud does not have the
-`QUOTA_MANAGER_USE_QUOTA_REQUEST_SERVICE_VIA_API` alpha flag. The remaining
-request path is Yandex Console or provider support; browser automation reached
-the provider CAPTCHA and did not bypass it.
+## Recorded Probe Boundary
 
-## Launch Preconditions
+The completed probe used:
 
-All conditions are mandatory:
+1. one deterministic project-authored RGBA input;
+2. exact content-addressed DINO, TRELLIS, and 41-wheel payloads;
+3. a non-root, read-only-root workload with no network, no added capabilities,
+   and no new privileges;
+4. an in-guest 45-minute shutdown watchdog plus an independent local deletion
+   timer armed before each VM;
+5. immediate output upload, exact full readback, VM deletion, disk deletion, and
+   access-binding teardown;
+6. public-safe result evidence in `gpu-generation-probe-lock.json` without
+   restricted storage locators or generated binaries.
 
-1. Approved style bible and cleared probe input IDs exist.
-2. The AI rights verdict is `allow-pruned-probe` for an exact OCI digest.
-3. The chosen GPU quota is nonzero.
-4. The experiment sponsor explicitly approves the quoted machine, maximum wall
-   time, and 1,000 RUB campaign cap.
-5. A preflight records all experiment-labeled instances, disks, filesystems,
-   snapshots, images, addresses, and KMS resources; the expected set is empty.
-6. The input and required model artifacts are already in restricted storage and
-   verified by SHA-256. The VM does not receive unrelated cloud credentials.
-7. An isolated, marked experiment folder and a provider-side scheduled janitor
-   are active before VM creation. Its runtime identity has cleanup rights only
-   in that folder; a separate invocation identity can invoke only the janitor
-   function. Neither identity uses static keys.
-8. The local wrapper, in-guest watchdog, and provider-side janitor have passed a
-   no-GPU fixture test that verifies folder/resource boundary rejection,
-   completed instance/disk deletion, and dynamic-address release.
+This narrower internal run did not have the originally proposed provider-side
+function janitor or a final OCI/SBOM bundle. The sponsor accepted those explicit
+deviations for one disposable probe only. They remain required before a broader
+campaign or production publication.
 
 ## Teardown Contract
 
@@ -118,7 +113,8 @@ All conditions are mandatory:
   control-plane permission to delete itself or the folder.
 
 Preemptible instances have no SLA and can stop at any time. Their provider
-maximum lifetime of 24 hours is not a substitute for the 110-minute watchdog or
+maximum lifetime of 24 hours is not a substitute for the 45-minute watchdog or
 the independent deletion guard. The guard is implemented and locally tested but
-is not deployed or provider-fixture-verified, so launch remains blocked even if
-GPU quota becomes available.
+was not deployed or provider-fixture-verified for this probe. No further paid
+run should start until billing reconciliation is complete, the exposed operator
+credential is rotated, and the next run's deletion guard is explicitly armed.

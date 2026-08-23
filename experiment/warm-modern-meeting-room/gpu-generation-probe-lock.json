@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "lockSha256": "e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7",
+  "status": "internal-gpu-generation-probe-pass",
+  "probeDate": "2026-08-23",
+  "scope": "One project-authored RGBA image to raw colored mesh on a disposable Yandex Cloud Tesla T4 VM",
+  "approval": {
+    "internalExperimentApproved": true,
+    "paidYandexGpuRunApproved": true,
+    "modelWeightsRedistributed": false,
+    "publicGeneratedBinaryPublished": false
+  },
+  "input": {
+    "id": "project-authored-conference-chair-v1",
+    "origin": "deterministic-project-authored-blender-render",
+    "generatorPath": "scripts/create-gpu-probe-input.py",
+    "generatorSha256": "e44781a000db49e39c5fc51804712b98301c0a80fc95afb3103970ca4a2cd4ec",
+    "mode": "RGBA",
+    "width": 768,
+    "height": 768,
+    "byteLength": 282669,
+    "sha256": "236eef7890bd495c2c8322e1c73a2c428d5c7efe4815116eeb5ce8b4693c9533"
+  },
+  "source": {
+    "baseArtifactRevisionLock": {
+      "path": "experiment/warm-modern-meeting-room/artifact-revision-lock.json",
+      "artifactSha256": "03a3bc8fdbfd36fc42f46213ef16aad17ff5dd36b75bd245d2a80e96bab7a916",
+      "treeSha256": "8518acfc2e55e789b30305d6703b5e76a082849c8e1860fb37bae0b45e87b2ff"
+    },
+    "runtimeSourcePatch": {
+      "path": "trellis/representations/mesh/cube2mesh.py",
+      "sha256": "5bd144dfe002cca291b5f1625125119eb508c8ac19cc74960f3ec2b5871fece6",
+      "change": "Use Tensor.numel() rather than nonexistent Tensor.num() in the post-generation face bounds check"
+    },
+    "reproductionHarness": {
+      "path": "scripts/run-generation-probe.py",
+      "sha256": "09db0b3a29b0c5ead24fcba3db727c91759aeb6fd1bbca01a843d10b905212a5",
+      "appliesEquivalentInMemoryHotfix": true
+    }
+  },
+  "models": {
+    "trellisModelCommit": "25e0d31ffbebe4b5a97464dd851910efc3002d96",
+    "dinoArtifactSha256": "30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc",
+    "trellisPayloadLockSha256": "d140f277f756f845aa8ad5d83960fb1bb70d640dcb7aa2c43460901f6ab8839d",
+    "dependencyWheelLockSha256": "2e46abb1fa9804656de205e7db3d54e2671906d16fb056e3c9f2b6edc3662198"
+  },
+  "environment": {
+    "provider": "Yandex Cloud Compute",
+    "zone": "ru-central1-a",
+    "platform": "standard-v3-t4",
+    "preemptible": true,
+    "gpu": "Tesla T4",
+    "gpuMemoryBytes": 15655829504,
+    "gpuCapability": [7, 5],
+    "driverVersion": "535.247.01",
+    "pythonVersion": "3.12.11",
+    "pythonBaseImageDigest": "sha256:519591d6871b7bc437060736b9f7456b8731f1499a57e22e6c285135ae657bf7",
+    "torchVersion": "2.7.1+cu118",
+    "compiledCudaVersion": "11.8",
+    "networkNamespace": "none",
+    "readOnlyRootFilesystem": true,
+    "capabilitiesDropped": true,
+    "noNewPrivileges": true,
+    "seed": 42
+  },
+  "generation": {
+    "status": "gpu-generation-probe-pass",
+    "report": {
+      "byteLength": 1493,
+      "sha256": "1991c0d7969ab04a4c98d15f2fa4e9e51515bfdeb1d98d6dee9df1ecf66186ca"
+    },
+    "durationSeconds": 83.416,
+    "peakAllocatedBytes": 10416818176,
+    "peakReservedBytes": 12937330688,
+    "prohibitedModulesObserved": [],
+    "rawMesh": {
+      "format": "binary-little-endian-ply",
+      "vertexCount": 253646,
+      "faceCount": 507226,
+      "hasVertexColors": true,
+      "byteLength": 10398868,
+      "sha256": "a8d3c151b1bf75ed6b6bf8453e89e896645cfa39cd352fc987be8d2b3dc8aba8",
+      "boundsMin": [-0.336391806602478, -0.3047369718551636, -0.5007950663566589],
+      "boundsMax": [0.33630451560020447, 0.3106955289840698, 0.5002111196517944]
+    }
+  },
+  "reviewArtifacts": {
+    "preparationScriptPath": "scripts/prepare-gpu-probe-output.py",
+    "preparationScriptSha256": "eebf678236b07cece0a588e4c98288e1ecf47d8fd58a3702a2289f36bb41aea0",
+    "rawGlb": {
+      "byteLength": 15219200,
+      "sha256": "57737d738563df45ce2301c34024c534ef84443c01e0e5a146d3507af1fa6bf6"
+    },
+    "optimizedGlb": {
+      "byteLength": 689540,
+      "sha256": "b0f046d293f31c8c6120beb30f99af937b40e9a5542ce0d1ffa475ec0ebcb73c",
+      "triangleCount": 150398,
+      "uploadVertexCount": 75232,
+      "compression": "EXT_meshopt_compression",
+      "validatorErrors": 0,
+      "validatorWarnings": 0
+    },
+    "preview": {
+      "byteLength": 621795,
+      "sha256": "d7d57af00b0196c2a73dd298d17f2d8ffabaaecb408b4d66f51d40b8d507fb0a"
+    }
+  },
+  "restrictedRetention": {
+    "inputUploadedWithSseKms": true,
+    "rawMeshUploadedWithSseKms": true,
+    "reportUploadedWithSseKms": true,
+    "rawGlbUploadedWithSseKms": false,
+    "optimizedGlbUploadedWithSseKms": true,
+    "previewUploadedWithSseKms": true,
+    "fullReadbackHashesMatched": true,
+    "restrictedLocatorsPublished": false
+  },
+  "teardown": {
+    "probeVmCountRemaining": 0,
+    "probeDiskCountRemaining": 0,
+    "temporaryServiceAccountRemaining": false,
+    "temporaryStorageBindingRemaining": false,
+    "temporaryKmsBindingRemaining": false,
+    "billingReconciliation": "pending-provider-metering"
+  },
+  "boundaries": {
+    "modelTrainingExecuted": false,
+    "modelInputUsed": true,
+    "cudaExecuted": true,
+    "inferenceExecuted": true,
+    "generationExecuted": true,
+    "generatedBinaryAddedToPublicGit": false,
+    "productionPublicationApproved": false
+  }
+}

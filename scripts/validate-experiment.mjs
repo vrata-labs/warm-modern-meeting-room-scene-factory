@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -22,6 +23,18 @@ function assert(condition, code) {
 
 async function json(relativePath) {
   return JSON.parse(await readFile(resolve(root, relativePath), "utf8"));
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function sha256(relativePath) {
+  return createHash("sha256").update(await readFile(resolve(root, relativePath))).digest("hex");
 }
 
 const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
@@ -65,8 +78,26 @@ assert(readiness.storage.encryption.keyDeletionProtection === true, "restricted_
 assert(readiness.storage.approval.status === "approved-for-stage1-reference-handling", "restricted_storage_approval_missing");
 assert(readiness.storage.approval.ownerRole === readiness.storage.ownerRole, "restricted_storage_approval_owner_mismatch");
 assert(readiness.aiRights.ownerRole === "experiment-sponsor", "ai_rights_owner_missing");
-assert(readiness.aiRights.verdict === "blocked", "ai_generation_must_remain_blocked");
-assert(readiness.aiRights.generationAllowed === false, "ai_generation_unexpectedly_allowed");
+assert(readiness.aiRights.verdict === "allow-pruned-probe", "ai_internal_probe_verdict_invalid");
+assert(readiness.aiRights.generationAllowed === true, "ai_internal_probe_not_allowed");
+assert(readiness.aiRights.generationScope === "internal-pruned-mesh-probe-with-project-authored-inputs", "ai_generation_scope_invalid");
+const generationProbeSummary = readiness.aiRights.gpuGenerationProbe;
+const generationProbeLock = await json(generationProbeSummary.lockPath);
+const { lockSha256: generationProbeLockSha256, ...generationProbePayload } = generationProbeLock;
+assert(generationProbeLockSha256 === createHash("sha256").update(stableStringify(generationProbePayload)).digest("hex"), "generation_probe_self_digest_invalid");
+assert(generationProbeSummary.lockSha256 === generationProbeLockSha256, "generation_probe_readiness_digest_mismatch");
+assert(generationProbeLock.status === "internal-gpu-generation-probe-pass", "generation_probe_status_invalid");
+assert(generationProbeLock.generation.status === "gpu-generation-probe-pass", "generation_result_status_invalid");
+assert(generationProbeLock.generation.rawMesh.vertexCount === generationProbeSummary.vertexCount, "generation_probe_vertex_count_mismatch");
+assert(generationProbeLock.generation.rawMesh.faceCount === generationProbeSummary.faceCount, "generation_probe_face_count_mismatch");
+assert(generationProbeLock.generation.prohibitedModulesObserved.length === 0, "generation_probe_prohibited_module_observed");
+assert(generationProbeLock.boundaries.generationExecuted === true, "generation_probe_execution_missing");
+assert(generationProbeLock.boundaries.generatedBinaryAddedToPublicGit === false, "generation_probe_binary_publication_claim_invalid");
+assert(generationProbeLock.boundaries.productionPublicationApproved === false, "generation_probe_production_approval_claim_invalid");
+assert(generationProbeLock.source.reproductionHarness.sha256 === await sha256(generationProbeLock.source.reproductionHarness.path), "generation_probe_harness_digest_mismatch");
+assert(generationProbeLock.input.generatorSha256 === await sha256(generationProbeLock.input.generatorPath), "generation_probe_input_generator_digest_mismatch");
+assert(generationProbeLock.reviewArtifacts.preparationScriptSha256 === await sha256(generationProbeLock.reviewArtifacts.preparationScriptPath), "generation_probe_preparation_script_digest_mismatch");
+assert(!/(?:bucket|objectKey|storageLocator|serviceAccountId|kmsKeyId|publicIp)/i.test(JSON.stringify(generationProbeLock)), "generation_probe_private_locator_published");
 const sourceSelection = validateWmmrSelectionContract(await json(readiness.aiRights.sourceSelectionLock.policyPath));
 assert(readiness.aiRights.sourceSelectionLock.status === "selection-lock-recorded-local-verification-pass-runtime-blocked", "source_selection_status_invalid");
 assert(readiness.aiRights.sourceSelectionLock.sourceCommit === sourceSelection.source.commit, "source_selection_commit_mismatch");
@@ -437,6 +468,8 @@ const expectedCurrentResolvedGates = [
   "dinoDerivedRuntimeArtifactLock",
   "dinoSourceAndArtifactLock",
   "dinoSourceGitObjectLock",
+  "gpuParityAndVramTest",
+  "humanRightsSignoff",
   "offlineImportRuntimeTest",
   "patchedPytorchQualification",
   "patchedSourceTreeDigest",
@@ -444,12 +477,11 @@ const expectedCurrentResolvedGates = [
   "trellisModelPayloadBytesVerification"
 ];
 const expectedCurrentOpenGates = [
-  "gpuParityAndVramTest",
-  "humanRightsSignoff",
   "ociImageDigest",
   "providerTermsSnapshot",
   "sbomAndVulnerabilityReport",
-  "thirdPartyNoticeBundle"
+  "thirdPartyNoticeBundle",
+  "productionRightsSignoff"
 ];
 assert(JSON.stringify(readiness.aiRights.currentGateState.resolvedGates) === JSON.stringify(expectedCurrentResolvedGates), "current_ai_rights_resolved_gates_invalid");
 assert(JSON.stringify(readiness.aiRights.currentGateState.openGates) === JSON.stringify(expectedCurrentOpenGates), "current_ai_rights_open_gates_invalid");
@@ -465,12 +497,13 @@ for (const [gate, composition] of Object.entries(dinoArtifact.gateComposition)) 
 }
 assert(!currentOpenGates.has("trellisModelArtifactLock"), "resolved_model_artifact_gate_still_open");
 assert(readiness.compute.primaryPreemptible === true, "gpu_probe_must_be_preemptible");
-assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_resource_created_before_gate");
-assert(readiness.compute.gpuQuota === "zero-all-exposed-gpu-families", "gpu_quota_evidence_invalid");
-assert(readiness.compute.quotaRequestCreated === false, "gpu_quota_request_unexpectedly_created");
-assert(readiness.compute.quotaRequestBlocker === "quota-manager-api-alpha-flag-not-enabled", "gpu_quota_request_blocker_invalid");
-assert(readiness.compute.budgetApproval === "pending-explicit-launch-approval", "gpu_budget_must_require_approval");
-assert(readiness.compute.independentTeardownGuard === "implementation-ready-pending-provider-fixture", "gpu_teardown_guard_invalid");
+assert(readiness.compute.experimentGpuResourcesCreated === false, "gpu_probe_resource_still_exists");
+assert(readiness.compute.gpuQuota === "compute.instanceT4Gpus.count=1", "gpu_quota_evidence_invalid");
+assert(readiness.compute.quotaRequestCreated === true, "gpu_quota_request_missing");
+assert(readiness.compute.quotaRequestBlocker === null, "gpu_quota_request_blocker_not_cleared");
+assert(readiness.compute.budgetApproval === "approved-for-2026-08-23-internal-probe", "gpu_budget_approval_missing");
+assert(readiness.compute.independentTeardownGuard === "local-delete-daemon-plus-guest-watchdog-verified", "gpu_teardown_guard_invalid");
+assert(readiness.compute.probeResourcesRemaining === 0, "gpu_probe_teardown_incomplete");
 assert(readiness.stageRules.stage1WorkBlockedUntil.length === 0, "stage_1_work_must_be_unblocked");
 assert(readiness.stageRules.stage1ExitBlockedUntil.length === 0, "stage_1_exit_must_be_unblocked");
 assert(readiness.stageRules.stage2RightsAndComputePreparationBlockedUntil.length === 0, "stage_2_preparation_must_be_unblocked");
@@ -487,13 +520,13 @@ assert(readiness.resolved.trellisModelPayloadBytesVerification === true, "trelli
 assert(readiness.resolved.dependencyWheelHashLock === true, "dependency_wheel_gate_not_resolved");
 assert(readiness.resolved.patchedPytorchQualification === true, "patched_pytorch_gate_not_resolved");
 assert(readiness.resolved.offlineImportRuntimeTest === true, "offline_runtime_gate_not_resolved");
+assert(readiness.resolved.gpuParityAndVramTest === true, "gpu_parity_gate_not_resolved");
+assert(readiness.resolved.humanRightsSignoff === true, "internal_probe_signoff_not_resolved");
+assert(readiness.resolved.gpuGenerationProbe === true, "gpu_generation_probe_not_resolved");
+assert(readiness.resolved.greenAiFeasibilityGate === true, "ai_feasibility_gate_not_green");
 assert(!Object.hasOwn(readiness.blocked, "styleBibleApproval"), "resolved_style_gate_must_not_remain_blocked");
 assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleApproval"), "resolved_style_gate_still_blocks_probe");
-assert(readiness.stageRules.probeExecutionBlockedUntil.includes("aiRightsFinalApproval"), "probe_missing_rights_gate");
-assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuQuotaApproval"), "probe_missing_gpu_quota_gate");
-assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuBudgetApproval"), "probe_missing_gpu_budget_gate");
-assert(readiness.stageRules.probeExecutionBlockedUntil.includes("gpuLaunchApproval"), "probe_missing_launch_gate");
-assert(readiness.stageRules.probeExecutionBlockedUntil.includes("independentTeardownGuard"), "probe_missing_teardown_gate");
+assert(readiness.stageRules.probeExecutionBlockedUntil.length === 0, "completed_probe_must_not_remain_blocked");
 
 const referenceLedger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
 assert(referenceLedger.schemaVersion === 1, "invalid_reference_ledger_schema");
@@ -513,7 +546,8 @@ assert(readiness.stage1.selectedReferenceCount === selectedReferences.length, "r
 assert(readiness.stage1.rejectedReferenceCount === rejectedReferences.length, "readiness_rejected_reference_count_mismatch");
 assert(readiness.stage1.retrievedReferenceCount === retrievedReferences.length, "readiness_retrieved_reference_count_mismatch");
 assert(readiness.stage1.approvedModelInputCount === modelInputReferences.length, "readiness_model_input_count_mismatch");
-assert(readiness.aiRights.modelInputCount === modelInputReferences.length, "ai_rights_model_input_count_mismatch");
+assert(readiness.aiRights.referenceModelInputCount === modelInputReferences.length, "ai_rights_reference_model_input_count_mismatch");
+assert(readiness.aiRights.modelInputCount === modelInputReferences.length + readiness.aiRights.projectAuthoredModelInputCount, "ai_rights_model_input_count_mismatch");
 assert(modelInputReferences.length === 0, "model_inputs_must_remain_unapproved");
 assert(new Set(referenceLedger.records.map(({ id }) => id)).size === referenceLedger.records.length, "duplicate_reference_id");
 assert(referenceLedger.records.every(({ url }) => /^https:\/\//.test(url)), "reference_url_must_be_https");

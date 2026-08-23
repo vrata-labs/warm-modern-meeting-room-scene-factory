@@ -1,0 +1,13 @@
+#cloud-config
+package_update: false
+package_upgrade: false
+write_files:
+  - path: /usr/local/sbin/wmmr-probe-watchdog
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      sleep 2700
+      shutdown -h now
+runcmd:
+  - [systemd-run, --unit=wmmr-probe-watchdog, --property=RuntimeMaxSec=2800, /usr/local/sbin/wmmr-probe-watchdog]
+final_message: "WMMR GPU probe watchdog armed for 45 minutes"
