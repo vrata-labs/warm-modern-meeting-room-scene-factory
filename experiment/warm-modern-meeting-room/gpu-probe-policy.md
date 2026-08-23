@@ -1,8 +1,10 @@
 # Disposable GPU Probe Policy
 
-Status: first internal probe passed on 2026-08-23. Three disposable VM attempts
-were created; the third completed generation. All probe VMs, auto-delete disks,
-temporary access bindings, and the temporary service account were deleted.
+Status: two internal component probes passed on 2026-08-23, meeting the
+two-of-three AI feasibility threshold. The first probe required three disposable
+VM attempts; the second window-and-trim probe passed on its first VM after
+in-guest bootstrap corrections. All probe VMs, auto-delete disks, temporary
+access bindings, and temporary service accounts were deleted.
 
 ## Primary Probe Shape
 
@@ -36,10 +38,14 @@ The pre-run T4i estimate was:
 | Primary all-in floor | 32.86192 |
 
 The 120-minute campaign ceiling was 65.72384 RUB before paid traffic or unusual
-request volume. Three T4 VM attempts were needed because the first metadata
-configuration was invalid and the second expired before workload completion.
-Actual provider metering is pending and must be reconciled before another paid
-run. The 1,000 RUB Stage 2 hard cap is not a spending target.
+request volume. The chair probe needed three T4 VM attempts because the first
+metadata configuration was invalid and the second expired before workload
+completion. The window-and-trim probe used one additional T4 VM. Its initial
+guest bootstrap hit a Docker/containerd package conflict, a Docker Hub timeout,
+and DINO source permissions; all three were corrected on the same bounded VM
+before the successful run. Actual provider metering for both probes is pending
+and must be reconciled before another paid run. The 1,000 RUB Stage 2 hard cap is
+not a spending target.
 
 An A100 fallback in `ru-central1-b` requires a separate explicit approval. Its
 preemptible 28 vCPU / 119 GB / one A100 shape with the same disk and IP costs
@@ -60,9 +66,9 @@ Zone `ru-central1-a` had T4 capacity for the successful run.
 
 ## Recorded Probe Boundary
 
-The completed probe used:
+Both completed probes used:
 
-1. one deterministic project-authored RGBA input;
+1. one deterministic project-authored RGBA input per probe;
 2. exact content-addressed DINO, TRELLIS, and 41-wheel payloads;
 3. a non-root, read-only-root workload with no network, no added capabilities,
    and no new privileges;
@@ -70,10 +76,19 @@ The completed probe used:
    timer armed before each VM;
 5. immediate output upload, exact full readback, VM deletion, disk deletion, and
    access-binding teardown;
-6. public-safe result evidence in `gpu-generation-probe-lock.json` without
-   restricted storage locators or generated binaries.
+6. separate public-safe result locks, `gpu-generation-probe-lock.json` and
+   `gpu-window-trim-generation-probe-lock.json`, without restricted storage
+   locators or generated binaries.
 
-This narrower internal run did not have the originally proposed provider-side
+The chair probe produced 253646 vertices and 507226 colored triangles in 83.416
+seconds. The window-and-trim probe produced 415342 vertices and 830724 colored
+triangles in 113.132 seconds; its optimized 149530-triangle GLB passed Khronos
+validation with zero errors and zero warnings. Full private readback matched the
+input, code bundle, raw PLY, report, optimized GLB, preview, validator report,
+and restricted operator record for the second probe. No incomplete multipart
+upload remained.
+
+These narrower internal runs did not have the originally proposed provider-side
 function janitor or a final OCI/SBOM bundle. The sponsor accepted those explicit
 deviations for one disposable probe only. They remain required before a broader
 campaign or production publication.

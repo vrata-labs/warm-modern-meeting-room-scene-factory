@@ -93,10 +93,10 @@
     "verdict": "allow-pruned-probe",
     "verdictDate": "2026-08-23",
     "stockTrellisPath": "blocked-restricted-eager-imports",
-    "prunedMeshPath": "gpu-generation-probe-pass-production-publication-controls-pending",
+    "prunedMeshPath": "two-component-gpu-generation-probes-pass-production-publication-controls-pending",
     "referenceModelInputCount": 0,
-    "projectAuthoredModelInputCount": 1,
-    "modelInputCount": 1,
+    "projectAuthoredModelInputCount": 2,
+    "modelInputCount": 2,
     "generationAllowed": true,
     "generationScope": "internal-pruned-mesh-probe-with-project-authored-inputs",
     "verdictPath": "experiment/warm-modern-meeting-room/ai-rights-verdict.md",
@@ -612,6 +612,7 @@
     },
     "gpuGenerationProbe": {
       "status": "internal-gpu-generation-probe-pass",
+      "component": "conference-chair",
       "lockPath": "experiment/warm-modern-meeting-room/gpu-generation-probe-lock.json",
       "lockSha256": "e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7",
       "gpu": "Tesla T4",
@@ -624,6 +625,32 @@
       "prohibitedModulesObserved": [],
       "projectAuthoredInput": true,
       "generationExecuted": true,
+      "productionPublicationApproved": false
+    },
+    "gpuWindowTrimGenerationProbe": {
+      "status": "internal-gpu-component-generation-probe-pass",
+      "component": "window-and-trim-assembly",
+      "lockPath": "experiment/warm-modern-meeting-room/gpu-window-trim-generation-probe-lock.json",
+      "lockSha256": "bdbc8d0f934885e56594ee39467720ffe6516838a096574a34b487ea817455d4",
+      "gpu": "Tesla T4",
+      "gpuMemoryBytes": 15655829504,
+      "durationSeconds": 113.132,
+      "peakAllocatedBytes": 10865453056,
+      "peakReservedBytes": 14346616832,
+      "vertexCount": 415342,
+      "faceCount": 830724,
+      "optimizedTriangleCount": 149530,
+      "prohibitedModulesObserved": [],
+      "projectAuthoredInput": true,
+      "generationExecuted": true,
+      "productionPublicationApproved": false
+    },
+    "gpuComponentProbeFeasibility": {
+      "status": "green-two-of-three-component-probes-passed",
+      "requiredSuccessfulCount": 2,
+      "successfulCount": 2,
+      "plannedCount": 3,
+      "passedComponents": ["conference-chair", "window-and-trim-assembly"],
       "productionPublicationApproved": false
     },
     "currentGateState": {
@@ -679,8 +706,11 @@
     "quotaRequestNextPath": null,
     "quotaSupportTicket": "FS946793",
     "independentTeardownGuard": "local-delete-daemon-plus-guest-watchdog-verified",
-    "probeStatus": "passed-and-torn-down",
-    "probeVmAttempts": 3,
+    "probeStatus": "two-component-probes-passed-and-torn-down",
+    "probeVmAttempts": 4,
+    "probeCampaignsCompleted": 2,
+    "successfulComponentProbeCount": 2,
+    "plannedComponentProbeCount": 3,
     "probeResourcesRemaining": 0,
     "billingReconciliation": "pending-provider-metering",
     "experimentGpuResourcesCreated": false,
@@ -748,7 +778,9 @@
     "offlineImportRuntimeTest": true,
     "gpuParityAndVramTest": true,
     "humanRightsSignoff": true,
-    "gpuGenerationProbe": true
+    "gpuGenerationProbe": true,
+    "gpuWindowTrimGenerationProbe": true,
+    "greenAiFeasibilityGate": true
   },
   "blocked": {
     "reviewCoordinator": null,
@@ -763,7 +795,7 @@
     "stage1ExitBlockedUntil": [],
     "stage2RightsAndComputePreparationBlockedUntil": [],
     "probeExecutionBlockedUntil": [],
-    "stage3BlockedUntil": ["greenAiFeasibilityGate"],
+    "stage3BlockedUntil": [],
     "shippingBlockedUntil": ["androidQaOwner", "iosQaOwner", "questQaOwner"]
   }
 }

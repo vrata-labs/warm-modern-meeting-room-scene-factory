@@ -25,15 +25,23 @@ PyTorch `2.7.1+cu118` passed a synthetic weights-only security regression. In a
 separate no-network run, all 58 expected DINO/TRELLIS modules imported and the
 DINO state plus all four selected TRELLIS states strict-loaded with no missing
 or unexpected keys in the historical offline qualification. A subsequent
-no-network Tesla T4 run used one deterministic project-authored RGBA input and
-completed inference plus mesh generation in 83.416 seconds. Peak allocated and
-reserved VRAM were 10416818176 and 12937330688 bytes. It produced 253646
+no-network Tesla T4 run used one deterministic project-authored chair RGBA input
+and completed inference plus mesh generation in 83.416 seconds. Peak allocated
+and reserved VRAM were 10416818176 and 12937330688 bytes. It produced 253646
 vertices and 507226 colored triangles, and no prohibited module entered
 `sys.modules`. `gpu-generation-probe-lock.json` records the public-safe evidence
 with semantic digest
 `e4d51c5be8de3ba39416c2aa8d0ce1335509c359221067c18a9b427674eff9a7`.
-This closes the first component probe only; the AI feasibility gate remains open
-until at least one of the two remaining planned component probes also passes.
+A second no-network Tesla T4 run used a deterministic project-authored,
+dimensioned window-and-trim RGBA input. It completed generation in 113.132
+seconds with 10865453056 peak allocated and 14346616832 peak reserved bytes,
+producing 415342 vertices and 830724 colored triangles with no prohibited module
+observed. Its optimized review GLB has 149530 triangles and passed Khronos glTF
+validation with zero errors and zero warnings. The public-safe
+`gpu-window-trim-generation-probe-lock.json` has semantic digest
+`bdbc8d0f934885e56594ee39467720ffe6516838a096574a34b487ea817455d4`.
+Two of the three planned component probes have now passed, closing the AI
+feasibility gate and unblocking Stage 3.
 Final OCI, SBOM/vulnerability, provider snapshot, complete notices, production
 rights review, and production human signoff remain open for publication.
 
@@ -51,7 +59,7 @@ This is a conservative technical rights record, not legal advice.
 | DINOv2 source | `b8931f7bf91576930313be2c6d6af376033b35f0` | Apache-2.0 root license with a conflicting repository README caveat | Source Git-object identity and exact 12-file runtime selection locked; offline import and strict-load qualification pass; repository-scope rights caveat remains unresolved |
 | DINOv2 ViT-L/14 reg4 weights | raw opaque PTH SHA-256 `36e4deffbaef061a2576705b0c36f93621e2ae20bf6274694821b0b492551b51`; derived safetensors SHA-256 `30e20dce587ad621a8dfc20e4ed66198d2998974928d44f06a6baf7732503dcc`; publisher URL transitively bound through the historical source lock | Apache-2.0 model-card evidence only | Raw identity, isolated weights-only conversion, derived artifact identity, exact tensor equivalence, and strict source-compatible load locked; redistribution, rights approval, and human signoff remain unresolved |
 
-No external model input images were downloaded. The probe input was generated
+No external model input images were downloaded. Both probe inputs were generated
 locally from project-authored Blender geometry. The DINO raw publisher payload, its
 derived safetensors artifact, and four selected raw TRELLIS payloads were
 acquired or created and retained outside public Git under the point-in-time
@@ -102,11 +110,11 @@ restrictions:
 7. rejects non-finite mesh vertices or attributes and out-of-bounds triangle
    indices before returning the mesh representation.
 
-The internal probe closed GPU execution, VRAM measurement, project-authored
-input, raw mesh validation, output hashing, restricted-storage readback, and
-teardown checks. Future internal runs must use the exact qualified tree, DINO
-module, wheel set, model payloads, and generation harness recorded in the probe
-lock. Production publication still requires a final OCI digest, native-library
+The two internal component probes closed GPU execution, VRAM measurement,
+project-authored input, raw mesh validation, output hashing, restricted-storage
+readback, and teardown checks. Future internal runs must use the exact qualified
+tree, DINO module, wheel set, model payloads, and generation harness recorded in
+the respective probe lock. Production publication still requires a final OCI digest, native-library
 inventory, Syft SBOM, vulnerability scan, complete dependency notice bundle,
 provider snapshot, production rights review, and separate publication signoff.
 
@@ -624,7 +632,8 @@ raw SHA-256
 
 - The four selected TRELLIS raw payload byte identities match their publisher
   LFS pointer SHA-256 values and strict-load against the revised source. The
-  internal project-authored-input probe is approved and complete, but this does
+  two internal project-authored-input component probes are approved and complete,
+  and the two-of-three feasibility threshold is met, but this does
   not establish model-card scope, redistribution rights, production output
   rights, or publication signoff.
 - No publisher SHA-256 was found in the reviewed pinned evidence, HEAD, or GET
@@ -679,7 +688,7 @@ approval.
 
 The assigned public role is `experiment-sponsor`; the identity record remains
 restricted. The sponsor approved `allow-pruned-probe` for the exact internal
-project-authored input and paid Yandex T4 execution on 2026-08-23. For production
+project-authored inputs and paid Yandex T4 executions on 2026-08-23. For production
 publication, that owner must separately sign one of:
 
 - `allow-production-publication`: every remaining publication condition is

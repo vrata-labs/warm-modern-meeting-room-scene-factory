@@ -47,8 +47,11 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.aiRights.generationAllowed, true);
   assert.equal(readiness.aiRights.generationScope, "internal-pruned-mesh-probe-with-project-authored-inputs");
   assert.deepEqual(readiness.stageRules.probeExecutionBlockedUntil, []);
-  assert.deepEqual(readiness.stageRules.stage3BlockedUntil, ["greenAiFeasibilityGate"]);
-  assert.equal(Object.hasOwn(readiness.resolved, "greenAiFeasibilityGate"), false);
+  assert.deepEqual(readiness.stageRules.stage3BlockedUntil, []);
+  assert.equal(readiness.resolved.greenAiFeasibilityGate, true);
+  assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.successfulCount, 2);
+  assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.requiredSuccessfulCount, 2);
+  assert.equal(readiness.aiRights.gpuComponentProbeFeasibility.productionPublicationApproved, false);
 });
 
 test("restricted storage is private, encrypted, and bounded", async () => {
