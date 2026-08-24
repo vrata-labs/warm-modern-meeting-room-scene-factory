@@ -63,7 +63,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "contract-diagnostics-shell-and-openings-scaffold", "stage3_status_invalid");
+assert(readiness.stage3.status === "contract-diagnostics-shell-openings-and-material-zones-scaffold", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -78,6 +78,15 @@ assert(readiness.stage3.roomOpeningCount === 2, "stage3_room_opening_count_inval
 assert(readiness.stage3.roomOpeningFrameObjectCount === 7, "stage3_room_opening_frame_count_invalid");
 assert(readiness.stage3.roomOpeningRevealObjectCount === 3, "stage3_room_opening_reveal_count_invalid");
 assert(readiness.stage3.roomOpeningSillObjectCount === 1, "stage3_room_opening_sill_count_invalid");
+assert(readiness.stage3.roomProfilesCompilerImplemented === true, "stage3_room_profiles_compiler_missing");
+assert(readiness.stage3.roomBaseboardDetailCount === 4, "stage3_room_baseboard_detail_count_invalid");
+assert(readiness.stage3.roomBaseboardObjectCount === 5, "stage3_room_baseboard_object_count_invalid");
+assert(readiness.stage3.roomMaterialZonesCompiled === true, "stage3_room_material_zones_missing");
+assert(readiness.stage3.roomMaterialRecipeCount === 3, "stage3_room_material_recipe_count_invalid");
+assert(readiness.stage3.roomMaterialZoneCount === 22, "stage3_room_material_zone_count_invalid");
+assert(readiness.stage3.roomMaterialAssignmentCount === 19, "stage3_room_material_assignment_count_invalid");
+assert(readiness.stage3.roomUvUnits === "meters-divided-by-textureScaleM", "stage3_room_uv_units_invalid");
+assert(readiness.stage3.roomTextureImagesCompiled === false, "stage3_room_textures_must_remain_uncompiled");
 assert(readiness.stage3.approvedCandidateSpecificationCreated === false, "fixture_must_not_claim_approved_candidate_specification");
 assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
 assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");

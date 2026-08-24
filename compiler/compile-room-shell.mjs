@@ -52,7 +52,7 @@ async function readFixture(path, expected, label) {
 
 function verifyCompilerReport(report, contract, binarySha256) {
   const wall = report.shell?.objects?.find(({ name }) => name === "shell.walls");
-  if (report?.status !== "stage3-synthetic-room-shell-openings-compiled"
+  if (report?.status !== "stage3-synthetic-room-profiles-materials-compiled"
     || report.fixtureOnly !== true
     || report.sceneId !== contract.sceneId
     || report.specificationSha256 !== contract.specificationSha256
@@ -72,14 +72,29 @@ function verifyCompilerReport(report, contract, binarySha256) {
     || report.openings?.overlapPairCount !== 0
     || report.openings?.cutObjectsPersisted !== false
     || report.openings?.openings?.some(({ clearWidthM, clearHeightM }) => clearWidthM < 0.9 || clearHeightM < 1.6)
-    || report.inventory?.objectCount !== 14
-    || report.inventory?.meshCount !== 14
-    || report.inventory?.materialCount !== 0
+    || report.profiles?.compiled !== true
+    || report.profiles?.baseboardDetailCount !== 4
+    || report.profiles?.baseboardObjectCount !== 5
+    || report.profiles?.overlapPairCount !== 0
+    || report.materials?.compiled !== true
+    || report.materials?.recipeCount !== 3
+    || report.materials?.zoneCount !== 22
+    || report.materials?.assignmentCount !== 19
+    || report.materials?.imageCount !== 0
+    || report.materials?.textureCount !== 0
+    || report.materials?.textureNodeCount !== 0
+    || report.materials?.textureImagesCompiled !== false
+    || report.inventory?.objectCount !== 19
+    || report.inventory?.meshCount !== 19
+    || report.inventory?.materialCount !== 3
+    || report.inventory?.imageCount !== 0
+    || report.inventory?.textureCount !== 0
     || report.boundaries?.approvedCandidateSpecification !== false
     || report.boundaries?.byteIdenticalExportsVerified !== false
     || report.boundaries?.openingsCompiled !== true
-    || report.boundaries?.materialsCompiled !== false
+    || report.boundaries?.materialsCompiled !== true
     || report.boundaries?.componentsCompiled !== false
+    || report.boundaries?.profilesCompiled !== true
     || report.boundaries?.sceneBinaryAddedToRepository !== false) {
     throw new Error("room_shell_report_invalid");
   }
@@ -150,11 +165,13 @@ export async function compileSyntheticRoomShell(options) {
       timeout: 120_000
     });
     const inspection = JSON.parse(await readFile(inspectionPath, "utf8"));
-    if (inspection.status !== "stage3-synthetic-room-shell-openings-inspection-valid"
+    if (inspection.status !== "stage3-synthetic-room-profiles-materials-inspection-valid"
       || inspection.specificationSha256 !== contract.specificationSha256
       || inspection.inventory?.objectCount !== report.inventory.objectCount
       || inspection.inventory?.meshCount !== report.inventory.meshCount
-      || inspection.inventory?.materialCount !== 0
+      || inspection.inventory?.materialCount !== report.inventory.materialCount
+      || inspection.inventory?.imageCount !== 0
+      || inspection.inventory?.textureCount !== 0
       || inspection.inventory?.cameraCount !== 0
       || inspection.inventory?.lightCount !== 0
       || inspection.inventory?.vertexCount !== report.inventory.vertexCount
