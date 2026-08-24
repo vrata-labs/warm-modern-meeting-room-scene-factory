@@ -52,23 +52,22 @@ publication signoff.
 The first Stage 3 slice defines exact scene, asset-ledger, and generation-ledger
 schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The checked-in
 scene specification is a neutral synthetic contract fixture, not an approved
-candidate design. The next slice adds an exact-Blender room shell compiler for
+candidate design. The exact-Blender room shell compiler remains restricted to
 the synthetic fixture. It creates closed floor, ceiling, and wall assemblies,
 cuts the specified door and window, and adds deterministic frames, window
 reveals, sill, and baseboard geometry only outside the repository. Contract
 material zones compile to scalar PBR materials with world-meter UVs derived from
 each recipe's `textureScaleM`; texture images are intentionally not compiled.
-Components, approved candidate compilation, and byte-identical export
+Components, approved candidate compilation, and final byte-identical export
 qualification remain separate follow-up slices. A synthetic-only reproducibility
 entrypoint exports and structurally validates GLB in two independent exact-Blender
 process runs, then requires byte-identical GLB output while keeping final candidate
 and publication claims false.
 
-The neutral low-fidelity concept gate selected corrected Concept 03 and assigned
-its layout intent to Candidate 01 without disclosing a production-track mapping.
-Preview binaries remain private, and
-the gate does not claim an exact candidate specification, cleared assets, or a
-release.
+The neutral low-fidelity concept gate selected the functional correction of
+Concept 03 and assigned its exact validated specification to Candidate 01 without
+disclosing a production-track mapping. Preview binaries remain private. The gate
+does not claim cleared release assets, a scene binary, or publication readiness.
 
 ## Validation
 
