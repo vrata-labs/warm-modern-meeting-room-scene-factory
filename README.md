@@ -59,7 +59,10 @@ reveals, sill, and baseboard geometry only outside the repository. Contract
 material zones compile to scalar PBR materials with world-meter UVs derived from
 each recipe's `textureScaleM`; texture images are intentionally not compiled.
 Components, approved candidate compilation, and byte-identical export
-qualification remain separate follow-up slices.
+qualification remain separate follow-up slices. A synthetic-only reproducibility
+entrypoint exports and structurally validates GLB in two independent exact-Blender
+process runs, then requires byte-identical GLB output while keeping final candidate
+and publication claims false.
 
 ## Validation
 

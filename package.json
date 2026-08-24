@@ -9,6 +9,7 @@
   },
   "scripts": {
     "compile:shell": "node compiler/compile-room-shell.mjs",
+    "verify:reproducibility": "node compiler/verify-room-reproducibility.mjs",
     "validate": "node scripts/validate-experiment.mjs && node scripts/check-repository-boundary.mjs",
     "verify:runtime-gates": "python3 scripts/verify-runtime-wheel-lock.py --lock-only && python3 scripts/verify-patched-pytorch-lock.py && python3 scripts/verify-offline-runtime-lock.py",
     "test": "node --test tests/*.test.mjs"

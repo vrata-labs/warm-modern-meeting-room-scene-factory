@@ -736,7 +736,7 @@
     }
   },
   "stage3": {
-    "status": "contract-diagnostics-shell-openings-and-material-zones-scaffold",
+    "status": "synthetic-compiler-and-glb-reproducibility-scaffold",
     "sceneSpecSchemaPath": "schemas/scene-spec.schema.json",
     "assetLedgerSchemaPath": "schemas/asset-ledger.schema.json",
     "generationLedgerSchemaPath": "schemas/generation-ledger.schema.json",
@@ -767,6 +767,12 @@
     "roomMaterialAssignmentCount": 19,
     "roomUvUnits": "meters-divided-by-textureScaleM",
     "roomTextureImagesCompiled": false,
+    "syntheticGlbExporterImplemented": true,
+    "syntheticGlbStructuralValidation": true,
+    "syntheticGlbConsecutiveRunCount": 2,
+    "syntheticGlbByteIdenticalVerified": true,
+    "syntheticReproducibilityReportImplemented": true,
+    "syntheticReproducibilityEntrypointPath": "compiler/verify-room-reproducibility.mjs",
     "approvedCandidateSpecificationCreated": false,
     "blenderCompilerImplemented": false,
     "byteIdenticalExportsVerified": false
