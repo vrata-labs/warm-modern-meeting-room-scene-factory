@@ -63,7 +63,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "contract-diagnostics-shell-openings-and-material-zones-scaffold", "stage3_status_invalid");
+assert(readiness.stage3.status === "synthetic-compiler-and-glb-reproducibility-scaffold", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -87,6 +87,12 @@ assert(readiness.stage3.roomMaterialZoneCount === 22, "stage3_room_material_zone
 assert(readiness.stage3.roomMaterialAssignmentCount === 19, "stage3_room_material_assignment_count_invalid");
 assert(readiness.stage3.roomUvUnits === "meters-divided-by-textureScaleM", "stage3_room_uv_units_invalid");
 assert(readiness.stage3.roomTextureImagesCompiled === false, "stage3_room_textures_must_remain_uncompiled");
+assert(readiness.stage3.syntheticGlbExporterImplemented === true, "stage3_synthetic_glb_exporter_missing");
+assert(readiness.stage3.syntheticGlbStructuralValidation === true, "stage3_synthetic_glb_validation_missing");
+assert(readiness.stage3.syntheticGlbConsecutiveRunCount === 2, "stage3_synthetic_glb_run_count_invalid");
+assert(readiness.stage3.syntheticGlbByteIdenticalVerified === true, "stage3_synthetic_glb_reproducibility_missing");
+assert(readiness.stage3.syntheticReproducibilityReportImplemented === true, "stage3_synthetic_reproducibility_report_missing");
+assert(readiness.stage3.syntheticReproducibilityEntrypointPath === "compiler/verify-room-reproducibility.mjs", "stage3_synthetic_reproducibility_entrypoint_invalid");
 assert(readiness.stage3.approvedCandidateSpecificationCreated === false, "fixture_must_not_claim_approved_candidate_specification");
 assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
 assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");

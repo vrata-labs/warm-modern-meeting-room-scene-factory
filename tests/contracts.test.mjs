@@ -66,6 +66,10 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.roomMaterialZonesCompiled, true);
   assert.equal(readiness.stage3.roomMaterialRecipeCount, 3);
   assert.equal(readiness.stage3.roomTextureImagesCompiled, false);
+  assert.equal(readiness.stage3.syntheticGlbExporterImplemented, true);
+  assert.equal(readiness.stage3.syntheticGlbConsecutiveRunCount, 2);
+  assert.equal(readiness.stage3.syntheticGlbByteIdenticalVerified, true);
+  assert.equal(readiness.stage3.syntheticReproducibilityReportImplemented, true);
   assert.equal(readiness.stage3.approvedCandidateSpecificationCreated, false);
   assert.equal(readiness.stage3.blenderCompilerImplemented, false);
 });

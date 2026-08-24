@@ -977,6 +977,7 @@ def parse_args(argv):
     parser.add_argument("--expected-specification-sha256", required=True)
     parser.add_argument("--report", required=True)
     parser.add_argument("--output-blend")
+    parser.add_argument("--output-glb")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--inspect-only", action="store_true")
     return parser.parse_args(argv)
@@ -991,7 +992,7 @@ def main(argv=None):
         fail("room_shell_report_exists")
 
     if args.inspect_only:
-        if args.scene_spec is not None or args.output_blend is not None or args.plan_only:
+        if args.scene_spec is not None or args.output_blend is not None or args.output_glb is not None or args.plan_only:
             fail("room_shell_inspection_arguments_invalid")
         inspect_current_blend(report_path, args.expected_specification_sha256)
         return
@@ -1029,7 +1030,7 @@ def main(argv=None):
     }
 
     if args.plan_only:
-        if args.output_blend is not None:
+        if args.output_blend is not None or args.output_glb is not None:
             fail("room_shell_plan_only_arguments_invalid")
         report = {
             **base_report,
@@ -1042,11 +1043,14 @@ def main(argv=None):
         print(json.dumps(report, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
         return
 
-    if args.output_blend is None:
+    if args.output_blend is None or args.output_glb is None:
         fail("room_shell_blender_arguments_missing")
     output_path = outside_repository(Path(args.output_blend), "room_shell_output")
+    glb_path = outside_repository(Path(args.output_glb), "room_glb_output")
     if output_path.suffix != ".blend" or output_path.exists():
         fail("room_shell_output_invalid")
+    if glb_path.suffix != ".glb" or glb_path.exists() or glb_path == output_path:
+        fail("room_glb_output_invalid")
     (
         bpy,
         version,
@@ -1067,6 +1071,16 @@ def main(argv=None):
     )
     bpy.ops.wm.save_as_mainfile(filepath=str(output_path), check_existing=False, compress=False, relative_remap=False)
     output_bytes = output_path.read_bytes()
+    bpy.ops.export_scene.gltf(
+        filepath=str(glb_path),
+        export_format="GLB",
+        export_attributes=True,
+        export_cameras=False,
+        export_extras=True,
+        export_lights=False,
+        export_yup=True,
+    )
+    glb_bytes = glb_path.read_bytes()
     report = {
         **base_report,
         "status": "stage3-synthetic-room-profiles-materials-compiled",
@@ -1079,6 +1093,18 @@ def main(argv=None):
         "outputBlend": {
             "byteLength": len(output_bytes),
             "sha256": sha256_bytes(output_bytes),
+        },
+        "outputGlb": {
+            "byteLength": len(glb_bytes),
+            "sha256": sha256_bytes(glb_bytes),
+            "exportSettings": {
+                "exportAttributes": True,
+                "exportCameras": False,
+                "exportExtras": True,
+                "exportFormat": "GLB",
+                "exportLights": False,
+                "exportYup": True,
+            },
         },
     }
     report["boundaries"] = {**boundaries, "materialsCompiled": True, "openingsCompiled": True, "profilesCompiled": True}
