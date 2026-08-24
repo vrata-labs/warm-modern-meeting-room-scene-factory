@@ -736,7 +736,7 @@
     }
   },
   "stage3": {
-    "status": "contract-and-diagnostics-scaffold",
+    "status": "contract-diagnostics-and-shell-scaffold",
     "sceneSpecSchemaPath": "schemas/scene-spec.schema.json",
     "assetLedgerSchemaPath": "schemas/asset-ledger.schema.json",
     "generationLedgerSchemaPath": "schemas/generation-ledger.schema.json",
@@ -747,6 +747,11 @@
     "validGenerationLedgerFixturePath": "tests/fixtures/stage3/generation-ledger.valid.json",
     "negativeFixtureCount": 6,
     "stableDiagnostics": true,
+    "roomShellEntrypointPath": "compiler/compile-room-shell.mjs",
+    "roomShellBlenderAdapterPath": "compiler/blender-room-shell.py",
+    "roomShellCompilerImplemented": true,
+    "roomShellSyntheticFixtureOnly": true,
+    "roomShellExactBlenderIntegrationTest": true,
     "approvedCandidateSpecificationCreated": false,
     "blenderCompilerImplemented": false,
     "byteIdenticalExportsVerified": false

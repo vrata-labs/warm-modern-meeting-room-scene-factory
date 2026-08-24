@@ -38,5 +38,16 @@ jobs:
       - name: Validate experiment boundary and contracts
         run: pnpm validate
 
+      - name: Install exact Blender
+        run: |
+          curl --fail --location --silent --show-error \
+            https://download.blender.org/release/Blender4.5/blender-4.5.12-linux-x64.tar.xz \
+            --output "$RUNNER_TEMP/blender-4.5.12-linux-x64.tar.xz"
+          printf '%s  %s\n' \
+            '95e3a2dfedba3bd32ca54fc355eac6b15a11986954ccb02815a07535d0120a25' \
+            "$RUNNER_TEMP/blender-4.5.12-linux-x64.tar.xz" | sha256sum --check --strict
+          tar --extract --file "$RUNNER_TEMP/blender-4.5.12-linux-x64.tar.xz" --directory "$RUNNER_TEMP"
+          printf 'BLENDER_BIN=%s\n' "$RUNNER_TEMP/blender-4.5.12-linux-x64/blender" >> "$GITHUB_ENV"
+
       - name: Run tests
         run: pnpm test

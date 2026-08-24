@@ -63,10 +63,15 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "contract-and-diagnostics-scaffold", "stage3_status_invalid");
+assert(readiness.stage3.status === "contract-diagnostics-and-shell-scaffold", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
+assert(readiness.stage3.roomShellEntrypointPath === "compiler/compile-room-shell.mjs", "stage3_room_shell_entrypoint_invalid");
+assert(readiness.stage3.roomShellBlenderAdapterPath === "compiler/blender-room-shell.py", "stage3_room_shell_adapter_invalid");
+assert(readiness.stage3.roomShellCompilerImplemented === true, "stage3_room_shell_compiler_missing");
+assert(readiness.stage3.roomShellSyntheticFixtureOnly === true, "stage3_room_shell_fixture_boundary_missing");
+assert(readiness.stage3.roomShellExactBlenderIntegrationTest === true, "stage3_room_shell_blender_test_missing");
 assert(readiness.stage3.approvedCandidateSpecificationCreated === false, "fixture_must_not_claim_approved_candidate_specification");
 assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
 assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");
