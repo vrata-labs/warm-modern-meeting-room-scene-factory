@@ -55,9 +55,11 @@ scene specification is a neutral synthetic contract fixture, not an approved
 candidate design. The next slice adds an exact-Blender room shell compiler for
 the synthetic fixture. It creates closed floor, ceiling, and wall assemblies,
 cuts the specified door and window, and adds deterministic frames, window
-reveals, and sill geometry only outside the repository. Materials, components,
-approved candidate compilation, and byte-identical export qualification remain
-separate follow-up slices.
+reveals, sill, and baseboard geometry only outside the repository. Contract
+material zones compile to scalar PBR materials with world-meter UVs derived from
+each recipe's `textureScaleM`; texture images are intentionally not compiled.
+Components, approved candidate compilation, and byte-identical export
+qualification remain separate follow-up slices.
 
 ## Validation
 

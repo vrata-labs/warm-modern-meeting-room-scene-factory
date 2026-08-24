@@ -148,6 +148,15 @@ def boxes_overlap(left, right):
     )
 
 
+def with_material(record, recipe_id, profile_id=None, detail_id=None):
+    record["materialRecipeId"] = recipe_id
+    if profile_id is not None:
+        record["profileId"] = profile_id
+    if detail_id is not None:
+        record["detailId"] = detail_id
+    return record
+
+
 def build_opening_plan(scene):
     room = scene["room"]
     profiles = {profile["id"]: profile for profile in scene["profiles"]}
@@ -188,14 +197,26 @@ def build_opening_plan(scene):
             ("right", center + opening["widthM"] / 2 - frame_width / 2, bottom + opening["heightM"] / 2),
         ):
             name = f"opening.{identifier}.frame.{side}"
-            objects.append(wall_box(name, wall, frame_width, opening["heightM"], frame_depth, along, center_y, room))
+            objects.append(with_material(
+                wall_box(name, wall, frame_width, opening["heightM"], frame_depth, along, center_y, room),
+                profile["materialRecipeId"],
+                opening["profileId"],
+            ))
             frame_names.append(name)
         head_name = f"opening.{identifier}.frame.head"
-        objects.append(wall_box(head_name, wall, opening["widthM"] - 2 * frame_width, frame_width, frame_depth, center, top - frame_width / 2, room))
+        objects.append(with_material(
+            wall_box(head_name, wall, opening["widthM"] - 2 * frame_width, frame_width, frame_depth, center, top - frame_width / 2, room),
+            profile["materialRecipeId"],
+            opening["profileId"],
+        ))
         frame_names.append(head_name)
         if opening["kind"] == "window":
             bottom_name = f"opening.{identifier}.frame.bottom"
-            objects.append(wall_box(bottom_name, wall, opening["widthM"] - 2 * frame_width, frame_width, frame_depth, center, bottom + frame_width / 2, room))
+            objects.append(with_material(
+                wall_box(bottom_name, wall, opening["widthM"] - 2 * frame_width, frame_width, frame_depth, center, bottom + frame_width / 2, room),
+                profile["materialRecipeId"],
+                opening["profileId"],
+            ))
             frame_names.append(bottom_name)
 
         reveal_names = []
@@ -211,19 +232,29 @@ def build_opening_plan(scene):
                     ("head", center, top + trim_width / 2, opening["widthM"], trim_width),
                 ):
                     name = f"opening.{identifier}.reveal.{side}"
-                    objects.append(interior_trim_box(name, wall, along_size, height, trim_depth, along, center_y, room))
+                    objects.append(with_material(
+                        interior_trim_box(name, wall, along_size, height, trim_depth, along, center_y, room),
+                        detail_profile["materialRecipeId"],
+                        detail["profileId"],
+                        detail["id"],
+                    ))
                     reveal_names.append(name)
             if detail["kind"] == "sill" and opening["kind"] == "window":
                 name = f"opening.{identifier}.sill"
-                objects.append(interior_trim_box(
-                    name,
-                    wall,
-                    opening["widthM"] + 2 * detail_profile["widthM"],
-                    detail_profile["depthM"],
-                    detail_profile["widthM"],
-                    center,
-                    bottom - detail_profile["depthM"] / 2,
-                    room,
+                objects.append(with_material(
+                    interior_trim_box(
+                        name,
+                        wall,
+                        opening["widthM"] + 2 * detail_profile["widthM"],
+                        detail_profile["depthM"],
+                        detail_profile["widthM"],
+                        center,
+                        bottom - detail_profile["depthM"] / 2,
+                        room,
+                    ),
+                    detail_profile["materialRecipeId"],
+                    detail["profileId"],
+                    detail["id"],
                 ))
                 sill_names.append(name)
 
@@ -266,6 +297,107 @@ def build_opening_plan(scene):
         "openings": openings,
         "cuts": cuts,
         "objects": objects,
+    }
+
+
+def subtract_intervals(start, end, cuts):
+    segments = [(start, end)]
+    for cut_start, cut_end in sorted(cuts):
+        next_segments = []
+        for segment_start, segment_end in segments:
+            if cut_end <= segment_start or cut_start >= segment_end:
+                next_segments.append((segment_start, segment_end))
+                continue
+            if cut_start > segment_start:
+                next_segments.append((segment_start, cut_start))
+            if cut_end < segment_end:
+                next_segments.append((cut_end, segment_end))
+        segments = next_segments
+    return [(start_value, end_value) for start_value, end_value in segments if end_value - start_value > 1e-6]
+
+
+def build_profile_plan(scene, opening_plan):
+    room = scene["room"]
+    profiles = {profile["id"]: profile for profile in scene["profiles"]}
+    openings = {opening["id"]: opening for opening in opening_plan["openings"]}
+    objects = []
+    details = []
+    for detail in scene["architecturalDetails"]:
+        if detail["kind"] != "baseboard":
+            continue
+        profile = profiles[detail["profileId"]]
+        wall = detail["wall"]
+        length = room["widthM"] - room["wallThicknessM"] if wall in ("north", "south") \
+            else room["depthM"] - room["wallThicknessM"] - 2 * profile["depthM"]
+        cuts = []
+        for opening in openings.values():
+            if opening["wall"] == wall and opening["bottomM"] < room["floorY"] + profile["widthM"]:
+                cuts.append((opening["centerAlongM"] - opening["widthM"] / 2, opening["centerAlongM"] + opening["widthM"] / 2))
+        object_names = []
+        for index, (start, end) in enumerate(subtract_intervals(-length / 2, length / 2, cuts), start=1):
+            name = f"profile.{detail['id']}.segment-{index:02d}"
+            record = interior_trim_box(
+                name,
+                wall,
+                end - start,
+                profile["widthM"],
+                profile["depthM"],
+                (start + end) / 2,
+                room["floorY"] + profile["widthM"] / 2,
+                room,
+            )
+            objects.append(with_material(record, profile["materialRecipeId"], detail["profileId"], detail["id"]))
+            object_names.append(name)
+        details.append({
+            "id": detail["id"],
+            "kind": detail["kind"],
+            "wall": wall,
+            "profileId": detail["profileId"],
+            "materialRecipeId": profile["materialRecipeId"],
+            "objectNames": object_names,
+        })
+    objects.sort(key=lambda value: value["name"])
+    combined = [*opening_plan["objects"], *objects]
+    overlap_pairs = [
+        (combined[left]["name"], combined[right]["name"])
+        for left in range(len(combined))
+        for right in range(left + 1, len(combined))
+        if boxes_overlap(combined[left], combined[right])
+    ]
+    if overlap_pairs:
+        fail(f"room_profile_detail_overlap:{overlap_pairs[0][0]}:{overlap_pairs[0][1]}")
+    return {
+        "baseboardDetailCount": len(details),
+        "baseboardObjectCount": len(objects),
+        "overlapPairCount": 0,
+        "details": details,
+        "objects": objects,
+    }
+
+
+def build_material_plan(scene, opening_plan, profile_plan):
+    recipes = {recipe["id"]: recipe for recipe in scene["materialRecipes"]}
+    zones = {zone["surface"]: zone for zone in scene["materialZones"]}
+    assignments = [
+        {"objectName": "shell.floor", "zones": [zones["floor"]]},
+        {"objectName": "shell.ceiling", "zones": [zones["ceiling"]]},
+        {"objectName": "shell.walls", "zones": [zones[wall] for wall in ("east", "north", "south", "west")]},
+    ]
+    for record in [*opening_plan["objects"], *profile_plan["objects"]]:
+        assignments.append({
+            "objectName": record["name"],
+            "zones": [{"id": f"profile-zone:{record['name']}", "surface": "profile", "recipeId": record["materialRecipeId"]}],
+        })
+    used_recipe_ids = sorted({zone["recipeId"] for assignment in assignments for zone in assignment["zones"]})
+    return {
+        "recipeCount": len(used_recipe_ids),
+        "zoneCount": sum(len(assignment["zones"]) for assignment in assignments),
+        "assignmentCount": len(assignments),
+        "uvLayerName": "UVMap",
+        "uvUnits": "meters-divided-by-textureScaleM",
+        "textureImagesCompiled": False,
+        "recipes": [recipes[identifier] for identifier in used_recipe_ids],
+        "assignments": sorted(assignments, key=lambda value: value["objectName"]),
     }
 
 
@@ -330,7 +462,7 @@ def blender_identity(bpy):
     return version, build_hash, binary_sha256
 
 
-def verify_object(value, expected):
+def verify_object(value, expected, allow_materials=False):
     if value is None or value.type != "MESH":
         fail(f"room_shell_object_missing:{expected['name']}")
     actual_dimensions = {
@@ -352,7 +484,7 @@ def verify_object(value, expected):
             or len(value.data.polygons) != expected["faceCount"] \
             or not vertices_match \
             or actual_faces != expected_faces \
-            or len(value.material_slots) != 0:
+            or (not allow_materials and len(value.material_slots) != 0):
         fail(f"room_shell_object_invalid:{expected['name']}")
     report = {
         "name": value.name,
@@ -366,6 +498,169 @@ def verify_object(value, expected):
         if key in expected:
             report[key] = expected[key]
     return report
+
+
+def srgb_to_linear(channel):
+    value = channel / 255
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def recipe_color(recipe):
+    value = recipe["baseColorSrgb"]
+    return tuple(srgb_to_linear(int(value[index:index + 2], 16)) for index in (1, 3, 5)) + (1.0,)
+
+
+def create_materials(bpy, material_plan):
+    materials = {}
+    for recipe in material_plan["recipes"]:
+        material = bpy.data.materials.new(f"material.{recipe['id']}")
+        material.use_nodes = True
+        color = recipe_color(recipe)
+        material.diffuse_color = color
+        material.metallic = recipe["metalness"]
+        material.roughness = recipe["roughness"]
+        material["wmmr_recipe_id"] = recipe["id"]
+        material["wmmr_base_color_srgb"] = recipe["baseColorSrgb"]
+        material["wmmr_texture_scale_m"] = recipe["textureScaleM"]
+        material["wmmr_source_record_id"] = recipe["sourceRecordId"]
+        principled = material.node_tree.nodes.get("Principled BSDF")
+        if principled is None:
+            fail(f"room_material_principled_missing:{recipe['id']}")
+        principled.inputs["Base Color"].default_value = color
+        principled.inputs["Metallic"].default_value = recipe["metalness"]
+        principled.inputs["Roughness"].default_value = recipe["roughness"]
+        materials[recipe["id"]] = material
+    return materials
+
+
+def wall_surface_for_polygon(value, polygon, room):
+    center = polygon.center + value.location
+    x_ratio = abs(center.x) / (room["widthM"] / 2 + room["wallThicknessM"] / 2)
+    z_ratio = abs(center.y) / (room["depthM"] / 2 + room["wallThicknessM"] / 2)
+    if x_ratio >= z_ratio:
+        return "east" if center.x >= 0 else "west"
+    return "north" if center.y >= 0 else "south"
+
+
+def projected_uv(value, polygon, loop_index, scale):
+    coordinate = value.data.vertices[value.data.loops[loop_index].vertex_index].co + value.location
+    normal = polygon.normal
+    if abs(normal.z) >= abs(normal.x) and abs(normal.z) >= abs(normal.y):
+        u, v = coordinate.x, coordinate.y
+    elif abs(normal.x) >= abs(normal.y):
+        u, v = coordinate.y, coordinate.z
+    else:
+        u, v = coordinate.x, coordinate.z
+    return u / scale, v / scale
+
+
+def apply_uv_map(value, zone_indexes, zones, recipes, layer_name):
+    uv_layer = value.data.uv_layers.new(name=layer_name)
+    for polygon in value.data.polygons:
+        recipe = recipes[zones[zone_indexes[polygon.index]]["recipeId"]]
+        for loop_index in polygon.loop_indices:
+            uv_layer.data[loop_index].uv = projected_uv(value, polygon, loop_index, recipe["textureScaleM"])
+
+
+def apply_material_plan(bpy, material_plan, room):
+    recipes = {recipe["id"]: recipe for recipe in material_plan["recipes"]}
+    materials = create_materials(bpy, material_plan)
+    for assignment in material_plan["assignments"]:
+        value = bpy.data.objects.get(assignment["objectName"])
+        if value is None or value.type != "MESH":
+            fail(f"room_material_object_missing:{assignment['objectName']}")
+        zones = assignment["zones"]
+        recipe_ids = []
+        for zone in zones:
+            if zone["recipeId"] not in recipe_ids:
+                recipe_ids.append(zone["recipeId"])
+        for recipe_id in recipe_ids:
+            value.data.materials.append(materials[recipe_id])
+        zone_indexes = []
+        for polygon in value.data.polygons:
+            if value.name == "shell.walls":
+                surface = wall_surface_for_polygon(value, polygon, room)
+                zone_index = next((index for index, zone in enumerate(zones) if zone["surface"] == surface), None)
+                if zone_index is None:
+                    fail(f"room_material_wall_zone_missing:{surface}")
+            else:
+                zone_index = 0
+            zone_indexes.append(zone_index)
+            polygon.material_index = recipe_ids.index(zones[zone_index]["recipeId"])
+        attribute = value.data.attributes.new(name="wmmr_zone_index", type="INT", domain="FACE")
+        for index, zone_index in enumerate(zone_indexes):
+            attribute.data[index].value = zone_index
+        value["wmmr_material_zones_json"] = json.dumps(zones, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+        value["wmmr_uv_units"] = material_plan["uvUnits"]
+        apply_uv_map(value, zone_indexes, zones, recipes, material_plan["uvLayerName"])
+
+
+def verify_material_plan(bpy, material_plan, room):
+    recipes = {recipe["id"]: recipe for recipe in material_plan["recipes"]}
+    expected_material_names = {f"material.{identifier}" for identifier in recipes}
+    if set(bpy.data.materials.keys()) != expected_material_names or len(bpy.data.images) != 0 or len(bpy.data.textures) != 0:
+        fail("room_material_inventory_invalid")
+    for recipe_id, recipe in recipes.items():
+        material = bpy.data.materials.get(f"material.{recipe_id}")
+        principled = material.node_tree.nodes.get("Principled BSDF") if material is not None and material.use_nodes else None
+        if material is None or principled is None:
+            fail(f"room_material_invalid:{recipe_id}")
+        expected_color = recipe_color(recipe)
+        actual_color = tuple(principled.inputs["Base Color"].default_value)
+        output = material.node_tree.nodes.get("Material Output")
+        linked = output is not None and any(
+            link.from_node == principled and link.from_socket.name == "BSDF" and link.to_node == output and link.to_socket.name == "Surface"
+            for link in material.node_tree.links
+        )
+        if any(abs(actual - expected) > 1e-6 for actual, expected in zip(actual_color, expected_color)) \
+                or abs(principled.inputs["Metallic"].default_value - recipe["metalness"]) > 1e-6 \
+                or abs(principled.inputs["Roughness"].default_value - recipe["roughness"]) > 1e-6 \
+                or material.get("wmmr_texture_scale_m") != recipe["textureScaleM"] \
+                or any(node.type == "TEX_IMAGE" for node in material.node_tree.nodes) \
+                or not linked:
+            fail(f"room_material_recipe_mismatch:{recipe_id}")
+    reports = []
+    for assignment in material_plan["assignments"]:
+        value = bpy.data.objects.get(assignment["objectName"])
+        zones = assignment["zones"]
+        attribute = value.data.attributes.get("wmmr_zone_index") if value is not None else None
+        uv_layer = value.data.uv_layers.get(material_plan["uvLayerName"]) if value is not None else None
+        if value is None or attribute is None or attribute.domain != "FACE" or uv_layer is None \
+                or len(attribute.data) != len(value.data.polygons) or len(uv_layer.data) != len(value.data.loops) \
+                or value.get("wmmr_material_zones_json") != json.dumps(zones, ensure_ascii=True, sort_keys=True, separators=(",", ":")):
+            fail(f"room_material_assignment_invalid:{assignment['objectName']}")
+        indexes = [item.value for item in attribute.data]
+        if any(index < 0 or index >= len(zones) for index in indexes) or set(indexes) != set(range(len(zones))):
+            fail(f"room_material_zone_coverage_invalid:{assignment['objectName']}")
+        for polygon in value.data.polygons:
+            scale = recipes[zones[indexes[polygon.index]]["recipeId"]]["textureScaleM"]
+            for loop_index in polygon.loop_indices:
+                actual_uv = tuple(uv_layer.data[loop_index].uv)
+                expected_uv = projected_uv(value, polygon, loop_index, scale)
+                if any(not finite_number(coordinate) for coordinate in actual_uv) \
+                        or any(abs(actual - expected) > 1e-5 for actual, expected in zip(actual_uv, expected_uv)):
+                    fail(f"room_material_uv_invalid:{assignment['objectName']}")
+        recipe_ids = []
+        for zone in zones:
+            if zone["recipeId"] not in recipe_ids:
+                recipe_ids.append(zone["recipeId"])
+        if [slot.material.name for slot in value.material_slots] != [f"material.{identifier}" for identifier in recipe_ids]:
+            fail(f"room_material_slots_invalid:{assignment['objectName']}")
+        reports.append({
+            "objectName": assignment["objectName"],
+            "zoneIds": [zone["id"] for zone in zones],
+            "recipeIds": recipe_ids,
+            "faceZoneCounts": [indexes.count(index) for index in range(len(zones))],
+            "uvLoopCount": len(uv_layer.data),
+        })
+    return {
+        **material_plan,
+        "compiled": True,
+        "imageCount": len(bpy.data.images),
+        "textureCount": len(bpy.data.textures),
+        "textureNodeCount": sum(node.type == "TEX_IMAGE" for material in bpy.data.materials for node in material.node_tree.nodes),
+        "assignments": reports,
+    }
 
 
 def create_mesh_object(bpy, record, collection):
@@ -436,8 +731,8 @@ def ray_hit(targets, origin, direction, distance):
     return any(tree.ray_cast(origin_vector - location, direction_vector, distance)[0] is not None for _, location, tree in targets)
 
 
-def verify_cut_wall(value, expected, opening_plan, room, assembly_objects):
-    if value is None or value.type != "MESH" or len(value.material_slots) != 0:
+def verify_cut_wall(value, expected, opening_plan, room, assembly_objects, allow_materials=False):
+    if value is None or value.type != "MESH" or (not allow_materials and len(value.material_slots) != 0):
         fail("room_opening_wall_invalid")
     actual_dimensions = (float(value.dimensions.x), float(value.dimensions.z), float(value.dimensions.y))
     expected_dimensions = (expected["dimensionsM"]["widthM"], expected["dimensionsM"]["heightM"], expected["dimensionsM"]["depthM"])
@@ -527,6 +822,8 @@ def inventory_report(bpy, objects):
         "objectCount": len(bpy.data.objects),
         "meshCount": len(bpy.data.meshes),
         "materialCount": len(bpy.data.materials),
+        "imageCount": len(bpy.data.images),
+        "textureCount": len(bpy.data.textures),
         "cameraCount": len(bpy.data.cameras),
         "lightCount": len(bpy.data.lights),
         "vertexCount": sum(len(value.data.vertices) for value in bpy.data.objects if value.type == "MESH"),
@@ -535,7 +832,7 @@ def inventory_report(bpy, objects):
     }
 
 
-def apply_plan(plan, opening_plan, scene_specification, specification_sha256):
+def apply_plan(plan, opening_plan, profile_plan, material_plan, scene_specification, specification_sha256):
     try:
         import bpy
     except ImportError:
@@ -562,6 +859,8 @@ def apply_plan(plan, opening_plan, scene_specification, specification_sha256):
     apply_opening_cuts(bpy, wall, opening_plan, collection)
     for record in opening_plan["objects"]:
         create_mesh_object(bpy, record, collection)
+    for record in profile_plan["objects"]:
+        create_mesh_object(bpy, record, collection)
 
     bpy.context.view_layer.update()
     shell_objects = [
@@ -572,11 +871,24 @@ def apply_plan(plan, opening_plan, scene_specification, specification_sha256):
     shell_objects.append(verify_cut_wall(wall, wall_record, opening_plan, scene_specification["room"], list(bpy.data.objects)))
     shell_objects.sort(key=lambda record: record["name"])
     opening_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in opening_plan["objects"]]
-    all_objects = sorted([*shell_objects, *opening_objects], key=lambda record: record["name"])
+    profile_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in profile_plan["objects"]]
+    all_objects = sorted([*shell_objects, *opening_objects, *profile_objects], key=lambda record: record["name"])
     expected_names = {record["name"] for record in all_objects}
     if set(bpy.data.objects.keys()) != expected_names or len(bpy.data.materials) != 0 or len(bpy.data.cameras) != 0 or len(bpy.data.lights) != 0:
         fail("room_opening_inventory_invalid")
-    return bpy, version, build_hash, binary_sha256, shell_objects, opening_objects, inventory_report(bpy, all_objects)
+    apply_material_plan(bpy, material_plan, scene_specification["room"])
+    material_report = verify_material_plan(bpy, material_plan, scene_specification["room"])
+    return (
+        bpy,
+        version,
+        build_hash,
+        binary_sha256,
+        shell_objects,
+        opening_objects,
+        profile_objects,
+        material_report,
+        inventory_report(bpy, all_objects),
+    )
 
 
 def load_exact_fixture():
@@ -595,10 +907,13 @@ def inspect_current_blend(report_path, specification_sha256):
     scene_specification = load_exact_fixture()
     plan = build_shell_plan(scene_specification)
     opening_plan = build_opening_plan(scene_specification)
-    expected_names = {record["name"] for record in [*plan["objects"], *opening_plan["objects"]]}
+    profile_plan = build_profile_plan(scene_specification, opening_plan)
+    material_plan = build_material_plan(scene_specification, opening_plan, profile_plan)
+    expected_names = {record["name"] for record in [*plan["objects"], *opening_plan["objects"], *profile_plan["objects"]]}
     if set(bpy.data.objects.keys()) != expected_names \
             or len(bpy.data.meshes) != len(expected_names) \
-            or len(bpy.data.materials) != 0 \
+            or len(bpy.data.materials) != material_plan["recipeCount"] \
+            or len(bpy.data.images) != 0 \
             or len(bpy.data.cameras) != 0 \
             or len(bpy.data.lights) != 0 \
             or set(child.name for child in bpy.context.scene.collection.children) != {COLLECTION_NAME}:
@@ -608,7 +923,7 @@ def inspect_current_blend(report_path, specification_sha256):
         fail("room_shell_saved_collection_invalid")
     wall_record = next(record for record in plan["objects"] if record["name"] == "shell.walls")
     shell_objects = [
-        verify_object(bpy.data.objects.get(record["name"]), record)
+        verify_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
         for record in plan["objects"]
         if record["name"] != "shell.walls"
     ]
@@ -618,18 +933,23 @@ def inspect_current_blend(report_path, specification_sha256):
         opening_plan,
         scene_specification["room"],
         list(bpy.data.objects),
+        allow_materials=True,
     ))
-    opening_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in opening_plan["objects"]]
-    objects = sorted([*shell_objects, *opening_objects], key=lambda record: record["name"])
+    opening_objects = [verify_object(bpy.data.objects.get(record["name"]), record, allow_materials=True) for record in opening_plan["objects"]]
+    profile_objects = [verify_object(bpy.data.objects.get(record["name"]), record, allow_materials=True) for record in profile_plan["objects"]]
+    material_report = verify_material_plan(bpy, material_plan, scene_specification["room"])
+    objects = sorted([*shell_objects, *opening_objects, *profile_objects], key=lambda record: record["name"])
     if bpy.context.scene.get("wmmr_fixture_only") is not True \
             or bpy.context.scene.get("wmmr_specification_sha256") != specification_sha256:
         fail("room_shell_saved_metadata_invalid")
     report = {
         "schemaVersion": 1,
-        "status": "stage3-synthetic-room-shell-openings-inspection-valid",
+        "status": "stage3-synthetic-room-profiles-materials-inspection-valid",
         "fixtureOnly": True,
         "specificationSha256": specification_sha256,
         "blender": {"version": version, "buildHash": build_hash, "binarySha256": binary_sha256},
+        "profiles": {**profile_plan, "compiled": True, "objects": profile_objects},
+        "materials": material_report,
         "inventory": inventory_report(bpy, objects),
     }
     write_report(report_path, report)
@@ -684,6 +1004,8 @@ def main(argv=None):
     scene = json.loads(raw.decode("utf-8"))
     plan = build_shell_plan(scene)
     opening_plan = build_opening_plan(scene)
+    profile_plan = build_profile_plan(scene, opening_plan)
+    material_plan = build_material_plan(scene, opening_plan, profile_plan)
 
     boundaries = {
         "approvedCandidateSpecification": False,
@@ -691,6 +1013,7 @@ def main(argv=None):
         "componentsCompiled": False,
         "materialsCompiled": False,
         "openingsCompiled": False,
+        "profilesCompiled": False,
         "sceneBinaryAddedToRepository": False,
     }
     base_report = {
@@ -700,6 +1023,8 @@ def main(argv=None):
         "specificationSha256": args.expected_specification_sha256,
         "shell": plan,
         "openings": {**opening_plan, "compiled": False, "cutObjectsPersisted": False},
+        "profiles": {**profile_plan, "compiled": False},
+        "materials": {**material_plan, "compiled": False},
         "boundaries": boundaries,
     }
 
@@ -708,7 +1033,7 @@ def main(argv=None):
             fail("room_shell_plan_only_arguments_invalid")
         report = {
             **base_report,
-            "status": "stage3-synthetic-room-shell-openings-plan-valid",
+            "status": "stage3-synthetic-room-profiles-materials-plan-valid",
             "execution": "plan-only",
             "blender": None,
             "outputBlend": None,
@@ -722,9 +1047,21 @@ def main(argv=None):
     output_path = outside_repository(Path(args.output_blend), "room_shell_output")
     if output_path.suffix != ".blend" or output_path.exists():
         fail("room_shell_output_invalid")
-    bpy, version, build_hash, binary_sha256, shell_objects, opening_objects, inventory = apply_plan(
+    (
+        bpy,
+        version,
+        build_hash,
+        binary_sha256,
+        shell_objects,
+        opening_objects,
+        profile_objects,
+        material_report,
+        inventory,
+    ) = apply_plan(
         plan,
         opening_plan,
+        profile_plan,
+        material_plan,
         scene,
         args.expected_specification_sha256,
     )
@@ -732,7 +1069,7 @@ def main(argv=None):
     output_bytes = output_path.read_bytes()
     report = {
         **base_report,
-        "status": "stage3-synthetic-room-shell-openings-compiled",
+        "status": "stage3-synthetic-room-profiles-materials-compiled",
         "execution": "blender",
         "blender": {
             "version": version,
@@ -744,7 +1081,7 @@ def main(argv=None):
             "sha256": sha256_bytes(output_bytes),
         },
     }
-    report["boundaries"] = {**boundaries, "openingsCompiled": True}
+    report["boundaries"] = {**boundaries, "materialsCompiled": True, "openingsCompiled": True, "profilesCompiled": True}
     report["shell"] = {
         **plan,
         "objectCount": len(shell_objects),
@@ -759,6 +1096,8 @@ def main(argv=None):
         "cutObjectsPersisted": False,
         "objects": opening_objects,
     }
+    report["profiles"] = {**profile_plan, "compiled": True, "objects": profile_objects}
+    report["materials"] = material_report
     report["inventory"] = inventory
     write_report(report_path, report)
     print(json.dumps(report, ensure_ascii=True, sort_keys=True, separators=(",", ":")))

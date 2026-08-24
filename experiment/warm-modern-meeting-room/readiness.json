@@ -736,7 +736,7 @@
     }
   },
   "stage3": {
-    "status": "contract-diagnostics-shell-and-openings-scaffold",
+    "status": "contract-diagnostics-shell-openings-and-material-zones-scaffold",
     "sceneSpecSchemaPath": "schemas/scene-spec.schema.json",
     "assetLedgerSchemaPath": "schemas/asset-ledger.schema.json",
     "generationLedgerSchemaPath": "schemas/generation-ledger.schema.json",
@@ -758,6 +758,15 @@
     "roomOpeningFrameObjectCount": 7,
     "roomOpeningRevealObjectCount": 3,
     "roomOpeningSillObjectCount": 1,
+    "roomProfilesCompilerImplemented": true,
+    "roomBaseboardDetailCount": 4,
+    "roomBaseboardObjectCount": 5,
+    "roomMaterialZonesCompiled": true,
+    "roomMaterialRecipeCount": 3,
+    "roomMaterialZoneCount": 22,
+    "roomMaterialAssignmentCount": 19,
+    "roomUvUnits": "meters-divided-by-textureScaleM",
+    "roomTextureImagesCompiled": false,
     "approvedCandidateSpecificationCreated": false,
     "blenderCompilerImplemented": false,
     "byteIdenticalExportsVerified": false
