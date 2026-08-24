@@ -62,8 +62,10 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.resolved.stage3ContractDiagnostics, true);
   assert.equal(readiness.stage3.roomShellCompilerImplemented, true);
   assert.equal(readiness.stage3.roomShellSyntheticFixtureOnly, true);
+  assert.equal(readiness.stage3.syntheticRoomShellRemainsFixtureLocked, true);
   assert.equal(readiness.stage3.roomOpeningsCompilerImplemented, true);
   assert.equal(readiness.stage3.roomOpeningsSyntheticFixtureOnly, true);
+  assert.equal(readiness.stage3.syntheticRoomOpeningsRemainFixtureLocked, true);
   assert.equal(readiness.stage3.roomOpeningCount, 2);
   assert.equal(readiness.stage3.roomProfilesCompilerImplemented, true);
   assert.equal(readiness.stage3.roomBaseboardObjectCount, 5);
@@ -75,7 +77,29 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.syntheticGlbByteIdenticalVerified, true);
   assert.equal(readiness.stage3.syntheticReproducibilityReportImplemented, true);
   assert.equal(readiness.stage3.approvedCandidateSpecificationCreated, true);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureCompilerImplemented, true);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureCompileApi, "compileApprovedCandidateArchitecture");
+  assert.equal(readiness.stage3.approvedCandidateArchitectureReproducibilityApi, "verifyApprovedCandidateArchitectureReproducibility");
+  assert.equal(readiness.stage3.approvedCandidateGitBlobInputCount, 4);
+  assert.equal(readiness.stage3.approvedCandidateGitBlobSourceLocked, true);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureMeshCount, 19);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureMaterialCount, 3);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureGlbByteIdenticalVerified, true);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureGlbSha256, "85ff61f70d56fad104c3621aa325e3ece2fe1e47ca66eb015339884c3a69bf66");
+  assert.equal(readiness.stage3.approvedCandidateArchitectureGlbByteLength, 38536);
+  assert.equal(readiness.stage3.approvedCandidateArchitectureReopenInspectionSha256, "64587b5fa28b02560084960d4e48c28ca6706222a2b59ce940bae9d2039b0618");
+  assert.deepEqual([
+    readiness.stage3.approvedCandidateArchitectureBinaryByteLength,
+    readiness.stage3.approvedCandidateArchitectureDecodedVertexCount,
+    readiness.stage3.approvedCandidateArchitectureDecodedIndexCount,
+    readiness.stage3.approvedCandidateArchitectureDecodedTriangleCount,
+    readiness.stage3.approvedCandidateArchitectureDistinctPositionCount
+  ], [17376, 528, 852, 284, 176]);
+  assert.equal(readiness.stage3.approvedCandidateComponentsCompiled, false);
   assert.equal(readiness.stage3.blenderCompilerImplemented, false);
+  assert.equal(readiness.stage3.byteIdenticalExportsVerified, false);
+  assert.equal(readiness.stage3.finalCandidateGlbVerified, false);
+  assert.equal(readiness.stage3.publicationReady, false);
 });
 
 test("neutral concept gate selects functional Concept 03 and binds the exact specification", async () => {

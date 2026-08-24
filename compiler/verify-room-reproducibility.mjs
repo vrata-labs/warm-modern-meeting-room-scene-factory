@@ -1,6 +1,11 @@
 import { pathToFileURL } from "node:url";
 
-import { verifySyntheticRoomReproducibility } from "./compile-room-shell.mjs";
+import {
+  verifyApprovedCandidateArchitectureReproducibility,
+  verifySyntheticRoomReproducibility
+} from "./compile-room-shell.mjs";
+
+const candidateInputKind = "approved-candidate-architecture";
 
 function parseCli(arguments_) {
   const values = {};
@@ -10,21 +15,41 @@ function parseCli(arguments_) {
     if (!flag?.startsWith("--") || value === undefined || values[flag] !== undefined) throw new Error("room_reproducibility_cli_arguments_invalid");
     values[flag] = value;
   }
+  if (values["--input-kind"] === candidateInputKind) {
+    const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-directory", "--report"]);
+    if (Object.keys(values).some((key) => !allowed.has(key))
+      || ["--blender", "--output-directory", "--report"].some((key) => values[key] === undefined)) throw new Error("room_reproducibility_cli_arguments_invalid");
+    return {
+      inputKind: candidateInputKind,
+      options: {
+        blenderPath: values["--blender"],
+        candidateRepositoryPath: values["--candidate-dir"],
+        outputDirectory: values["--output-directory"],
+        reportPath: values["--report"]
+      }
+    };
+  }
   const expected = ["--asset-ledger", "--blender", "--generation-ledger", "--output-directory", "--report", "--scene-spec"];
   if (Object.keys(values).sort().join(",") !== expected.join(",")) throw new Error("room_reproducibility_cli_arguments_invalid");
   return {
-    blenderPath: values["--blender"],
-    scenePath: values["--scene-spec"],
-    assetLedgerPath: values["--asset-ledger"],
-    generationLedgerPath: values["--generation-ledger"],
-    outputDirectory: values["--output-directory"],
-    reportPath: values["--report"]
+    inputKind: "synthetic-fixture",
+    options: {
+      blenderPath: values["--blender"],
+      scenePath: values["--scene-spec"],
+      assetLedgerPath: values["--asset-ledger"],
+      generationLedgerPath: values["--generation-ledger"],
+      outputDirectory: values["--output-directory"],
+      reportPath: values["--report"]
+    }
   };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const report = await verifySyntheticRoomReproducibility(parseCli(process.argv.slice(2)));
+    const cli = parseCli(process.argv.slice(2));
+    const report = cli.inputKind === candidateInputKind
+      ? await verifyApprovedCandidateArchitectureReproducibility(cli.options)
+      : await verifySyntheticRoomReproducibility(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_reproducibility_failed"}\n`);

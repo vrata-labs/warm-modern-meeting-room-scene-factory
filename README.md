@@ -49,20 +49,22 @@ and compiler work. Production/public publication remains blocked on DINO/model
 rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separate
 publication signoff.
 
-The first Stage 3 slice defines exact scene, asset-ledger, and generation-ledger
+The Stage 3 contract defines exact scene, asset-ledger, and generation-ledger
 schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The checked-in
-scene specification is a neutral synthetic contract fixture, not an approved
-candidate design. The exact-Blender room shell compiler remains restricted to
-the synthetic fixture. It creates closed floor, ceiling, and wall assemblies,
-cuts the specified door and window, and adds deterministic frames, window
-reveals, sill, and baseboard geometry only outside the repository. Contract
-material zones compile to scalar PBR materials with world-meter UVs derived from
-each recipe's `textureScaleM`; texture images are intentionally not compiled.
-Components, approved candidate compilation, and final byte-identical export
-qualification remain separate follow-up slices. A synthetic-only reproducibility
-entrypoint exports and structurally validates GLB in two independent exact-Blender
-process runs, then requires byte-identical GLB output while keeping final candidate
-and publication claims false.
+scene specification remains a neutral synthetic contract fixture. Its fail-closed
+compiler and reproducibility paths remain unchanged.
+
+The approved Candidate 01 architecture slice reads the four fixed source files
+only as Git blobs at the commit pinned by `candidate-lock.json`; candidate source
+files are not copied into this repository. The loader verifies the three canonical
+contract hashes, the raw concept-selection hash, and its binding to both provenance
+and `acceptedInputSha256`. Exact Blender then creates only the closed shell, door
+and window openings, frames, reveals, sill, baseboards, and architectural material
+zones. The resulting GLB has 19 meshes and 3 scalar PBR materials, no textures,
+cameras, or lights, and is required to be byte-identical across two independent
+runs. Reports retain Git blob identities, validator and compiler identities, and
+reopen/GLB inspection. Components, exterior, lighting, media surfaces, final
+candidate GLB verification, and publication readiness remain explicitly false.
 
 The neutral low-fidelity concept gate selected the functional correction of
 Concept 03 and assigned its exact validated specification to Candidate 01 without
@@ -76,6 +78,11 @@ pnpm install
 pnpm validate
 pnpm test
 ```
+
+The Candidate 01 architecture tests require a separate local checkout through
+`CANDIDATE_01_DIR` (or the default sibling repository name). Set `BLENDER_BIN`
+to the exact locked Blender 4.5.12 binary to run the compile, reopen, and
+two-run byte-identity gates instead of skipping them.
 
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
