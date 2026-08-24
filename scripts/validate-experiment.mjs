@@ -64,7 +64,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "synthetic-compiler-and-glb-reproducibility-scaffold", "stage3_status_invalid");
+assert(readiness.stage3.status === "approved-candidate-architecture-compiler-and-glb-reproducibility", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -72,9 +72,11 @@ assert(readiness.stage3.roomShellEntrypointPath === "compiler/compile-room-shell
 assert(readiness.stage3.roomShellBlenderAdapterPath === "compiler/blender-room-shell.py", "stage3_room_shell_adapter_invalid");
 assert(readiness.stage3.roomShellCompilerImplemented === true, "stage3_room_shell_compiler_missing");
 assert(readiness.stage3.roomShellSyntheticFixtureOnly === true, "stage3_room_shell_fixture_boundary_missing");
+assert(readiness.stage3.syntheticRoomShellRemainsFixtureLocked === true, "stage3_synthetic_room_shell_fixture_lock_missing");
 assert(readiness.stage3.roomShellExactBlenderIntegrationTest === true, "stage3_room_shell_blender_test_missing");
 assert(readiness.stage3.roomOpeningsCompilerImplemented === true, "stage3_room_openings_compiler_missing");
 assert(readiness.stage3.roomOpeningsSyntheticFixtureOnly === true, "stage3_room_openings_fixture_boundary_missing");
+assert(readiness.stage3.syntheticRoomOpeningsRemainFixtureLocked === true, "stage3_synthetic_room_openings_fixture_lock_missing");
 assert(readiness.stage3.roomOpeningCount === 2, "stage3_room_opening_count_invalid");
 assert(readiness.stage3.roomOpeningFrameObjectCount === 7, "stage3_room_opening_frame_count_invalid");
 assert(readiness.stage3.roomOpeningRevealObjectCount === 3, "stage3_room_opening_reveal_count_invalid");
@@ -95,8 +97,27 @@ assert(readiness.stage3.syntheticGlbByteIdenticalVerified === true, "stage3_synt
 assert(readiness.stage3.syntheticReproducibilityReportImplemented === true, "stage3_synthetic_reproducibility_report_missing");
 assert(readiness.stage3.syntheticReproducibilityEntrypointPath === "compiler/verify-room-reproducibility.mjs", "stage3_synthetic_reproducibility_entrypoint_invalid");
 assert(readiness.stage3.approvedCandidateSpecificationCreated === true, "approved_candidate_specification_missing");
-assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
-assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");
+assert(readiness.stage3.approvedCandidateArchitectureCompilerImplemented === true, "approved_candidate_architecture_compiler_missing");
+assert(readiness.stage3.approvedCandidateArchitectureCompileApi === "compileApprovedCandidateArchitecture", "approved_candidate_architecture_compile_api_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureReproducibilityApi === "verifyApprovedCandidateArchitectureReproducibility", "approved_candidate_architecture_reproducibility_api_invalid");
+assert(readiness.stage3.approvedCandidateGitBlobInputCount === 4, "approved_candidate_git_blob_input_count_invalid");
+assert(readiness.stage3.approvedCandidateGitBlobSourceLocked === true, "approved_candidate_git_blob_source_not_locked");
+assert(readiness.stage3.approvedCandidateArchitectureMeshCount === 19, "approved_candidate_architecture_mesh_count_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureMaterialCount === 3, "approved_candidate_architecture_material_count_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureGlbByteIdenticalVerified === true, "approved_candidate_architecture_reproducibility_missing");
+assert(readiness.stage3.approvedCandidateArchitectureGlbSha256 === "85ff61f70d56fad104c3621aa325e3ece2fe1e47ca66eb015339884c3a69bf66", "approved_candidate_architecture_glb_digest_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureGlbByteLength === 38536, "approved_candidate_architecture_glb_size_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureReopenInspectionSha256 === "64587b5fa28b02560084960d4e48c28ca6706222a2b59ce940bae9d2039b0618", "approved_candidate_architecture_reopen_digest_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureBinaryByteLength === 17376, "approved_candidate_architecture_binary_size_invalid");
+assert(readiness.stage3.approvedCandidateArchitectureDecodedVertexCount === 528
+  && readiness.stage3.approvedCandidateArchitectureDecodedIndexCount === 852
+  && readiness.stage3.approvedCandidateArchitectureDecodedTriangleCount === 284
+  && readiness.stage3.approvedCandidateArchitectureDistinctPositionCount === 176, "approved_candidate_architecture_geometry_evidence_invalid");
+assert(readiness.stage3.approvedCandidateComponentsCompiled === false, "approved_candidate_components_claim_invalid");
+assert(readiness.stage3.blenderCompilerImplemented === false, "stage3_must_not_claim_full_candidate_blender_compiler");
+assert(readiness.stage3.byteIdenticalExportsVerified === false, "stage3_must_not_claim_final_candidate_export_reproducibility");
+assert(readiness.stage3.finalCandidateGlbVerified === false, "stage3_must_not_claim_final_candidate_glb");
+assert(readiness.stage3.publicationReady === false, "stage3_must_not_claim_publication_readiness");
 assert(conceptGate.status === "low-fidelity-concept-selected", "concept_gate_status_invalid");
 assert(conceptGate.gate?.conceptCount === 3
   && JSON.stringify(conceptGate.gate?.anonymousLabels) === JSON.stringify(["1", "2", "3"])

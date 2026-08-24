@@ -11,11 +11,14 @@ from pathlib import Path
 EXPECTED_BLENDER_VERSION = "4.5.12 LTS"
 EXPECTED_BLENDER_BUILD_HASH = "84afd5f785f7"
 EXPECTED_BLENDER_BINARY_SHA256 = "33ac108ebce3c271f5357e5c664d0488717263bcf2145c80300edd0b12c31880"
-EXPECTED_SPECIFICATION_SHA256 = "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91"
-EXPECTED_SCENE_RAW_SHA256 = "faef3aebe7278f72bf272411abdb0080792b4459ad7ca0097cca36e59498b748"
+SYNTHETIC_INPUT_KIND = "synthetic-fixture"
+CANDIDATE_INPUT_KIND = "approved-candidate-architecture"
+EXPECTED_SYNTHETIC_SPECIFICATION_SHA256 = "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91"
+EXPECTED_SYNTHETIC_SCENE_RAW_SHA256 = "faef3aebe7278f72bf272411abdb0080792b4459ad7ca0097cca36e59498b748"
+EXPECTED_CANDIDATE_SPECIFICATION_SHA256 = "29d76ca0feaefd4bf9cac9ebd25113c601e358c939778c4a0f43f3f94b58e0dd"
+EXPECTED_CANDIDATE_SCENE_RAW_SHA256 = "875619d8513467417bbc89d50cd11b07fc363e8c4fbaeb8161394c8f2e885b76"
 COLLECTION_NAME = "WMMR_ARCHITECTURE"
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
-FIXTURE_PATH = REPOSITORY_ROOT / "tests/fixtures/stage3/scene-spec.valid.json"
 
 
 def fail(code):
@@ -24,6 +27,11 @@ def fail(code):
 
 def sha256_bytes(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def canonical_sha256(value):
+    encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return sha256_bytes(encoded)
 
 
 def finite_number(value):
@@ -663,7 +671,7 @@ def verify_material_plan(bpy, material_plan, room):
     }
 
 
-def create_mesh_object(bpy, record, collection):
+def create_mesh_object(bpy, record, collection, fixture_only):
     vertices, faces = geometry(record)
     mesh = bpy.data.meshes.new(f"mesh.{record['name']}")
     mesh.from_pydata(vertices, [], faces)
@@ -672,14 +680,14 @@ def create_mesh_object(bpy, record, collection):
     value = bpy.data.objects.new(record["name"], mesh)
     center = record["centerM"]
     value.location = (center["x"], center["z"], center["y"])
-    value["wmmr_fixture_only"] = True
+    value["wmmr_fixture_only"] = fixture_only
     collection.objects.link(value)
     return value
 
 
-def apply_opening_cuts(bpy, wall, opening_plan, collection):
+def apply_opening_cuts(bpy, wall, opening_plan, collection, fixture_only):
     for cut in opening_plan["cuts"]:
-        cutter = create_mesh_object(bpy, cut, collection)
+        cutter = create_mesh_object(bpy, cut, collection, fixture_only)
         modifier = wall.modifiers.new(name=f"cut.{cut['openingId']}", type="BOOLEAN")
         modifier.operation = "DIFFERENCE"
         modifier.solver = "EXACT"
@@ -832,7 +840,7 @@ def inventory_report(bpy, objects):
     }
 
 
-def apply_plan(plan, opening_plan, profile_plan, material_plan, scene_specification, specification_sha256):
+def apply_plan(plan, opening_plan, profile_plan, material_plan, scene_specification, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
@@ -840,27 +848,34 @@ def apply_plan(plan, opening_plan, profile_plan, material_plan, scene_specificat
 
     version, build_hash, binary_sha256 = blender_identity(bpy)
 
+    fixture_only = input_kind == SYNTHETIC_INPUT_KIND
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.name = "WMMR_SYNTHETIC_SHELL"
+    scene.name = "WMMR_SYNTHETIC_SHELL" if fixture_only else "WMMR_CANDIDATE_01_ARCHITECTURE"
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
-    scene["wmmr_fixture_only"] = True
+    scene["wmmr_fixture_only"] = fixture_only
     scene["wmmr_specification_sha256"] = specification_sha256
+    if not fixture_only:
+        scene["wmmr_approved_candidate_specification"] = True
+        scene["wmmr_candidate_architecture_compiled"] = True
+        scene["wmmr_components_compiled"] = False
+        scene["wmmr_final_candidate_glb_verified"] = False
+        scene["wmmr_publication_ready"] = False
 
     collection = bpy.data.collections.new(plan["collectionName"])
     scene.collection.children.link(collection)
     for record in plan["objects"]:
-        create_mesh_object(bpy, record, collection)
+        create_mesh_object(bpy, record, collection, fixture_only)
 
     wall_record = next(record for record in plan["objects"] if record["name"] == "shell.walls")
     wall = bpy.data.objects.get("shell.walls")
     verify_object(wall, wall_record)
-    apply_opening_cuts(bpy, wall, opening_plan, collection)
+    apply_opening_cuts(bpy, wall, opening_plan, collection, fixture_only)
     for record in opening_plan["objects"]:
-        create_mesh_object(bpy, record, collection)
+        create_mesh_object(bpy, record, collection, fixture_only)
     for record in profile_plan["objects"]:
-        create_mesh_object(bpy, record, collection)
+        create_mesh_object(bpy, record, collection, fixture_only)
 
     bpy.context.view_layer.update()
     shell_objects = [
@@ -891,20 +906,34 @@ def apply_plan(plan, opening_plan, profile_plan, material_plan, scene_specificat
     )
 
 
-def load_exact_fixture():
-    raw = FIXTURE_PATH.read_bytes()
-    if sha256_bytes(raw) != EXPECTED_SCENE_RAW_SHA256:
-        fail("room_shell_fixture_sha256_mismatch")
-    return json.loads(raw.decode("utf-8"))
+def load_scene_specification(path, input_kind, expected_raw_sha256, expected_specification_sha256):
+    expected = {
+        SYNTHETIC_INPUT_KIND: (EXPECTED_SYNTHETIC_SCENE_RAW_SHA256, EXPECTED_SYNTHETIC_SPECIFICATION_SHA256),
+        CANDIDATE_INPUT_KIND: (EXPECTED_CANDIDATE_SCENE_RAW_SHA256, EXPECTED_CANDIDATE_SPECIFICATION_SHA256),
+    }.get(input_kind)
+    if expected is None:
+        fail("room_shell_input_kind_invalid")
+    if expected_raw_sha256 != expected[0] or expected_specification_sha256 != expected[1]:
+        fail("room_shell_expected_hash_invalid")
+    raw = path.read_bytes()
+    if sha256_bytes(raw) != expected_raw_sha256:
+        fail("room_shell_fixture_sha256_mismatch" if input_kind == SYNTHETIC_INPUT_KIND else "approved_candidate_scene_raw_sha256_mismatch")
+    try:
+        specification = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        fail("room_shell_scene_json_invalid")
+    if canonical_sha256(specification) != expected_specification_sha256:
+        fail("room_shell_specification_sha256_mismatch")
+    return specification
 
 
-def inspect_current_blend(report_path, specification_sha256):
+def inspect_current_blend(report_path, scene_specification, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
         fail("blender_python_required")
     version, build_hash, binary_sha256 = blender_identity(bpy)
-    scene_specification = load_exact_fixture()
+    fixture_only = input_kind == SYNTHETIC_INPUT_KIND
     plan = build_shell_plan(scene_specification)
     opening_plan = build_opening_plan(scene_specification)
     profile_plan = build_profile_plan(scene_specification, opening_plan)
@@ -939,19 +968,34 @@ def inspect_current_blend(report_path, specification_sha256):
     profile_objects = [verify_object(bpy.data.objects.get(record["name"]), record, allow_materials=True) for record in profile_plan["objects"]]
     material_report = verify_material_plan(bpy, material_plan, scene_specification["room"])
     objects = sorted([*shell_objects, *opening_objects, *profile_objects], key=lambda record: record["name"])
-    if bpy.context.scene.get("wmmr_fixture_only") is not True \
+    if bpy.context.scene.get("wmmr_fixture_only") is not fixture_only \
             or bpy.context.scene.get("wmmr_specification_sha256") != specification_sha256:
+        fail("room_shell_saved_metadata_invalid")
+    if not fixture_only and (
+            bpy.context.scene.get("wmmr_approved_candidate_specification") is not True
+            or bpy.context.scene.get("wmmr_candidate_architecture_compiled") is not True
+            or bpy.context.scene.get("wmmr_components_compiled") is not False
+            or bpy.context.scene.get("wmmr_final_candidate_glb_verified") is not False
+            or bpy.context.scene.get("wmmr_publication_ready") is not False):
         fail("room_shell_saved_metadata_invalid")
     report = {
         "schemaVersion": 1,
-        "status": "stage3-synthetic-room-profiles-materials-inspection-valid",
-        "fixtureOnly": True,
+        "status": "stage3-synthetic-room-profiles-materials-inspection-valid" if fixture_only else "stage3-approved-candidate-architecture-inspection-valid",
+        "fixtureOnly": fixture_only,
         "specificationSha256": specification_sha256,
         "blender": {"version": version, "buildHash": build_hash, "binarySha256": binary_sha256},
         "profiles": {**profile_plan, "compiled": True, "objects": profile_objects},
         "materials": material_report,
         "inventory": inventory_report(bpy, objects),
     }
+    if not fixture_only:
+        report.update({
+            "approvedCandidateSpecification": True,
+            "candidateArchitectureCompiled": True,
+            "componentsCompiled": False,
+            "finalCandidateGlbVerified": False,
+            "publicationReady": False,
+        })
     write_report(report_path, report)
     print(json.dumps(report, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
 
@@ -973,7 +1017,9 @@ def write_report(path, report):
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--input-kind", choices=(SYNTHETIC_INPUT_KIND, CANDIDATE_INPUT_KIND), required=True)
     parser.add_argument("--scene-spec")
+    parser.add_argument("--expected-raw-sha256", required=True)
     parser.add_argument("--expected-specification-sha256", required=True)
     parser.add_argument("--report", required=True)
     parser.add_argument("--output-blend")
@@ -985,29 +1031,30 @@ def parse_args(argv):
 
 def main(argv=None):
     args = parse_args(argv if argv is not None else sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:])
-    if args.expected_specification_sha256 != EXPECTED_SPECIFICATION_SHA256:
-        fail("approved_candidate_compilation_not_implemented")
     report_path = outside_repository(Path(args.report), "room_shell_report")
     if report_path.exists():
         fail("room_shell_report_exists")
-
-    if args.inspect_only:
-        if args.scene_spec is not None or args.output_blend is not None or args.output_glb is not None or args.plan_only:
-            fail("room_shell_inspection_arguments_invalid")
-        inspect_current_blend(report_path, args.expected_specification_sha256)
-        return
     if args.scene_spec is None:
         fail("room_shell_scene_missing")
     scene_path = Path(args.scene_spec).resolve(strict=True)
-    raw = scene_path.read_bytes()
-    if sha256_bytes(raw) != EXPECTED_SCENE_RAW_SHA256:
-        fail("room_shell_fixture_sha256_mismatch")
-    scene = json.loads(raw.decode("utf-8"))
+    scene = load_scene_specification(
+        scene_path,
+        args.input_kind,
+        args.expected_raw_sha256,
+        args.expected_specification_sha256,
+    )
+
+    if args.inspect_only:
+        if args.output_blend is not None or args.output_glb is not None or args.plan_only:
+            fail("room_shell_inspection_arguments_invalid")
+        inspect_current_blend(report_path, scene, args.expected_specification_sha256, args.input_kind)
+        return
     plan = build_shell_plan(scene)
     opening_plan = build_opening_plan(scene)
     profile_plan = build_profile_plan(scene, opening_plan)
     material_plan = build_material_plan(scene, opening_plan, profile_plan)
 
+    fixture_only = args.input_kind == SYNTHETIC_INPUT_KIND
     boundaries = {
         "approvedCandidateSpecification": False,
         "byteIdenticalExportsVerified": False,
@@ -1016,10 +1063,21 @@ def main(argv=None):
         "openingsCompiled": False,
         "profilesCompiled": False,
         "sceneBinaryAddedToRepository": False,
+    } if fixture_only else {
+        "approvedCandidateSpecification": True,
+        "byteIdenticalExportsVerified": False,
+        "candidateArchitectureCompiled": False,
+        "componentsCompiled": False,
+        "finalCandidateGlbVerified": False,
+        "materialsCompiled": False,
+        "openingsCompiled": False,
+        "profilesCompiled": False,
+        "publicationReady": False,
+        "sceneBinaryAddedToRepository": False,
     }
     base_report = {
         "schemaVersion": 1,
-        "fixtureOnly": True,
+        "fixtureOnly": fixture_only,
         "sceneId": scene.get("sceneId"),
         "specificationSha256": args.expected_specification_sha256,
         "shell": plan,
@@ -1028,13 +1086,21 @@ def main(argv=None):
         "materials": {**material_plan, "compiled": False},
         "boundaries": boundaries,
     }
+    if not fixture_only:
+        base_report.update({
+            "approvedCandidateSpecification": True,
+            "candidateArchitectureCompiled": False,
+            "componentsCompiled": False,
+            "finalCandidateGlbVerified": False,
+            "publicationReady": False,
+        })
 
     if args.plan_only:
         if args.output_blend is not None or args.output_glb is not None:
             fail("room_shell_plan_only_arguments_invalid")
         report = {
             **base_report,
-            "status": "stage3-synthetic-room-profiles-materials-plan-valid",
+            "status": "stage3-synthetic-room-profiles-materials-plan-valid" if fixture_only else "stage3-approved-candidate-architecture-plan-valid",
             "execution": "plan-only",
             "blender": None,
             "outputBlend": None,
@@ -1068,6 +1134,7 @@ def main(argv=None):
         material_plan,
         scene,
         args.expected_specification_sha256,
+        args.input_kind,
     )
     bpy.ops.wm.save_as_mainfile(filepath=str(output_path), check_existing=False, compress=False, relative_remap=False)
     output_bytes = output_path.read_bytes()
@@ -1083,7 +1150,7 @@ def main(argv=None):
     glb_bytes = glb_path.read_bytes()
     report = {
         **base_report,
-        "status": "stage3-synthetic-room-profiles-materials-compiled",
+        "status": "stage3-synthetic-room-profiles-materials-compiled" if fixture_only else "stage3-approved-candidate-architecture-compiled",
         "execution": "blender",
         "blender": {
             "version": version,
@@ -1107,7 +1174,15 @@ def main(argv=None):
             },
         },
     }
-    report["boundaries"] = {**boundaries, "materialsCompiled": True, "openingsCompiled": True, "profilesCompiled": True}
+    report["boundaries"] = {
+        **boundaries,
+        "candidateArchitectureCompiled": True,
+        "materialsCompiled": True,
+        "openingsCompiled": True,
+        "profilesCompiled": True,
+    } if not fixture_only else {**boundaries, "materialsCompiled": True, "openingsCompiled": True, "profilesCompiled": True}
+    if not fixture_only:
+        report["candidateArchitectureCompiled"] = True
     report["shell"] = {
         **plan,
         "objectCount": len(shell_objects),
