@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "asOf": "2026-08-23",
+  "asOf": "2026-08-24",
   "platform": {
     "repository": "vrata-labs/platform",
     "planPath": "docs/plans/2026-08-12-warm-modern-meeting-room-ab-scene-factory.md",
@@ -776,6 +776,24 @@
     "approvedCandidateSpecificationCreated": false,
     "blenderCompilerImplemented": false,
     "byteIdenticalExportsVerified": false
+  },
+  "candidateConceptGate": {
+    "status": "low-fidelity-concept-selected-awaiting-exact-specification",
+    "conceptGatePath": "experiment/warm-modern-meeting-room/concept-gate.json",
+    "conceptCount": 3,
+    "selectedConceptId": "concept-03",
+    "selectedRevisionId": "concept-03-corrected",
+    "selectedConceptPreviewSha256": "f52b3722e71dd231ebe80424f0411e9771670fa37aff01eebbce42ff7d4c0a21",
+    "candidateRepository": "vrata-labs/warm-modern-meeting-room-candidate-01",
+    "candidateMergeCommit": "cddd258682cfe082a6b207799a38eb7a93014947",
+    "candidatePostMergeCiRun": 32744371761,
+    "approvedCandidateSpecificationCreated": false,
+    "assetRightsCleared": false,
+    "previewBinariesIncludedInPublicRepositories": false,
+    "referenceImagesUsed": false,
+    "modelInputUsed": false,
+    "releaseArtifactsCreated": false,
+    "publicationReady": false
   },
   "resolved": {
     "githubAdminAccess": true,

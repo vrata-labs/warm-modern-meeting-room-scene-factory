@@ -74,6 +74,26 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.blenderCompilerImplemented, false);
 });
 
+test("neutral concept gate selects corrected Concept 03 without claiming a scene specification", async () => {
+  const gate = await json("experiment/warm-modern-meeting-room/concept-gate.json");
+  const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  assert.equal(gate.gate.conceptCount, 3);
+  assert.equal(gate.concepts.length, 3);
+  assert.equal(gate.gate.selectedConceptId, "concept-03");
+  assert.equal(gate.gate.selectedRevisionId, "concept-03-corrected");
+  assert.equal(gate.concepts.filter(({ selected }) => selected).length, 1);
+  assert.equal(gate.assignment.candidateMergeCommit, "cddd258682cfe082a6b207799a38eb7a93014947");
+  assert.equal(gate.boundaries.previewBinariesIncludedInPublicRepositories, false);
+  assert.equal(gate.boundaries.approvedCandidateSpecificationCreated, false);
+  assert.equal(readiness.candidateConceptGate.selectedConceptPreviewSha256, "f52b3722e71dd231ebe80424f0411e9771670fa37aff01eebbce42ff7d4c0a21");
+  assert.equal(readiness.candidateConceptGate.approvedCandidateSpecificationCreated, false);
+  assert.equal(readiness.candidateConceptGate.modelInputUsed, false);
+  assert.equal(readiness.candidateConceptGate.referenceImagesUsed, false);
+  assert.equal(readiness.candidateConceptGate.assetRightsCleared, false);
+  assert.equal(readiness.candidateConceptGate.releaseArtifactsCreated, false);
+  assert.equal(readiness.candidateConceptGate.publicationReady, false);
+});
+
 test("restricted storage is private, encrypted, and bounded", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
   assert.equal(readiness.storage.hardQuotaBytes, 10 * 1024 * 1024 * 1024);

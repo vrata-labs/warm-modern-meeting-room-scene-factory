@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "warm-modern-meeting-room-ab-2026-08",
+  "status": "low-fidelity-concept-selected",
+  "gate": {
+    "conceptCount": 3,
+    "anonymousLabels": ["1", "2", "3"],
+    "selectedConceptId": "concept-03",
+    "selectedRevisionId": "concept-03-corrected",
+    "approvedOn": "2026-08-24",
+    "ownerRole": "experiment-sponsor",
+    "evidence": "interactive-user-approval"
+  },
+  "concepts": [
+    {
+      "id": "concept-01",
+      "previewSha256": "c73d28cd130281f365fb26cb6f4e2bdc09ef03abd4e8348f39b11dc98eeb0e54",
+      "selected": false,
+      "disposition": "rejected-composition"
+    },
+    {
+      "id": "concept-02",
+      "previewSha256": "e84137e8aaf81b54c2dee2400d76f940e19cee561a4fdf4f0c96ccd5eb337e4c",
+      "selected": false,
+      "disposition": "rejected-composition"
+    },
+    {
+      "id": "concept-03",
+      "previewSha256": "2676e65d5276723a8d985c6c63897c09e16acbe2a3da3db7fb87cc31944de8a3",
+      "selected": true,
+      "disposition": "approved-after-technical-correction",
+      "revisions": [
+        {
+          "id": "concept-03-corrected",
+          "previewSha256": "f52b3722e71dd231ebe80424f0411e9771670fa37aff01eebbce42ff7d4c0a21",
+          "correction": "chair-backs-moved-outward-seats-facing-table",
+          "approved": true
+        }
+      ]
+    }
+  ],
+  "assignment": {
+    "candidateRepository": "vrata-labs/warm-modern-meeting-room-candidate-01",
+    "candidateMergeCommit": "cddd258682cfe082a6b207799a38eb7a93014947",
+    "candidatePostMergeCiRun": 32744371761,
+    "candidateIdentityRemainsNeutral": true
+  },
+  "boundaries": {
+    "previewBinariesIncludedInPublicRepositories": false,
+    "referenceImagesUsed": false,
+    "modelInputUsed": false,
+    "approvedCandidateSpecificationCreated": false,
+    "assetRightsCleared": false,
+    "releaseArtifactsCreated": false,
+    "publicationReady": false
+  }
+}
