@@ -736,7 +736,7 @@
     }
   },
   "stage3": {
-    "status": "contract-diagnostics-and-shell-scaffold",
+    "status": "contract-diagnostics-shell-and-openings-scaffold",
     "sceneSpecSchemaPath": "schemas/scene-spec.schema.json",
     "assetLedgerSchemaPath": "schemas/asset-ledger.schema.json",
     "generationLedgerSchemaPath": "schemas/generation-ledger.schema.json",
@@ -752,6 +752,12 @@
     "roomShellCompilerImplemented": true,
     "roomShellSyntheticFixtureOnly": true,
     "roomShellExactBlenderIntegrationTest": true,
+    "roomOpeningsCompilerImplemented": true,
+    "roomOpeningsSyntheticFixtureOnly": true,
+    "roomOpeningCount": 2,
+    "roomOpeningFrameObjectCount": 7,
+    "roomOpeningRevealObjectCount": 3,
+    "roomOpeningSillObjectCount": 1,
     "approvedCandidateSpecificationCreated": false,
     "blenderCompilerImplemented": false,
     "byteIdenticalExportsVerified": false
