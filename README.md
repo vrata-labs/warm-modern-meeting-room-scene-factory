@@ -64,6 +64,12 @@ entrypoint exports and structurally validates GLB in two independent exact-Blend
 process runs, then requires byte-identical GLB output while keeping final candidate
 and publication claims false.
 
+The neutral low-fidelity concept gate selected corrected Concept 03 and assigned
+its layout intent to Candidate 01 without disclosing a production-track mapping.
+Preview binaries remain private, and
+the gate does not claim an exact candidate specification, cleared assets, or a
+release.
+
 ## Validation
 
 ```bash

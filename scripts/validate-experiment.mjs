@@ -39,6 +39,7 @@ async function sha256(relativePath) {
 }
 
 const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+const conceptGate = await json("experiment/warm-modern-meeting-room/concept-gate.json");
 assert(readiness.schemaVersion === 2, "invalid_readiness_schema");
 assert(/^[0-9a-f]{40}$/.test(readiness.platform.validatorCommit), "invalid_platform_validator_commit");
 assert(/^[0-9a-f]{40}$/.test(readiness.platform.planCommit), "invalid_platform_plan_commit");
@@ -96,6 +97,33 @@ assert(readiness.stage3.syntheticReproducibilityEntrypointPath === "compiler/ver
 assert(readiness.stage3.approvedCandidateSpecificationCreated === false, "fixture_must_not_claim_approved_candidate_specification");
 assert(readiness.stage3.blenderCompilerImplemented === false, "contract_slice_must_not_claim_blender_compiler");
 assert(readiness.stage3.byteIdenticalExportsVerified === false, "contract_slice_must_not_claim_export_reproducibility");
+assert(conceptGate.status === "low-fidelity-concept-selected", "concept_gate_status_invalid");
+assert(conceptGate.gate?.conceptCount === 3
+  && JSON.stringify(conceptGate.gate?.anonymousLabels) === JSON.stringify(["1", "2", "3"])
+  && conceptGate.gate?.selectedConceptId === "concept-03"
+  && conceptGate.gate?.selectedRevisionId === "concept-03-corrected", "concept_gate_selection_invalid");
+assert(conceptGate.concepts?.length === 3 && new Set(conceptGate.concepts.map(({ id }) => id)).size === 3, "concept_gate_concept_set_invalid");
+assert(new Set(conceptGate.concepts.map(({ previewSha256 }) => previewSha256)).size === 3, "concept_gate_preview_set_invalid");
+assert(conceptGate.concepts?.filter(({ selected }) => selected).length === 1, "concept_gate_must_select_exactly_one");
+const selectedConcept = conceptGate.concepts?.find(({ selected }) => selected);
+assert(selectedConcept?.id === "concept-03" && selectedConcept.revisions?.length === 1, "concept_gate_revision_invalid");
+assert(selectedConcept.revisions[0]?.id === "concept-03-corrected"
+  && selectedConcept.revisions[0]?.previewSha256 === "f52b3722e71dd231ebe80424f0411e9771670fa37aff01eebbce42ff7d4c0a21"
+  && selectedConcept.revisions[0]?.approved === true, "concept_gate_preview_digest_invalid");
+assert(conceptGate.assignment?.candidateRepository === "vrata-labs/warm-modern-meeting-room-candidate-01", "concept_gate_candidate_invalid");
+assert(conceptGate.assignment?.candidateMergeCommit === "cddd258682cfe082a6b207799a38eb7a93014947", "concept_gate_candidate_commit_invalid");
+const boundaryKeys = ["approvedCandidateSpecificationCreated", "assetRightsCleared", "modelInputUsed", "previewBinariesIncludedInPublicRepositories", "publicationReady", "referenceImagesUsed", "releaseArtifactsCreated"];
+assert(JSON.stringify(Object.keys(conceptGate.boundaries ?? {}).sort()) === JSON.stringify(boundaryKeys) && boundaryKeys.every((key) => conceptGate.boundaries[key] === false), "concept_gate_boundaries_must_remain_false");
+assert(readiness.asOf === "2026-08-24", "readiness_date_invalid");
+assert(readiness.candidateConceptGate.status === "low-fidelity-concept-selected-awaiting-exact-specification", "candidate_concept_gate_status_invalid");
+assert(readiness.candidateConceptGate.conceptCount === conceptGate.gate.conceptCount
+  && readiness.candidateConceptGate.selectedConceptId === conceptGate.gate.selectedConceptId
+  && readiness.candidateConceptGate.selectedRevisionId === conceptGate.gate.selectedRevisionId
+  && readiness.candidateConceptGate.selectedConceptPreviewSha256 === selectedConcept.revisions[0].previewSha256
+  && readiness.candidateConceptGate.candidateRepository === conceptGate.assignment.candidateRepository
+  && readiness.candidateConceptGate.candidateMergeCommit === conceptGate.assignment.candidateMergeCommit
+  && readiness.candidateConceptGate.candidatePostMergeCiRun === conceptGate.assignment.candidatePostMergeCiRun, "candidate_concept_gate_readiness_drift");
+assert(boundaryKeys.every((key) => readiness.candidateConceptGate[key] === conceptGate.boundaries[key]), "candidate_concept_gate_boundary_drift");
 assert(readiness.resolved.fullShaCdnFixture.commit === readiness.historicalAssetsRepository.commit, "cdn_fixture_commit_mismatch");
 assert(readiness.resolved.fullShaCdnFixture.accessControlAllowOrigin === "*", "cdn_fixture_cors_invalid");
 assert(readiness.resolved.fullShaCdnFixture.cacheControl.includes("immutable"), "cdn_fixture_cache_not_immutable");
