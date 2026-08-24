@@ -6,7 +6,7 @@
     "conceptCount": 3,
     "anonymousLabels": ["1", "2", "3"],
     "selectedConceptId": "concept-03",
-    "selectedRevisionId": "concept-03-corrected",
+    "selectedRevisionId": "concept-03-functional",
     "approvedOn": "2026-08-24",
     "ownerRole": "experiment-sponsor",
     "evidence": "interactive-user-approval"
@@ -28,12 +28,18 @@
       "id": "concept-03",
       "previewSha256": "2676e65d5276723a8d985c6c63897c09e16acbe2a3da3db7fb87cc31944de8a3",
       "selected": true,
-      "disposition": "approved-after-technical-correction",
+      "disposition": "approved-after-functional-correction",
       "revisions": [
         {
           "id": "concept-03-corrected",
           "previewSha256": "f52b3722e71dd231ebe80424f0411e9771670fa37aff01eebbce42ff7d4c0a21",
           "correction": "chair-backs-moved-outward-seats-facing-table",
+          "approved": false
+        },
+        {
+          "id": "concept-03-functional",
+          "previewSha256": "cd7456afb5c9c10ebf3d4a16fdb5173af2c68a9faf9ce2798ec8238e257309c7",
+          "correction": "straight-table-and-wall-safe-clearance-routes",
           "approved": true
         }
       ]
@@ -41,15 +47,15 @@
   ],
   "assignment": {
     "candidateRepository": "vrata-labs/warm-modern-meeting-room-candidate-01",
-    "candidateMergeCommit": "cddd258682cfe082a6b207799a38eb7a93014947",
-    "candidatePostMergeCiRun": 32744371761,
+    "candidateMergeCommit": "df564befcd65cb51a345fa9d315e40cadef6e563",
+    "candidatePostMergeCiRun": 32765586313,
     "candidateIdentityRemainsNeutral": true
   },
   "boundaries": {
     "previewBinariesIncludedInPublicRepositories": false,
     "referenceImagesUsed": false,
     "modelInputUsed": false,
-    "approvedCandidateSpecificationCreated": false,
+    "approvedCandidateSpecificationCreated": true,
     "assetRightsCleared": false,
     "releaseArtifactsCreated": false,
     "publicationReady": false
