@@ -53,10 +53,11 @@ The first Stage 3 slice defines exact scene, asset-ledger, and generation-ledger
 schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The checked-in
 scene specification is a neutral synthetic contract fixture, not an approved
 candidate design. The next slice adds an exact-Blender room shell compiler for
-the synthetic fixture. It creates closed floor, ceiling, and wall assemblies
-only outside the repository and keeps openings, materials, approved candidate
-compilation, and byte-identical export qualification as separate follow-up
-slices.
+the synthetic fixture. It creates closed floor, ceiling, and wall assemblies,
+cuts the specified door and window, and adds deterministic frames, window
+reveals, and sill geometry only outside the repository. Materials, components,
+approved candidate compilation, and byte-identical export qualification remain
+separate follow-up slices.
 
 ## Validation
 

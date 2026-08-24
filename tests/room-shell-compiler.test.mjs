@@ -50,13 +50,13 @@ async function planAt(directory, name) {
   return JSON.parse(await readFile(reportPath, "utf8"));
 }
 
-test("room shell plan is deterministic and uses closed metric assemblies", async () => {
+test("room shell and opening plan is deterministic and dimensioned", async () => {
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "wmmr-shell-plan-"));
   try {
     const first = await planAt(temporaryRoot, "first.json");
     const second = await planAt(temporaryRoot, "second.json");
     assert.deepEqual(first, second);
-    assert.equal(first.status, "stage3-synthetic-room-shell-plan-valid");
+    assert.equal(first.status, "stage3-synthetic-room-shell-openings-plan-valid");
     assert.equal(first.fixtureOnly, true);
     assert.equal(first.shell.joinStrategy, "welded-rectangular-ring");
     assert.equal(first.shell.objectCount, 3);
@@ -72,6 +72,23 @@ test("room shell plan is deterministic and uses closed metric assemblies", async
     assert.deepEqual(walls.dimensionsM, { widthM: 7.18, heightM: 3.1, depthM: 5.18 });
     assert.deepEqual(walls.interiorDimensionsM, { widthM: 6.82, depthM: 4.82 });
     assert.deepEqual([walls.vertexCount, walls.faceCount], [16, 16]);
+    assert.equal(first.openings.compiled, false);
+    assert.equal(first.openings.openingCount, 2);
+    assert.equal(first.openings.cutCount, 2);
+    assert.equal(first.openings.frameObjectCount, 7);
+    assert.equal(first.openings.revealObjectCount, 3);
+    assert.equal(first.openings.sillObjectCount, 1);
+    assert.equal(first.openings.overlapPairCount, 0);
+    assert.deepEqual(first.openings.openings.map(({ id, wall, centerAlongM, bottomM, topM }) => ({ id, wall, centerAlongM, bottomM, topM })), [
+      { id: "main-door", wall: "south", centerAlongM: 2.25, bottomM: 0, topM: 2.2 },
+      { id: "main-window", wall: "north", centerAlongM: -0.2, bottomM: 0.7, topM: 2.5 }
+    ]);
+    assert.deepEqual(first.openings.openings.map(({ id, clearWidthM, clearHeightM, clearBottomM, clearTopM }) => ({ id, clearWidthM, clearHeightM, clearBottomM, clearTopM })), [
+      { id: "main-door", clearWidthM: 0.94, clearHeightM: 2.12, clearBottomM: 0, clearTopM: 2.12 },
+      { id: "main-window", clearWidthM: 3.24, clearHeightM: 1.64, clearBottomM: 0.78, clearTopM: 2.42 }
+    ]);
+    assert.equal(first.openings.objects.find(({ name }) => name === "opening.main-door.frame.left").centerM.x, 1.74);
+    assert.equal(first.openings.objects.find(({ name }) => name === "opening.main-window.reveal.left").centerM.z, 2.39);
     assert.deepEqual(first.boundaries, {
       approvedCandidateSpecification: false,
       byteIdenticalExportsVerified: false,
@@ -107,7 +124,7 @@ test("room shell adapter rejects non-fixture input and repository output", async
   }
 });
 
-test("exact Blender compiles the synthetic shell outside the repository", { skip: !process.env.BLENDER_BIN }, async () => {
+test("exact Blender compiles and reopens synthetic shell openings", { skip: !process.env.BLENDER_BIN }, async () => {
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "wmmr-shell-blender-"));
   try {
     const outputBlendPath = resolve(temporaryRoot, "room-shell.blend");
@@ -120,13 +137,24 @@ test("exact Blender compiles the synthetic shell outside the repository", { skip
       outputBlendPath,
       reportPath
     });
-    assert.equal(report.status, "stage3-synthetic-room-shell-compiled");
+    assert.equal(report.status, "stage3-synthetic-room-shell-openings-compiled");
     assert.equal(report.blender.version, "4.5.12 LTS");
     assert.equal(report.blender.buildHash, "84afd5f785f7");
     assert.equal(report.blender.binarySha256, "33ac108ebce3c271f5357e5c664d0488717263bcf2145c80300edd0b12c31880");
     assert.ok(report.outputBlend.byteLength > 0);
     assert.equal(report.outputBlend.sha256, sha256(await readFile(outputBlendPath)));
-    assert.deepEqual(report.shell.objects.map(({ vertexCount, faceCount }) => [vertexCount, faceCount]), [[8, 6], [8, 6], [16, 16]]);
+    assert.equal(report.boundaries.openingsCompiled, true);
+    assert.equal(report.boundaries.materialsCompiled, false);
+    assert.equal(report.inventory.objectCount, 14);
+    assert.equal(report.inventory.meshCount, 14);
+    assert.equal(report.inventory.materialCount, 0);
+    const wall = report.shell.objects.find(({ name }) => name === "shell.walls");
+    assert.equal(wall.geometry, "rectangular-wall-ring-with-openings");
+    assert.equal(wall.nonManifoldEdgeCount, 0);
+    assert.equal(report.openings.frameObjectCount, 7);
+    assert.equal(report.openings.revealObjectCount, 3);
+    assert.equal(report.openings.sillObjectCount, 1);
+    assert.equal(report.openings.overlapPairCount, 0);
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
