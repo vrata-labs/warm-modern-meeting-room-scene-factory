@@ -54,7 +54,7 @@ test("valid pilot scene contract produces stable public-safe diagnostics", async
   assert.deepEqual(report, {
     status: "stage3-scene-contract-valid",
     sceneId: "warm-modern-meeting-room-candidate-01",
-    specificationSha256: "189556b9da4ecf9f318049d0ad8e5ac67b1216057221aa5e49ecb3d88dc59cc5",
+    specificationSha256: "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91",
     assetLedgerSha256: "bc8dc412b38eb85c7a46cb96a5292f806e430fcfa2956f188d39a07fcd9f6d85",
     generationLedgerSha256: "39ef74d47488966b8e9b4df9541ba039085260a2a8fb75d9add3804558491c51",
     assetRecordCount: 7,
@@ -135,10 +135,12 @@ test("schema, provenance, rights, geometry, and route boundaries fail closed", a
     ["surface overlap", (value) => { value.scene.mediaSurfaces[1].position = { "x": -1, "y": 1.5, "z": -2.4 }; value.scene.mediaSurfaces[1].yaw = 0; }, "media_surface_overlap:debug-main:whiteboard-wall"],
     ["route collision", (value) => { value.scene.clearance.routes.find(({ id }) => id === "route-seat-01").points = [{ "x": 2.25, "z": -2.35 }, { "x": 0, "z": 0 }, { "x": -1.5, "z": 1.15 }]; }, "clearance_component_collision:route-seat-01:conference-table"],
     ["route containment", (value) => { value.scene.clearance.routes.find(({ id }) => id === "route-seat-01").points[1].x = 3.2; }, "clearance_corridor_out_of_bounds:route-seat-01:1"],
+    ["route architectural inset", (value) => { value.scene.clearance.routes.find(({ id }) => id === "route-seat-01").points[1].z = -1.95; }, "clearance_corridor_out_of_bounds:route-seat-01:1"],
     ["entrance clearance", (value) => { value.scene.openings[0].widthM = 0.5; }, "entrance_clearance_invalid:main-door"],
     ["route wider than entrance", (value) => { value.scene.clearance.routes[0].widthM = 1.11; }, "entrance_clearance_invalid:main-door"],
     ["angled doorway corridor", (value) => { value.scene.clearance.routes[0].points[0].x = 2.5; value.scene.clearance.routes[0].points[1].x = 3; }, "clearance_entrance_corridor_invalid:route-main"],
     ["spawn wall containment", (value) => { value.scene.spawn.openRadiusM = 100; }, "anchor_out_of_bounds:main"],
+    ["spawn architectural inset", (value) => { value.scene.spawn.position.z = -1.65; }, "anchor_out_of_bounds:main"],
     ["spawn component collision", (value) => { value.scene.spawn.position = { ...value.scene.components[8].transform.position }; }, "anchor_component_collision:main:chair-08"]
   ];
   for (const [name, mutate, expectedIssue] of cases) await t.test(name, async () => {

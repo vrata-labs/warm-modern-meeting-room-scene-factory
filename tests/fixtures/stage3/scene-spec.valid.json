@@ -76,19 +76,19 @@
   "clearance": {
     "minimumRouteWidthM": 0.9,
     "routes": [
-      { "id": "route-main", "destinationId": "main", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.6, "z": -1.7 }] },
-      { "id": "route-presenter", "destinationId": "presenter", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 2.8, "z": 2 }, { "x": 0, "z": 2 }] },
-      { "id": "route-seat-01", "destinationId": "seat-01", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 2.8, "z": 2 }, { "x": -1.5, "z": 2 }, { "x": -1.5, "z": 1.15 }] },
-      { "id": "route-seat-02", "destinationId": "seat-02", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 2.8, "z": 2 }, { "x": -0.5, "z": 2 }, { "x": -0.5, "z": 1.15 }] },
-      { "id": "route-seat-03", "destinationId": "seat-03", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 2.8, "z": 2 }, { "x": 0.5, "z": 2 }, { "x": 0.5, "z": 1.15 }] },
-      { "id": "route-seat-04", "destinationId": "seat-04", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 2.8, "z": 2 }, { "x": 1.5, "z": 2 }, { "x": 1.5, "z": 1.15 }] },
-      { "id": "route-seat-05", "destinationId": "seat-05", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": -1.5, "z": -2 }, { "x": -1.5, "z": -1.15 }] },
-      { "id": "route-seat-06", "destinationId": "seat-06", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": -0.5, "z": -2 }, { "x": -0.5, "z": -1.15 }] },
-      { "id": "route-seat-07", "destinationId": "seat-07", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 0.5, "z": -2 }, { "x": 0.5, "z": -1.15 }] },
-      { "id": "route-seat-08", "destinationId": "seat-08", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -2 }, { "x": 2.8, "z": -2 }, { "x": 1.5, "z": -2 }, { "x": 1.5, "z": -1.15 }] }
+      { "id": "route-main", "destinationId": "main", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.6, "z": -1.64 }] },
+      { "id": "route-presenter", "destinationId": "presenter", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 2.8, "z": 1.94 }, { "x": 0, "z": 1.94 }] },
+      { "id": "route-seat-01", "destinationId": "seat-01", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 2.8, "z": 1.94 }, { "x": -1.5, "z": 1.94 }, { "x": -1.5, "z": 1.15 }] },
+      { "id": "route-seat-02", "destinationId": "seat-02", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 2.8, "z": 1.94 }, { "x": -0.5, "z": 1.94 }, { "x": -0.5, "z": 1.15 }] },
+      { "id": "route-seat-03", "destinationId": "seat-03", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 2.8, "z": 1.94 }, { "x": 0.5, "z": 1.94 }, { "x": 0.5, "z": 1.15 }] },
+      { "id": "route-seat-04", "destinationId": "seat-04", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 2.8, "z": 1.94 }, { "x": 1.5, "z": 1.94 }, { "x": 1.5, "z": 1.15 }] },
+      { "id": "route-seat-05", "destinationId": "seat-05", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": -1.5, "z": -1.94 }, { "x": -1.5, "z": -1.15 }] },
+      { "id": "route-seat-06", "destinationId": "seat-06", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": -0.5, "z": -1.94 }, { "x": -0.5, "z": -1.15 }] },
+      { "id": "route-seat-07", "destinationId": "seat-07", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 0.5, "z": -1.94 }, { "x": 0.5, "z": -1.15 }] },
+      { "id": "route-seat-08", "destinationId": "seat-08", "widthM": 0.9, "points": [{ "x": 2.25, "z": -2.35 }, { "x": 2.25, "z": -1.94 }, { "x": 2.8, "z": -1.94 }, { "x": 1.5, "z": -1.94 }, { "x": 1.5, "z": -1.15 }] }
     ]
   },
-  "spawn": { "id": "main", "position": { "x": 2.6, "y": 0, "z": -1.7 }, "openRadiusM": 0.75 },
+  "spawn": { "id": "main", "position": { "x": 2.6, "y": 0, "z": -1.64 }, "openRadiusM": 0.75 },
   "seats": [
     { "id": "seat-01", "position": { "x": -1.5, "y": 0, "z": 1.15 }, "yaw": 3.141593, "seatHeight": 0.47, "radius": 0.4, "componentId": "chair-01" },
     { "id": "seat-02", "position": { "x": -0.5, "y": 0, "z": 1.15 }, "yaw": 3.141593, "seatHeight": 0.47, "radius": 0.4, "componentId": "chair-02" },
@@ -104,9 +104,9 @@
     { "surfaceId": "whiteboard-wall", "widthM": 2.4, "heightM": 1.25, "position": { "x": 3.4, "y": 1.5, "z": 0.5 }, "yaw": -1.5707963267948966 }
   ],
   "reviewViews": [
-    { "id": "entry", "position": { "x": 2.6, "y": 1.6, "z": -1.7 }, "target": { "x": 0, "y": 1.2, "z": 0 }, "fovDegrees": 58 },
+    { "id": "entry", "position": { "x": 2.6, "y": 1.6, "z": -1.64 }, "target": { "x": 0, "y": 1.2, "z": 0 }, "fovDegrees": 58 },
     { "id": "participant", "position": { "x": -1.5, "y": 1.6, "z": 1.15 }, "target": { "x": 0, "y": 1.4, "z": 2.4 }, "fovDegrees": 55 },
-    { "id": "presenter", "position": { "x": 0, "y": 1.6, "z": 2 }, "target": { "x": 0, "y": 1.2, "z": 0 }, "fovDegrees": 60 },
+    { "id": "presenter", "position": { "x": 0, "y": 1.6, "z": 1.94 }, "target": { "x": 0, "y": 1.2, "z": 0 }, "fovDegrees": 60 },
     { "id": "diagonal-overview", "position": { "x": -2.8, "y": 1.6, "z": -2 }, "target": { "x": 0, "y": 1.2, "z": 0 }, "fovDegrees": 62 }
   ],
   "assetLedgerPath": "provenance/asset-ledger.json",

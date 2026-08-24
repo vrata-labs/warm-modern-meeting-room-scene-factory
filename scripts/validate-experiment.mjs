@@ -629,7 +629,7 @@ const sceneContractReport = parseSceneContract({
   generationLedgerText: generationLedgerFixtureText
 });
 assert(sceneContractReport.status === "stage3-scene-contract-valid", "stage3_scene_contract_invalid");
-assert(sceneContractReport.specificationSha256 === "189556b9da4ecf9f318049d0ad8e5ac67b1216057221aa5e49ecb3d88dc59cc5", "stage3_scene_fixture_digest_mismatch");
+assert(sceneContractReport.specificationSha256 === "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91", "stage3_scene_fixture_digest_mismatch");
 assert(sceneContractReport.assetLedgerSha256 === "bc8dc412b38eb85c7a46cb96a5292f806e430fcfa2956f188d39a07fcd9f6d85", "stage3_asset_fixture_digest_mismatch");
 assert(sceneContractReport.generationLedgerSha256 === "39ef74d47488966b8e9b4df9541ba039085260a2a8fb75d9add3804558491c51", "stage3_generation_fixture_digest_mismatch");
 
