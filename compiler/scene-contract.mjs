@@ -545,18 +545,31 @@ function validateScene(scene, assets, generations, issues) {
   for (const [id, generation] of generations) if (generation.status === "accepted" && !referencedGenerations.has(id)) issues.push(`accepted_generation_orphaned:${id}`);
   exactKeys(scene.clearance, clearanceKeys, "clearance_keys_invalid", issues);
   const routes = idMap(scene.clearance?.routes, "clearance_route", issues);
+  const clearanceInsets = { north: 0, east: 0, south: 0, west: 0 };
+  for (const detail of scene.architecturalDetails) {
+    if (detail.kind !== "baseboard") continue;
+    const profile = profiles.get(detail.profileId);
+    if (profile) clearanceInsets[detail.wall] = Math.max(clearanceInsets[detail.wall], profile.depthM);
+  }
   if (!isObject(scene.clearance) || !Number.isFinite(scene.clearance.minimumRouteWidthM) || scene.clearance.minimumRouteWidthM < 0.9 || routes.size !== 10) issues.push("clearance_invalid");
   for (const [id, route] of routes) {
     exactKeys(route, clearanceRouteKeys, `clearance_route_keys_invalid:${id}`, issues);
     if (!Number.isFinite(route.widthM) || route.widthM < scene.clearance.minimumRouteWidthM || !denseArray(route.points) || route.points.length < 2) issues.push(`clearance_route_invalid:${id}`);
     else route.points.forEach((point, index) => {
       if (!horizontalPointValid(point, `clearance_point:${id}:${index}`, issues) || Math.abs(point.x) > room.widthM / 2 || Math.abs(point.z) > room.depthM / 2) issues.push(`clearance_point_out_of_bounds:${id}:${index}`);
-      if (index > 0 && (Math.abs(point.x) + route.widthM / 2 > room.widthM / 2 || Math.abs(point.z) + route.widthM / 2 > room.depthM / 2)) issues.push(`clearance_corridor_out_of_bounds:${id}:${index}`);
+      if (index > 0 && (point.x + route.widthM / 2 > room.widthM / 2 - room.wallThicknessM / 2 - clearanceInsets.east
+        || point.x - route.widthM / 2 < -room.widthM / 2 + room.wallThicknessM / 2 + clearanceInsets.west
+        || point.z + route.widthM / 2 > room.depthM / 2 - room.wallThicknessM / 2 - clearanceInsets.north
+        || point.z - route.widthM / 2 < -room.depthM / 2 + room.wallThicknessM / 2 + clearanceInsets.south)) issues.push(`clearance_corridor_out_of_bounds:${id}:${index}`);
       if (index > 0 && Math.hypot(point.x - route.points[index - 1].x, point.z - route.points[index - 1].z) < 1e-6) issues.push(`clearance_segment_empty:${id}:${index - 1}`);
     });
   }
   exactKeys(scene.spawn, spawnKeys, "spawn_keys_invalid", issues);
-  if (!isObject(scene.spawn) || scene.spawn.id !== "main" || !positionValid(scene.spawn.position, "spawn_position", issues) || !insideRoom(scene.spawn.position, room, 0.5) || Math.abs(scene.spawn.position.y - room.floorY) > 0.1 || !Number.isFinite(scene.spawn.openRadiusM) || scene.spawn.openRadiusM < 0.75 || Math.abs(scene.spawn.position.x) + scene.spawn.openRadiusM > room.widthM / 2 || Math.abs(scene.spawn.position.z) + scene.spawn.openRadiusM > room.depthM / 2) issues.push("anchor_out_of_bounds:main");
+  if (!isObject(scene.spawn) || scene.spawn.id !== "main" || !positionValid(scene.spawn.position, "spawn_position", issues) || !insideRoom(scene.spawn.position, room, 0.5) || Math.abs(scene.spawn.position.y - room.floorY) > 0.1 || !Number.isFinite(scene.spawn.openRadiusM) || scene.spawn.openRadiusM < 0.75
+    || scene.spawn.position.x + scene.spawn.openRadiusM > room.widthM / 2 - room.wallThicknessM / 2 - clearanceInsets.east
+    || scene.spawn.position.x - scene.spawn.openRadiusM < -room.widthM / 2 + room.wallThicknessM / 2 + clearanceInsets.west
+    || scene.spawn.position.z + scene.spawn.openRadiusM > room.depthM / 2 - room.wallThicknessM / 2 - clearanceInsets.north
+    || scene.spawn.position.z - scene.spawn.openRadiusM < -room.depthM / 2 + room.wallThicknessM / 2 + clearanceInsets.south) issues.push("anchor_out_of_bounds:main");
   if (isObject(scene.spawn) && positionValid(scene.spawn.position, "spawn_collision_position", issues) && Number.isFinite(scene.spawn.openRadiusM)) for (const [componentId, component] of components) {
     if (component.transform?.position?.y >= 2 || !isObject(component.dimensions)) continue;
     const position = component.transform.position;
