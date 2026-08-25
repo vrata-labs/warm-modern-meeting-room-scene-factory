@@ -1,0 +1,6 @@
+{
+  "target": "assetLedger",
+  "path": "records.2.source.repositoryPath",
+  "value": "source/components/component-constructions.json",
+  "expectedIssue": "component_construction_source_path_invalid:asset-component-constructions"
+}

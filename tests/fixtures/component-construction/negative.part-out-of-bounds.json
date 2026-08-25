@@ -1,0 +1,6 @@
+{
+  "target": "componentConstruction",
+  "path": "families.1.parts.0.localTransform.position.x",
+  "value": 0.1,
+  "expectedIssue": "component_construction_part_out_of_component_bounds:chair-01:seat"
+}
