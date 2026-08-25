@@ -1,0 +1,6 @@
+{
+  "target": "mediaSurfaceConstruction",
+  "path": "surfaces.0.purpose",
+  "value": "collaboration-whiteboard",
+  "expectedIssue": "schema_media_surface_construction:surfaces:0:purpose:const"
+}

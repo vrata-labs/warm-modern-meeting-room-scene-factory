@@ -1,0 +1,6 @@
+{
+  "target": "mediaSurfaceConstruction",
+  "path": "surfaces.0.widthM",
+  "value": 3.2,
+  "expectedIssue": "schema_media_surface_construction:surfaces:0:additionalProperties"
+}

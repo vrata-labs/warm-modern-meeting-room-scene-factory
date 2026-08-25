@@ -51,6 +51,7 @@ test("compiler source attestation covers every trusted build input and rejects o
     "schemas/asset-ledger.schema.json",
     "schemas/component-constructions.schema.json",
     "schemas/generation-ledger.schema.json",
+    "schemas/media-surface-constructions.schema.json",
     "schemas/scene-spec.schema.json",
     "experiment/warm-modern-meeting-room/candidate-lock.json",
     "package.json",

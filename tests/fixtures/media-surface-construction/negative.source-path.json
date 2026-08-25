@@ -1,0 +1,6 @@
+{
+  "target": "sourceRecord",
+  "path": "source.repositoryPath",
+  "value": "source/runtime/media-surface-constructions.json",
+  "expectedIssue": "media_surface_construction_source_path_invalid:asset-media-surface-constructions"
+}

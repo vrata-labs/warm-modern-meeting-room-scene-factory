@@ -11,6 +11,7 @@ const validateSceneSchema = ajv.compile(JSON.parse(readFileSync(new URL("../sche
 const validateAssetLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/asset-ledger.schema.json", import.meta.url), "utf8")));
 const validateGenerationLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/generation-ledger.schema.json", import.meta.url), "utf8")));
 const validateComponentConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/component-constructions.schema.json", import.meta.url), "utf8")));
+const validateMediaSurfaceConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/media-surface-constructions.schema.json", import.meta.url), "utf8")));
 
 const sceneKeys = ["architecturalDetails", "assetLedgerPath", "clearance", "components", "exterior", "generationLedgerPath", "generator", "lighting", "materialRecipes", "materialZones", "mediaSurfaces", "openings", "profiles", "reviewViews", "room", "sceneId", "schemaVersion", "seats", "spawn"];
 const generatorKeys = ["acceptedInputSha256", "blenderBuildHash", "blenderVersion", "commit", "repository", "seed"];
@@ -736,13 +737,14 @@ export function validateSceneContract(scene, assetLedger, generationLedger) {
   });
 }
 
-function snapshotParserTexts(options, includeComponentConstruction) {
+function snapshotParserTexts(options, constructionTextKey = null) {
   if (!isObject(options)) throw new SceneContractError(["parser_options_invalid"]);
   const sceneText = options.sceneText;
   const assetLedgerText = options.assetLedgerText;
   const generationLedgerText = options.generationLedgerText;
-  const componentConstructionText = includeComponentConstruction ? options.componentConstructionText : undefined;
-  return Object.freeze({ sceneText, assetLedgerText, generationLedgerText, componentConstructionText });
+  const texts = { sceneText, assetLedgerText, generationLedgerText };
+  if (constructionTextKey !== null) texts[constructionTextKey] = options[constructionTextKey];
+  return Object.freeze(texts);
 }
 
 function parseSceneContractSnapshot(texts) {
@@ -760,7 +762,7 @@ function parseSceneContractSnapshot(texts) {
 }
 
 export function parseSceneContract(options) {
-  return parseSceneContractSnapshot(snapshotParserTexts(options, false)).report;
+  return parseSceneContractSnapshot(snapshotParserTexts(options)).report;
 }
 
 const constructionFamilyIds = Object.freeze(["conference-av", "conference-table", "pendant-luminaire", "task-chair"]);
@@ -1047,10 +1049,68 @@ function validateComponentConstructionContract(scene, assetLedger, construction,
 }
 
 export function parseComponentConstructionContract(options) {
-  const texts = snapshotParserTexts(options, true);
+  const texts = snapshotParserTexts(options, "componentConstructionText");
   const sceneContract = parseSceneContractSnapshot(texts);
   const issues = [];
   const construction = parseStrictJson(texts.componentConstructionText, "component_construction", issues);
   if (issues.length !== 0) throw new SceneContractError(issues);
   return validateComponentConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.componentConstructionText, sceneContract.report);
+}
+
+function validateMediaSurfaceConstructionContract(scene, assetLedger, construction, constructionText, sceneReport) {
+  const issues = [];
+  collectNonFinite(construction, "mediaSurfaceConstruction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  applySchemaValidation(validateMediaSurfaceConstructionSchema, construction, "media_surface_construction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+
+  const constructionRawSha256 = sha256(constructionText);
+  const assets = new Map(assetLedger.records.map((record) => [record.id, record]));
+  if (construction.sceneId !== scene.sceneId) issues.push("media_surface_construction_scene_id_mismatch");
+
+  const source = assets.get(construction.sourceRecordId);
+  if (!source) issues.push(`media_surface_construction_source_unknown:${construction.sourceRecordId}`);
+  else {
+    if (source.kind === "generated-output" || source.source?.classification === "generated") issues.push(`media_surface_construction_source_generated:${construction.sourceRecordId}`);
+    else if (source.kind !== "project-authored-input" || source.source?.classification !== "project-authored") issues.push(`media_surface_construction_source_kind_invalid:${construction.sourceRecordId}`);
+    if (source.source?.repositoryPath !== "source/media-surface-constructions.json" || source.source?.publicUrl !== null) issues.push(`media_surface_construction_source_path_invalid:${construction.sourceRecordId}`);
+    if (source.originalSha256 !== constructionRawSha256) issues.push(`media_surface_construction_source_sha256_mismatch:${construction.sourceRecordId}`);
+    if (source.allowedUse?.webRuntime !== true || source.allowedUse?.redistribution !== true) issues.push(`media_surface_construction_source_use_invalid:${construction.sourceRecordId}`);
+  }
+  if (!scene.generator.acceptedInputSha256.includes(constructionRawSha256)) issues.push(`media_surface_construction_input_sha256_missing:${constructionRawSha256}`);
+
+  const sceneSurfaces = new Map(scene.mediaSurfaces.map((surface) => [surface.surfaceId, surface]));
+  const constructionSurfaces = new Map();
+  for (const surface of construction.surfaces) {
+    if (constructionSurfaces.has(surface.surfaceId)) issues.push(`media_surface_construction_surface_duplicate:${surface.surfaceId}`);
+    else constructionSurfaces.set(surface.surfaceId, surface);
+  }
+  for (const surfaceId of sceneSurfaces.keys()) if (!constructionSurfaces.has(surfaceId)) issues.push(`media_surface_construction_scene_surface_unresolved:${surfaceId}`);
+  for (const surfaceId of constructionSurfaces.keys()) if (!sceneSurfaces.has(surfaceId)) issues.push(`media_surface_construction_scene_surface_unknown:${surfaceId}`);
+
+  const resolvedSurfaceCount = [...constructionSurfaces.keys()].filter((surfaceId) => sceneSurfaces.has(surfaceId)).length;
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return Object.freeze({
+    ...sceneReport,
+    status: "stage3-media-surface-construction-contract-valid",
+    mediaSurfaceConstructionSha256: sha256(stableJson(construction)),
+    mediaSurfaceConstructionRawSha256: constructionRawSha256,
+    surfaceCount: construction.surfaces.length,
+    resolvedSurfaceCount,
+    representation: "platform-runtime-plane",
+    boundaries: Object.freeze({
+      mediaSurfacesSpecified: true,
+      mediaSurfacesCompiled: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false
+    })
+  });
+}
+
+export function parseMediaSurfaceConstructionContract(options) {
+  const texts = snapshotParserTexts(options, "mediaSurfaceConstructionText");
+  const sceneContract = parseSceneContractSnapshot(texts);
+  const construction = parseCanonicalJsonText(texts.mediaSurfaceConstructionText, "media_surface_construction");
+  if (`${JSON.stringify(construction, null, 2)}\n` !== texts.mediaSurfaceConstructionText) throw new SceneContractError(["media_surface_construction_encoding_noncanonical"]);
+  return validateMediaSurfaceConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.mediaSurfaceConstructionText, sceneContract.report);
 }
