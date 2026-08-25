@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/component-constructions.schema.json",
+  "title": "Warm Modern Meeting Room Candidate-Owned Component Constructions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "sourceRecordId", "families", "instanceMaterialOverrides"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "sourceRecordId": { "$ref": "#/$defs/id" },
+    "families": { "type": "array", "items": { "$ref": "#/$defs/family" }, "minItems": 4, "maxItems": 4 },
+    "instanceMaterialOverrides": { "type": "array", "items": { "$ref": "#/$defs/materialOverride" }, "minItems": 2, "maxItems": 2 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "heightM", "depthM"],
+      "properties": {
+        "widthM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "depthM": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "localTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "yaw"],
+      "properties": {
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 }
+      }
+    },
+    "bevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "segments", "clampOverlap"],
+      "properties": {
+        "widthM": { "type": "number", "exclusiveMinimum": 0 },
+        "segments": { "const": 3 },
+        "clampOverlap": { "const": true }
+      }
+    },
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "geometry", "dimensions", "localTransform", "bevel", "materialSlotId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "geometry": { "const": "beveled-box" },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "localTransform": { "$ref": "#/$defs/localTransform" },
+        "bevel": { "$ref": "#/$defs/bevel" },
+        "materialSlotId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "defaultMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "materialRecipeId"],
+      "properties": {
+        "slot": { "$ref": "#/$defs/id" },
+        "materialRecipeId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "defaultMaterials", "parts"],
+      "allOf": [
+        {
+          "if": { "properties": { "id": { "const": "conference-table" } }, "required": ["id"] },
+          "then": { "properties": { "parts": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "object", "properties": { "id": { "enum": ["top", "leg-negative-x", "leg-positive-x"] } } } } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "task-chair" } }, "required": ["id"] },
+          "then": { "properties": { "parts": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "object", "properties": { "id": { "enum": ["seat", "back", "leg-negative-x", "leg-positive-x"] } } } } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "conference-av" } }, "required": ["id"] },
+          "then": { "properties": { "parts": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object", "properties": { "id": { "const": "body" } } } } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "pendant-luminaire" } }, "required": ["id"] },
+          "then": { "properties": { "parts": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "object", "properties": { "id": { "enum": ["bar-negative-x", "bar-positive-x"] } } } } } }
+        }
+      ],
+      "properties": {
+        "id": { "enum": ["conference-table", "task-chair", "conference-av", "pendant-luminaire"] },
+        "defaultMaterials": { "type": "array", "items": { "$ref": "#/$defs/defaultMaterial" }, "minItems": 1 },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/part" }, "minItems": 1 }
+      }
+    },
+    "materialOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["componentId", "slot", "materialRecipeId"],
+      "properties": {
+        "componentId": { "enum": ["chair-02", "chair-07"] },
+        "slot": { "const": "upholstery" },
+        "materialRecipeId": { "const": "muted-grey-green-fabric" }
+      }
+    }
+  }
+}

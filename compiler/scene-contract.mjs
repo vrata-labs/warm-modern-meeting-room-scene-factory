@@ -10,6 +10,7 @@ addFormats(ajv);
 const validateSceneSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/scene-spec.schema.json", import.meta.url), "utf8")));
 const validateAssetLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/asset-ledger.schema.json", import.meta.url), "utf8")));
 const validateGenerationLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/generation-ledger.schema.json", import.meta.url), "utf8")));
+const validateComponentConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/component-constructions.schema.json", import.meta.url), "utf8")));
 
 const sceneKeys = ["architecturalDetails", "assetLedgerPath", "clearance", "components", "exterior", "generationLedgerPath", "generator", "lighting", "materialRecipes", "materialZones", "mediaSurfaces", "openings", "profiles", "reviewViews", "room", "sceneId", "schemaVersion", "seats", "spawn"];
 const generatorKeys = ["acceptedInputSha256", "blenderBuildHash", "blenderVersion", "commit", "repository", "seed"];
@@ -721,13 +722,306 @@ export function validateSceneContract(scene, assetLedger, generationLedger) {
   });
 }
 
-export function parseSceneContract(options) {
-  const issues = [];
+function snapshotParserTexts(options, includeComponentConstruction) {
   if (!isObject(options)) throw new SceneContractError(["parser_options_invalid"]);
-  const { sceneText, assetLedgerText, generationLedgerText } = options;
-  const scene = parseStrictJson(sceneText, "scene", issues);
-  const assetLedger = parseStrictJson(assetLedgerText, "asset_ledger", issues);
-  const generationLedger = parseStrictJson(generationLedgerText, "generation_ledger", issues);
+  const sceneText = options.sceneText;
+  const assetLedgerText = options.assetLedgerText;
+  const generationLedgerText = options.generationLedgerText;
+  const componentConstructionText = includeComponentConstruction ? options.componentConstructionText : undefined;
+  return Object.freeze({ sceneText, assetLedgerText, generationLedgerText, componentConstructionText });
+}
+
+function parseSceneContractSnapshot(texts) {
+  const issues = [];
+  const scene = parseStrictJson(texts.sceneText, "scene", issues);
+  const assetLedger = parseStrictJson(texts.assetLedgerText, "asset_ledger", issues);
+  const generationLedger = parseStrictJson(texts.generationLedgerText, "generation_ledger", issues);
   if (issues.length !== 0) throw new SceneContractError(issues);
-  return validateSceneContract(scene, assetLedger, generationLedger);
+  return Object.freeze({
+    scene,
+    assetLedger,
+    generationLedger,
+    report: validateSceneContract(scene, assetLedger, generationLedger)
+  });
+}
+
+export function parseSceneContract(options) {
+  return parseSceneContractSnapshot(snapshotParserTexts(options, false)).report;
+}
+
+const constructionFamilyIds = Object.freeze(["conference-av", "conference-table", "pendant-luminaire", "task-chair"]);
+const constructionFamilyPartIds = Object.freeze({
+  "conference-table": Object.freeze(["leg-negative-x", "leg-positive-x", "top"]),
+  "task-chair": Object.freeze(["back", "leg-negative-x", "leg-positive-x", "seat"]),
+  "conference-av": Object.freeze(["body"]),
+  "pendant-luminaire": Object.freeze(["bar-negative-x", "bar-positive-x"])
+});
+const constructionFamilyDefaultMaterials = Object.freeze({
+  "conference-table": Object.freeze({ surface: "warm-oak", frame: "graphite-metal" }),
+  "task-chair": Object.freeze({ upholstery: "sand-fabric", frame: "graphite-metal" }),
+  "conference-av": Object.freeze({ body: "graphite-metal" }),
+  "pendant-luminaire": Object.freeze({ housing: "graphite-metal" })
+});
+const constructionPartMaterialSlots = Object.freeze({
+  "conference-table": Object.freeze({ top: "surface", "leg-negative-x": "frame", "leg-positive-x": "frame" }),
+  "task-chair": Object.freeze({ seat: "upholstery", back: "upholstery", "leg-negative-x": "frame", "leg-positive-x": "frame" }),
+  "conference-av": Object.freeze({ body: "body" }),
+  "pendant-luminaire": Object.freeze({ "bar-negative-x": "housing", "bar-positive-x": "housing" })
+});
+const constructionOverrides = Object.freeze(new Map([
+  ["chair-02:upholstery", "muted-grey-green-fabric"],
+  ["chair-07:upholstery", "muted-grey-green-fabric"]
+]));
+const constructionMaterialRecipes = Object.freeze(new Map([
+  ["warm-oak", Object.freeze({ category: "wood", baseColorSrgb: "#A87543", roughness: 0.46, metalness: 0, textureScaleM: 0.18, sourceRecordId: "asset-material-project" })],
+  ["mineral-plaster", Object.freeze({ category: "mineral", baseColorSrgb: "#DDD6C8", roughness: 0.84, metalness: 0, textureScaleM: 0.5, sourceRecordId: "asset-material-project" })],
+  ["graphite-metal", Object.freeze({ category: "metal", baseColorSrgb: "#343A3C", roughness: 0.35, metalness: 0.7, textureScaleM: 0.2, sourceRecordId: "asset-material-project" })],
+  ["sand-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#B9A98E", roughness: 0.72, metalness: 0, textureScaleM: 0.003, sourceRecordId: "asset-material-project" })],
+  ["muted-grey-green-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#77877B", roughness: 0.76, metalness: 0, textureScaleM: 0.003, sourceRecordId: "asset-material-project" })]
+]));
+
+function validateConstructionMaterial(recipeId, context, recipes, assets, resolvedMaterials, issues) {
+  if (!recipes.has(recipeId)) {
+    issues.push(`component_construction_material_unknown:${context}:${recipeId}`);
+    return;
+  }
+  const recipe = recipes.get(recipeId);
+  const source = assets.get(recipe.sourceRecordId);
+  if (!source || !consumedAssetUsable(source)) issues.push(`component_construction_material_use_invalid:${context}:${recipeId}`);
+  resolvedMaterials.add(recipeId);
+}
+
+function worldPartHorizontal(component, part) {
+  const componentYaw = component.transform.yaw;
+  const localPosition = part.localTransform.position;
+  return {
+    x: component.transform.position.x + Math.cos(componentYaw) * localPosition.x - Math.sin(componentYaw) * localPosition.z,
+    z: component.transform.position.z + Math.sin(componentYaw) * localPosition.x + Math.cos(componentYaw) * localPosition.z,
+    yaw: componentYaw + part.localTransform.yaw,
+    widthM: part.dimensions.widthM,
+    depthM: part.dimensions.depthM
+  };
+}
+
+function rectangleContainsRectangle(container, contained) {
+  const containerCos = Math.cos(container.yaw);
+  const containerSin = Math.sin(container.yaw);
+  const containedCos = Math.cos(contained.yaw);
+  const containedSin = Math.sin(contained.yaw);
+  for (const xSign of [-1, 1]) for (const zSign of [-1, 1]) {
+    const localX = xSign * contained.widthM / 2;
+    const localZ = zSign * contained.depthM / 2;
+    const worldX = contained.x + containedCos * localX - containedSin * localZ;
+    const worldZ = contained.z + containedSin * localX + containedCos * localZ;
+    const deltaX = worldX - container.x;
+    const deltaZ = worldZ - container.z;
+    const containerX = containerCos * deltaX + containerSin * deltaZ;
+    const containerZ = -containerSin * deltaX + containerCos * deltaZ;
+    if (Math.abs(containerX) > container.widthM / 2 + 1e-9 || Math.abs(containerZ) > container.depthM / 2 + 1e-9) return false;
+  }
+  return true;
+}
+
+function validateComponentConstructionContract(scene, assetLedger, construction, constructionText, sceneReport) {
+  const issues = [];
+  collectNonFinite(construction, "componentConstruction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  applySchemaValidation(validateComponentConstructionSchema, construction, "component_construction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+
+  const constructionRawSha256 = sha256(constructionText);
+  const assets = new Map(assetLedger.records.map((record) => [record.id, record]));
+  const recipes = new Map(scene.materialRecipes.map((recipe) => [recipe.id, recipe]));
+  const components = new Map(scene.components.map((component) => [component.id, component]));
+  const seats = new Map(scene.seats.map((seat) => [seat.componentId, seat]));
+  const families = new Map();
+  const familySlots = new Map();
+  const resolvedMaterials = new Set();
+  const objectNames = new Set();
+  let resolvedPartCount = 0;
+
+  if (construction.sceneId !== scene.sceneId) issues.push("component_construction_scene_id_mismatch");
+  const source = assets.get(construction.sourceRecordId);
+  if (!source) issues.push(`component_construction_source_unknown:${construction.sourceRecordId}`);
+  else {
+    if (source.kind !== "project-authored-input" || source.source?.classification !== "project-authored") issues.push(`component_construction_source_kind_invalid:${construction.sourceRecordId}`);
+    if (source.source?.repositoryPath !== "source/component-constructions.json" || source.source?.publicUrl !== null) issues.push(`component_construction_source_path_invalid:${construction.sourceRecordId}`);
+    if (source.originalSha256 !== constructionRawSha256) issues.push(`component_construction_source_sha256_mismatch:${construction.sourceRecordId}`);
+    if (!consumedAssetUsable(source)) issues.push(`component_construction_source_use_invalid:${construction.sourceRecordId}`);
+  }
+  if (!scene.generator.acceptedInputSha256.includes(constructionRawSha256)) issues.push(`component_construction_input_sha256_missing:${constructionRawSha256}`);
+
+  if (scene.materialRecipes.length !== constructionMaterialRecipes.size) issues.push(`component_construction_material_recipe_count_invalid:${scene.materialRecipes.length}`);
+  for (const [recipeId, expected] of constructionMaterialRecipes) {
+    const recipe = recipes.get(recipeId);
+    if (!recipe) {
+      issues.push(`component_construction_material_recipe_missing:${recipeId}`);
+      continue;
+    }
+    for (const [field, value] of Object.entries(expected)) if (recipe[field] !== value) issues.push(`component_construction_material_recipe_mismatch:${recipeId}:${field}`);
+  }
+  for (const recipeId of recipes.keys()) if (!constructionMaterialRecipes.has(recipeId)) issues.push(`component_construction_material_recipe_unexpected:${recipeId}`);
+
+  for (const family of construction.families) {
+    if (families.has(family.id)) issues.push(`component_construction_family_duplicate:${family.id}`);
+    else families.set(family.id, family);
+  }
+  for (const familyId of constructionFamilyIds) if (!families.has(familyId)) issues.push(`component_construction_family_missing:${familyId}`);
+  for (const familyId of families.keys()) if (!constructionFamilyIds.includes(familyId)) issues.push(`component_construction_family_unexpected:${familyId}`);
+
+  const usedFamilies = new Set(scene.components.map((component) => component.family));
+  if (usedFamilies.size !== 4) issues.push("component_construction_used_family_count_invalid");
+  for (const familyId of usedFamilies) if (!families.has(familyId)) issues.push(`component_construction_scene_family_unresolved:${familyId}`);
+  for (const familyId of families.keys()) if (!usedFamilies.has(familyId)) issues.push(`component_construction_family_unused:${familyId}`);
+
+  for (const family of construction.families) {
+    const slots = new Map();
+    const usedSlots = new Set();
+    for (const mapping of family.defaultMaterials) {
+      if (slots.has(mapping.slot)) issues.push(`component_construction_slot_duplicate:${family.id}:${mapping.slot}`);
+      else slots.set(mapping.slot, mapping.materialRecipeId);
+      validateConstructionMaterial(mapping.materialRecipeId, `${family.id}:${mapping.slot}`, recipes, assets, resolvedMaterials, issues);
+    }
+    familySlots.set(family.id, slots);
+    const expectedDefaultMaterials = constructionFamilyDefaultMaterials[family.id] ?? {};
+    if (family.defaultMaterials.length !== Object.keys(expectedDefaultMaterials).length) issues.push(`component_construction_default_material_count_invalid:${family.id}:${family.defaultMaterials.length}`);
+    for (const [slot, recipeId] of Object.entries(expectedDefaultMaterials)) {
+      if (!slots.has(slot)) issues.push(`component_construction_default_material_missing:${family.id}:${slot}`);
+      else if (slots.get(slot) !== recipeId) issues.push(`component_construction_default_material_mismatch:${family.id}:${slot}`);
+    }
+    for (const slot of slots.keys()) if (!Object.hasOwn(expectedDefaultMaterials, slot)) issues.push(`component_construction_default_material_unexpected:${family.id}:${slot}`);
+    const partIds = new Set();
+    for (const part of family.parts) {
+      if (partIds.has(part.id)) issues.push(`component_construction_part_duplicate:${family.id}:${part.id}`);
+      else partIds.add(part.id);
+      if (!slots.has(part.materialSlotId)) issues.push(`component_construction_part_slot_unknown:${family.id}:${part.id}:${part.materialSlotId}`);
+      else usedSlots.add(part.materialSlotId);
+      const expectedMaterialSlot = constructionPartMaterialSlots[family.id]?.[part.id];
+      if (expectedMaterialSlot !== undefined && part.materialSlotId !== expectedMaterialSlot) issues.push(`component_construction_part_material_slot_mismatch:${family.id}:${part.id}`);
+      const dimensions = part.dimensions;
+      const position = part.localTransform.position;
+      const yaw = part.localTransform.yaw;
+      if (yaw !== 0) issues.push(`component_construction_part_yaw_invalid:${family.id}:${part.id}`);
+      const minimumDimension = Math.min(dimensions.widthM, dimensions.heightM, dimensions.depthM);
+      if (part.bevel.widthM > minimumDimension / 2 + 1e-9) issues.push(`component_construction_bevel_out_of_bounds:${family.id}:${part.id}`);
+      for (const component of scene.components.filter((record) => record.family === family.id)) {
+        const halfX = Math.abs(Math.cos(yaw)) * dimensions.widthM / 2 + Math.abs(Math.sin(yaw)) * dimensions.depthM / 2;
+        const halfZ = Math.abs(Math.sin(yaw)) * dimensions.widthM / 2 + Math.abs(Math.cos(yaw)) * dimensions.depthM / 2;
+        const localBottom = position.y - dimensions.heightM / 2;
+        const localTop = position.y + dimensions.heightM / 2;
+        if (position.x - halfX < -component.dimensions.widthM / 2 - 1e-9
+          || position.x + halfX > component.dimensions.widthM / 2 + 1e-9
+          || position.z - halfZ < -component.dimensions.depthM / 2 - 1e-9
+          || position.z + halfZ > component.dimensions.depthM / 2 + 1e-9
+          || localBottom < -1e-9
+          || localTop > component.dimensions.heightM + 1e-9) issues.push(`component_construction_part_out_of_component_bounds:${component.id}:${part.id}`);
+
+        const componentYaw = component.transform.yaw;
+        const worldX = component.transform.position.x + Math.cos(componentYaw) * position.x - Math.sin(componentYaw) * position.z;
+        const worldZ = component.transform.position.z + Math.sin(componentYaw) * position.x + Math.cos(componentYaw) * position.z;
+        const worldYaw = componentYaw + yaw;
+        const worldHalfX = Math.abs(Math.cos(worldYaw)) * dimensions.widthM / 2 + Math.abs(Math.sin(worldYaw)) * dimensions.depthM / 2;
+        const worldHalfZ = Math.abs(Math.sin(worldYaw)) * dimensions.widthM / 2 + Math.abs(Math.cos(worldYaw)) * dimensions.depthM / 2;
+        const worldBottom = component.transform.position.y + localBottom;
+        const worldTop = component.transform.position.y + localTop;
+        const interiorHalfWidth = scene.room.widthM / 2 - scene.room.wallThicknessM / 2;
+        const interiorHalfDepth = scene.room.depthM / 2 - scene.room.wallThicknessM / 2;
+        if (Math.abs(worldX) + worldHalfX > interiorHalfWidth + 1e-9
+          || Math.abs(worldZ) + worldHalfZ > interiorHalfDepth + 1e-9
+          || worldBottom < scene.room.floorY - 1e-9
+          || worldTop > scene.room.ceilingY + 1e-9) issues.push(`component_construction_part_world_bounds_invalid:${component.id}:${part.id}`);
+
+        const objectName = `component.${component.id}.${part.id}`;
+        if (objectNames.has(objectName)) issues.push(`component_construction_object_name_duplicate:${objectName}`);
+        objectNames.add(objectName);
+        resolvedPartCount += 1;
+      }
+    }
+    const expectedPartIds = constructionFamilyPartIds[family.id] ?? [];
+    if (family.parts.length !== expectedPartIds.length) issues.push(`component_construction_family_part_count_invalid:${family.id}:${family.parts.length}`);
+    for (const partId of expectedPartIds) if (!partIds.has(partId)) issues.push(`component_construction_family_part_missing:${family.id}:${partId}`);
+    for (const partId of partIds) if (!expectedPartIds.includes(partId)) issues.push(`component_construction_family_part_unexpected:${family.id}:${partId}`);
+    for (const slot of slots.keys()) if (!usedSlots.has(slot)) issues.push(`component_construction_slot_unused:${family.id}:${slot}`);
+  }
+
+  for (const component of scene.components) {
+    if (component.sourceRecordId !== construction.sourceRecordId) issues.push(`component_construction_component_source_mismatch:${component.id}`);
+    if (component.generationRecordId !== null) issues.push(`component_construction_component_generation_invalid:${component.id}`);
+  }
+
+  const overrideKeys = new Set();
+  if (construction.instanceMaterialOverrides.length !== constructionOverrides.size) issues.push(`component_construction_override_count_invalid:${construction.instanceMaterialOverrides.length}`);
+  for (const override of construction.instanceMaterialOverrides) {
+    const key = `${override.componentId}:${override.slot}`;
+    if (overrideKeys.has(key)) issues.push(`component_construction_override_duplicate:${key}`);
+    else overrideKeys.add(key);
+    const component = components.get(override.componentId);
+    if (!component) {
+      issues.push(`component_construction_override_component_unknown:${override.componentId}`);
+      continue;
+    }
+    const slots = familySlots.get(component.family);
+    if (!slots?.has(override.slot)) issues.push(`component_construction_override_slot_unknown:${key}`);
+    else if (slots.get(override.slot) === override.materialRecipeId) issues.push(`component_construction_override_unused:${key}`);
+    if (constructionOverrides.get(key) !== override.materialRecipeId) issues.push(`component_construction_override_exact_invalid:${key}`);
+    validateConstructionMaterial(override.materialRecipeId, key, recipes, assets, resolvedMaterials, issues);
+  }
+  for (const key of constructionOverrides.keys()) if (!overrideKeys.has(key)) issues.push(`component_construction_override_missing:${key}`);
+
+  const chairFamily = families.get("task-chair");
+  const chairSeat = chairFamily?.parts.find((part) => part.id === "seat");
+  const chairBack = chairFamily?.parts.find((part) => part.id === "back");
+  if (!chairSeat) issues.push("component_construction_chair_seat_missing");
+  else for (const component of scene.components.filter((record) => record.family === "task-chair")) {
+    const seat = seats.get(component.id);
+    if (!seat) continue;
+    const seatHeight = seat.position.y + seat.seatHeight;
+    const partBottom = component.transform.position.y + chairSeat.localTransform.position.y - chairSeat.dimensions.heightM / 2;
+    const partTop = component.transform.position.y + chairSeat.localTransform.position.y + chairSeat.dimensions.heightM / 2;
+    if (seatHeight < partBottom - 1e-9 || seatHeight > partTop + 1e-9) issues.push(`component_construction_seat_height_miss:${seat.id}:${component.id}`);
+  }
+  if (!chairBack) issues.push("component_construction_chair_back_missing");
+  else if (chairBack.localTransform.position.z + chairBack.dimensions.depthM / 2 > 1e-9) issues.push("component_construction_chair_back_direction_invalid");
+
+  const table = scene.components.find((component) => component.family === "conference-table");
+  const av = scene.components.find((component) => component.family === "conference-av");
+  const tableTop = families.get("conference-table")?.parts.find((part) => part.id === "top");
+  const avBody = families.get("conference-av")?.parts.find((part) => part.id === "body");
+  if (!table || !av || !tableTop || !avBody) issues.push("component_construction_av_table_parts_missing");
+  else {
+    const tableTopY = table.transform.position.y + tableTop.localTransform.position.y + tableTop.dimensions.heightM / 2;
+    const avBottomY = av.transform.position.y + avBody.localTransform.position.y - avBody.dimensions.heightM / 2;
+    if (Math.abs(tableTopY - avBottomY) > 1e-9) issues.push("component_construction_av_table_height_mismatch");
+    if (!rectangleContainsRectangle(worldPartHorizontal(table, tableTop), worldPartHorizontal(av, avBody))) issues.push("component_construction_av_table_horizontal_mismatch");
+  }
+
+  if (resolvedPartCount !== 38) issues.push(`component_construction_part_count_invalid:${resolvedPartCount}`);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return Object.freeze({
+    ...sceneReport,
+    status: "stage3-component-construction-contract-valid",
+    componentConstructionSha256: sha256(stableJson(construction)),
+    componentConstructionRawSha256: constructionRawSha256,
+    familyCount: families.size,
+    partCount: resolvedPartCount,
+    overrideCount: construction.instanceMaterialOverrides.length,
+    resolvedComponentCount: components.size,
+    resolvedMaterialCount: resolvedMaterials.size,
+    objectNamePattern: "component.<componentId>.<partId>",
+    boundaries: Object.freeze({
+      componentsSpecified: true,
+      componentsCompiled: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false
+    })
+  });
+}
+
+export function parseComponentConstructionContract(options) {
+  const texts = snapshotParserTexts(options, true);
+  const sceneContract = parseSceneContractSnapshot(texts);
+  const issues = [];
+  const construction = parseStrictJson(texts.componentConstructionText, "component_construction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return validateComponentConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.componentConstructionText, sceneContract.report);
 }

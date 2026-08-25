@@ -1,0 +1,6 @@
+{
+  "target": "componentConstruction",
+  "path": "families.1.parts.0.localTransform.position.y",
+  "value": 0.3,
+  "expectedIssue": "component_construction_seat_height_miss:seat-01:chair-01"
+}

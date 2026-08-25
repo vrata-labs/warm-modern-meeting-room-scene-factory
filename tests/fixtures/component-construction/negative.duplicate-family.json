@@ -1,0 +1,6 @@
+{
+  "target": "componentConstruction",
+  "path": "families.1.id",
+  "value": "conference-table",
+  "expectedIssue": "schema_component_construction:families:1:parts:maxItems"
+}

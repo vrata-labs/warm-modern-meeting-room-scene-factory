@@ -54,6 +54,15 @@ schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The check
 scene specification remains a neutral synthetic contract fixture. Its fail-closed
 compiler and reproducibility paths remain unchanged.
 
+The separate candidate-owned component construction slice is exposed through
+`schemas/component-constructions.schema.json` and
+`parseComponentConstructionContract`. It strictly binds project-authored
+beveled-box family parts and instance material overrides to an already valid
+scene contract while leaving route and spawn checks on the existing component
+envelopes. The checked-in fixture specifies 4 used families and 38 resolved
+parts for contract testing only. It does not compile Blender components, verify
+a final candidate GLB, change Candidate 01 readiness, or permit publication.
+
 The approved Candidate 01 architecture slice reads the four fixed source files
 only as Git blobs at the commit pinned by `candidate-lock.json`; candidate source
 files are not copied into this repository. The loader verifies the three canonical
@@ -87,4 +96,6 @@ two-run byte-identity gates instead of skipping them.
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
 scorecard, fairness protocol, cross-repository locks, and the Stage 3 scene and
-provenance contract fixtures.
+provenance contract fixtures. Component construction tests separately cover
+strict JSON, schema exposure, provenance closure, material bindings, local and
+world geometry bounds, furniture relationships, and non-readiness boundaries.

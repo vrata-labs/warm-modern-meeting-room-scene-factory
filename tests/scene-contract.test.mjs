@@ -194,11 +194,12 @@ test("media surface may share a wall interval with an opening when vertically se
   assert.equal(validateSceneContract(value.scene, value.assetLedger, value.generationLedger).status, "stage3-scene-contract-valid");
 });
 
-test("scene and ledger schemas expose the complete Stage 3 contract", async () => {
-  const [sceneSchema, assetSchema, generationSchema] = await Promise.all([
+test("scene, ledger, and separate component construction schemas expose their scoped Stage 3 contracts", async () => {
+  const [sceneSchema, assetSchema, generationSchema, componentConstructionSchema] = await Promise.all([
     fixture("../../../schemas/scene-spec.schema.json").then(JSON.parse),
     fixture("../../../schemas/asset-ledger.schema.json").then(JSON.parse),
-    fixture("../../../schemas/generation-ledger.schema.json").then(JSON.parse)
+    fixture("../../../schemas/generation-ledger.schema.json").then(JSON.parse),
+    fixture("../../../schemas/component-constructions.schema.json").then(JSON.parse)
   ]);
   assert.equal(sceneSchema.properties.room.properties.polygon.minItems, 4);
   assert.equal(sceneSchema.properties.openings.minItems, 2);
@@ -208,4 +209,7 @@ test("scene and ledger schemas expose the complete Stage 3 contract", async () =
   assert.equal(assetSchema.$defs.record.properties.license.required.includes("redistribution"), true);
   assert.equal(generationSchema.$defs.record.properties.cleanupMinutes.maximum, 45);
   assert.equal(generationSchema.$defs.record.properties.outputSha256.maxItems, 128);
+  assert.equal(componentConstructionSchema.additionalProperties, false);
+  assert.deepEqual(componentConstructionSchema.$defs.family.properties.id.enum, ["conference-table", "task-chair", "conference-av", "pendant-luminaire"]);
+  assert.equal(componentConstructionSchema.$defs.part.properties.geometry.const, "beveled-box");
 });
