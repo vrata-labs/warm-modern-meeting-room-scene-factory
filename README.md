@@ -62,13 +62,31 @@ beveled-box family parts and two instance material overrides to an already valid
 scene contract while leaving route and spawn checks on the existing component
 envelopes. The checked-in fixture remains contract-test data only.
 
-The F3 prerequisite is exposed through
+The F3 media-surface contract and deterministic projection are exposed through
 `schemas/media-surface-constructions.schema.json` and
-`parseMediaSurfaceConstructionContract`. It binds the two scene media-surface
-IDs to exact runtime-plane purpose, pixel, front-face, and input semantics while
-leaving physical dimensions, position, and yaw solely in the scene specification.
-It specifies no Blender or GLB compilation and does not make the candidate ready
-for publication.
+`parseMediaSurfaceConstructionContract`, `loadApprovedCandidateMediaSurfaceSource`,
+`compileApprovedCandidateMediaSurfaces`, and
+`verifyApprovedCandidateMediaSurfacesReproducibility`. The hardened loader reads
+exactly six Git blobs at Candidate 01 commit
+`26d3af6e2720576113431c22b9443533b919f390`, verifies the locked commit, tree,
+blob identities, raw and canonical hashes, counts, provenance, accepted inputs,
+and both component and media-surface semantic reports without a worktree or
+network fallback. The compiler emits only an external canonical pretty-JSON
+runtime manifest. Manifest and report targets are rejected anywhere under either
+the Scene Factory root or the resolved trusted Candidate root. Each output is
+written to a randomized same-parent exclusive temp file, read back and validated,
+then published with an atomic no-clobber hard link; failures remove partial temps
+and only the final inodes created by that invocation. Physical position, yaw,
+width, and height come solely from the
+scene specification; representation, pixels, front face, and input semantics
+come solely from media-surface constructions. Purpose stays logical and is not
+projected. Two runs must produce byte-identical 1022-byte manifest bytes with
+SHA-256 `352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb`.
+That exact 1022-byte, two-surface, `platform-runtime-plane`, byte-identical
+evidence is pinned separately as `mediaSurfaceProjectionEvidence` in the active
+Candidate lock.
+No Blender geometry, GLB, exterior, or lighting is compiled, and final, release,
+repository-inclusion, and publication boundaries remain false.
 
 The F1 Candidate 01 architecture baseline remains pinned separately at commit
 `df564befcd65cb51a345fa9d315e40cadef6e563`, with its four Git blobs, canonical
@@ -80,7 +98,8 @@ geometry, transforms, material assignments, and three scalar material records.
 F2 compile-plan, reopened-Blend, and decoded-GLB projections must all match that
 same pinned F1 digest.
 
-The F2 component slice reads exactly five Git blobs at Candidate 01 commit
+The F2 component baseline remains isolated under `componentBaseline` and reads
+exactly five Git blobs at Candidate 01 commit
 `8fec157a37bf619797f1ff200ccc32f611f94c18`: scene, asset ledger, generation
 ledger, concept selection, and component constructions. The hardened loader has
 no network fallback and verifies every blob identity/raw hash/size, all canonical
@@ -103,10 +122,12 @@ Compiler and reproducibility reports retain the complete path-to-SHA-256 map, an
 readiness validation independently recomputes it. Candidate lock and readiness
 consumers reject duplicate JSON keys and noncanonical text encodings.
 
-Single-run reports keep `componentGlbByteIdentical` false. Only the two-run
-reproducibility report sets that component-scoped result true. Exterior, lighting,
-media surfaces, final candidate GLB verification, publication readiness, and
-repository inclusion of scene binaries remain explicitly false.
+Single-run F2 reports keep `componentGlbByteIdentical` false. Only the two-run F2
+reproducibility report sets that component-scoped result true. Single-run F3
+reports set `mediaSurfacesCompiled` true and `byteIdentical` false; only two-run
+F3 reproducibility sets `byteIdentical` true. Exterior, lighting, final candidate
+GLB verification, release creation, publication readiness, and repository
+inclusion of artifact bytes remain explicitly false.
 
 The neutral low-fidelity concept gate selected the functional correction of
 Concept 03 and assigned its exact validated specification to Candidate 01 without
@@ -126,9 +147,10 @@ The Candidate 01 architecture tests require a separate local checkout through
 to the exact locked Blender 4.5.12 binary to run the compile, reopen, and
 two-run byte-identity gates instead of skipping them.
 
-The same checkout must contain the exact locked component commit. CI checks out
-`8fec157a37bf619797f1ff200ccc32f611f94c18` outside this repository with full
-history so both the current F2 blobs and historical F1 baseline are available.
+The same checkout must contain the exact locked F3 commit. CI checks out
+`26d3af6e2720576113431c22b9443533b919f390` outside this repository with full
+history so the current F3 source, F2 component baseline, and historical F1
+architecture baseline are all available.
 
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
@@ -136,4 +158,7 @@ scorecard, fairness protocol, cross-repository locks, and the Stage 3 scene and
 provenance contract fixtures. Component tests additionally cover the five-blob
 lock, exact construction expansion, material overrides, applied bevel topology,
 binary GLB geometry and inventory, reopen evidence, reproducibility, and focused
-negative cases. No production-track mapping is recorded.
+negative cases. Media-surface tests cover the six-blob lock, source ownership,
+canonical projection bytes, reproducibility, hostile Git/worktree drift,
+malformed projections, and fail-closed output handling. No production-track
+mapping is recorded.

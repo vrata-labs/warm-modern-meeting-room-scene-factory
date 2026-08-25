@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: vrata-labs/warm-modern-meeting-room-candidate-01
-          ref: 8fec157a37bf619797f1ff200ccc32f611f94c18
+          ref: 26d3af6e2720576113431c22b9443533b919f390
           fetch-depth: 0
           path: candidate-01
 

@@ -3,11 +3,13 @@ import { pathToFileURL } from "node:url";
 import {
   verifyApprovedCandidateArchitectureReproducibility,
   verifyApprovedCandidateComponentsReproducibility,
+  verifyApprovedCandidateMediaSurfacesReproducibility,
   verifySyntheticRoomReproducibility
 } from "./compile-room-shell.mjs";
 
 const candidateArchitectureInputKind = "approved-candidate-architecture";
 const candidateComponentInputKind = "approved-candidate-components";
+const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
 
 function parseCli(arguments_) {
   const values = {};
@@ -17,10 +19,13 @@ function parseCli(arguments_) {
     if (!flag?.startsWith("--") || value === undefined || values[flag] !== undefined) throw new Error("room_reproducibility_cli_arguments_invalid");
     values[flag] = value;
   }
-  if ([candidateArchitectureInputKind, candidateComponentInputKind].includes(values["--input-kind"])) {
+  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateMediaSurfaceInputKind].includes(values["--input-kind"])) {
+    const mediaSurfaces = values["--input-kind"] === candidateMediaSurfaceInputKind;
     const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-directory", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key))
-      || ["--blender", "--output-directory", "--report"].some((key) => values[key] === undefined)) throw new Error("room_reproducibility_cli_arguments_invalid");
+      || ["--output-directory", "--report"].some((key) => values[key] === undefined)
+      || (!mediaSurfaces && values["--blender"] === undefined)
+      || (mediaSurfaces && values["--blender"] !== undefined)) throw new Error("room_reproducibility_cli_arguments_invalid");
     return {
       inputKind: values["--input-kind"],
       options: {
@@ -53,7 +58,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ? await verifyApprovedCandidateArchitectureReproducibility(cli.options)
       : cli.inputKind === candidateComponentInputKind
         ? await verifyApprovedCandidateComponentsReproducibility(cli.options)
-        : await verifySyntheticRoomReproducibility(cli.options);
+        : cli.inputKind === candidateMediaSurfaceInputKind
+          ? await verifyApprovedCandidateMediaSurfacesReproducibility(cli.options)
+          : await verifySyntheticRoomReproducibility(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_reproducibility_failed"}\n`);
