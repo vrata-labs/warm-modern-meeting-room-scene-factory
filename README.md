@@ -49,11 +49,11 @@ and compiler work. Production/public publication remains blocked on DINO/model
 rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separate
 publication signoff.
 
-The Stage 3 contract defines exact scene, asset-ledger, generation-ledger, and
-component-construction schemas plus Ajv Draft 2020-12 and semantic validation in
-`compiler/`. The checked-in scene specification remains a neutral synthetic
-contract fixture. Its fail-closed compiler and reproducibility paths remain
-unchanged.
+The Stage 3 contract defines exact scene, asset-ledger, generation-ledger,
+component-construction, and media-surface-construction schemas plus Ajv Draft
+2020-12 and semantic validation in `compiler/`. The checked-in scene
+specification remains a neutral synthetic contract fixture. Its fail-closed
+compiler and reproducibility paths remain unchanged.
 
 The candidate-owned component construction contract is exposed through
 `schemas/component-constructions.schema.json` and
@@ -61,6 +61,14 @@ The candidate-owned component construction contract is exposed through
 beveled-box family parts and two instance material overrides to an already valid
 scene contract while leaving route and spawn checks on the existing component
 envelopes. The checked-in fixture remains contract-test data only.
+
+The F3 prerequisite is exposed through
+`schemas/media-surface-constructions.schema.json` and
+`parseMediaSurfaceConstructionContract`. It binds the two scene media-surface
+IDs to exact runtime-plane purpose, pixel, front-face, and input semantics while
+leaving physical dimensions, position, and yaw solely in the scene specification.
+It specifies no Blender or GLB compilation and does not make the candidate ready
+for publication.
 
 The F1 Candidate 01 architecture baseline remains pinned separately at commit
 `df564befcd65cb51a345fa9d315e40cadef6e563`, with its four Git blobs, canonical
@@ -89,7 +97,7 @@ and object material-slot evidence. Decoded normals must be finite and unit lengt
 declared accessor bounds must match decoded values, and the pinned Khronos
 `gltf-validator` gate must report zero errors and zero warnings.
 
-Compiler source attestation covers every compiler entrypoint, all four Stage 3
+Compiler source attestation covers every compiler entrypoint, all five Stage 3
 schemas, the candidate lock, and the exact package manifest and pnpm lockfile.
 Compiler and reproducibility reports retain the complete path-to-SHA-256 map, and
 readiness validation independently recomputes it. Candidate lock and readiness

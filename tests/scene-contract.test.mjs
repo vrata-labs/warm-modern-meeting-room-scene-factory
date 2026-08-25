@@ -194,12 +194,13 @@ test("media surface may share a wall interval with an opening when vertically se
   assert.equal(validateSceneContract(value.scene, value.assetLedger, value.generationLedger).status, "stage3-scene-contract-valid");
 });
 
-test("scene, ledger, and separate component construction schemas expose their scoped Stage 3 contracts", async () => {
-  const [sceneSchema, assetSchema, generationSchema, componentConstructionSchema] = await Promise.all([
+test("scene, ledger, and separate construction schemas expose their scoped Stage 3 contracts", async () => {
+  const [sceneSchema, assetSchema, generationSchema, componentConstructionSchema, mediaSurfaceConstructionSchema] = await Promise.all([
     fixture("../../../schemas/scene-spec.schema.json").then(JSON.parse),
     fixture("../../../schemas/asset-ledger.schema.json").then(JSON.parse),
     fixture("../../../schemas/generation-ledger.schema.json").then(JSON.parse),
-    fixture("../../../schemas/component-constructions.schema.json").then(JSON.parse)
+    fixture("../../../schemas/component-constructions.schema.json").then(JSON.parse),
+    fixture("../../../schemas/media-surface-constructions.schema.json").then(JSON.parse)
   ]);
   assert.equal(sceneSchema.properties.room.properties.polygon.minItems, 4);
   assert.equal(sceneSchema.properties.openings.minItems, 2);
@@ -212,4 +213,8 @@ test("scene, ledger, and separate component construction schemas expose their sc
   assert.equal(componentConstructionSchema.additionalProperties, false);
   assert.deepEqual(componentConstructionSchema.$defs.family.properties.id.enum, ["conference-table", "task-chair", "conference-av", "pendant-luminaire"]);
   assert.equal(componentConstructionSchema.$defs.part.properties.geometry.const, "beveled-box");
+  assert.equal(mediaSurfaceConstructionSchema.additionalProperties, false);
+  assert.equal(mediaSurfaceConstructionSchema.properties.surfaces.minItems, 2);
+  assert.equal(mediaSurfaceConstructionSchema.properties.surfaces.maxItems, 2);
+  assert.equal(mediaSurfaceConstructionSchema.$defs.debugMain.properties.representation.const, "platform-runtime-plane");
 });

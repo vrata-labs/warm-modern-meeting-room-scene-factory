@@ -1,0 +1,13 @@
+{
+  "target": "mediaSurfaceConstruction",
+  "path": "surfaces.1",
+  "value": {
+    "surfaceId": "debug-main",
+    "purpose": "presentation-display",
+    "representation": "platform-runtime-plane",
+    "pixelDimensions": { "width": 1920, "height": 1080 },
+    "frontFace": "local-positive-z",
+    "input": { "enabled": true, "maxDistanceM": 0.05 }
+  },
+  "expectedIssue": "media_surface_construction_surface_duplicate:debug-main"
+}

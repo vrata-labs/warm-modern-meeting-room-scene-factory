@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/media-surface-constructions.schema.json",
+  "title": "Warm Modern Meeting Room Candidate-Owned Media Surface Constructions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "sourceRecordId", "surfaces"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "sourceRecordId": { "$ref": "#/$defs/id" },
+    "surfaces": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/surface" },
+      "minItems": 2,
+      "maxItems": 2
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "maxDistanceM"],
+      "properties": {
+        "enabled": { "const": true },
+        "maxDistanceM": { "const": 0.05 }
+      }
+    },
+    "debugMain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceId", "purpose", "representation", "pixelDimensions", "frontFace", "input"],
+      "properties": {
+        "surfaceId": { "const": "debug-main" },
+        "purpose": { "const": "presentation-display" },
+        "representation": { "const": "platform-runtime-plane" },
+        "pixelDimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "const": 1920 },
+            "height": { "const": 1080 }
+          }
+        },
+        "frontFace": { "const": "local-positive-z" },
+        "input": { "$ref": "#/$defs/input" }
+      }
+    },
+    "whiteboardWall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceId", "purpose", "representation", "pixelDimensions", "frontFace", "input"],
+      "properties": {
+        "surfaceId": { "const": "whiteboard-wall" },
+        "purpose": { "const": "collaboration-whiteboard" },
+        "representation": { "const": "platform-runtime-plane" },
+        "pixelDimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "const": 1920 },
+            "height": { "const": 1000 }
+          }
+        },
+        "frontFace": { "const": "local-positive-z" },
+        "input": { "$ref": "#/$defs/input" }
+      }
+    },
+    "surface": {
+      "oneOf": [
+        { "$ref": "#/$defs/debugMain" },
+        { "$ref": "#/$defs/whiteboardWall" }
+      ]
+    }
+  }
+}
