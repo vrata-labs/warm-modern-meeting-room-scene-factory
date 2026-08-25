@@ -1,13 +1,18 @@
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
-import { lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { createHash, randomBytes } from "node:crypto";
+import { link, lstat, mkdtemp, open, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, extname, relative, resolve } from "node:path";
+import { basename, dirname, extname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import gltfValidator from "gltf-validator";
 
-import { parseCanonicalJsonText, parseComponentConstructionContract, parseSceneContract } from "./scene-contract.mjs";
+import {
+  parseCanonicalJsonText,
+  parseComponentConstructionContract,
+  parseMediaSurfaceConstructionContract,
+  parseSceneContract
+} from "./scene-contract.mjs";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "..");
@@ -23,7 +28,8 @@ const candidatePaths = Object.freeze({
   assetLedger: "provenance/asset-ledger.json",
   generationLedger: "provenance/generation-ledger.json",
   conceptSelection: "source/concept-selection.json",
-  componentConstruction: "source/component-constructions.json"
+  componentConstruction: "source/component-constructions.json",
+  mediaSurfaceConstruction: "source/media-surface-constructions.json"
 });
 export const compilerSourceAttestationPaths = Object.freeze([
   "compiler/blender-room-shell.py",
@@ -44,6 +50,9 @@ const blenderTimeoutMs = 300_000;
 const syntheticInputKind = "synthetic-fixture";
 const candidateArchitectureInputKind = "approved-candidate-architecture";
 const candidateComponentInputKind = "approved-candidate-components";
+const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
+export const mediaSurfaceOutputFaultInjection = Symbol("mediaSurfaceOutputFaultInjection");
+const publishedMediaSurfaceOutputs = Symbol("publishedMediaSurfaceOutputs");
 const gitProtocolDenyArguments = Object.freeze(["file", "git", "http", "https", "ssh"].flatMap((protocol) => ["-c", `protocol.${protocol}.allow=never`]));
 const gitEnvironmentNames = Object.freeze(process.platform === "win32"
   ? ["COMSPEC", "PATH", "PATHEXT", "SYSTEMROOT", "TEMP", "TMP", "WINDIR"]
@@ -110,10 +119,10 @@ async function exactRegularFile(path, label) {
   return resolved;
 }
 
-async function newExternalOutput(path, extension, label) {
+async function newExternalOutput(path, extension, label, forbiddenRoots = [repositoryRoot]) {
   if (typeof path !== "string" || path.length === 0) throw new Error(`${label}_invalid`);
   const resolved = resolve(path);
-  if (inside(repositoryRoot, resolved) || extname(resolved) !== extension) throw new Error(`${label}_invalid`);
+  if (forbiddenRoots.some((root) => inside(root, resolved)) || extname(resolved) !== extension) throw new Error(`${label}_invalid`);
   const parent = resolve(dirname(resolved));
   const parentMetadata = await lstat(parent).catch(() => null);
   if (!parentMetadata?.isDirectory() || parentMetadata.isSymbolicLink() || await realpath(parent) !== parent) throw new Error(`${label}_parent_invalid`);
@@ -131,10 +140,135 @@ async function externalDirectory(path, label) {
   return resolved;
 }
 
+async function externalOutputDirectory(path, label, forbiddenRoots) {
+  if (typeof path !== "string" || path.length === 0) throw new Error(`${label}_invalid`);
+  const resolved = resolve(path);
+  const metadata = await lstat(resolved).catch(() => null);
+  if (forbiddenRoots.some((root) => inside(root, resolved))
+    || !metadata?.isDirectory()
+    || metadata.isSymbolicLink()
+    || await realpath(resolved) !== resolved) throw new Error(`${label}_invalid`);
+  return resolved;
+}
+
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
   return JSON.stringify(value);
+}
+
+function mediaSurfaceOutputFault(options, artifact) {
+  const value = options?.[mediaSurfaceOutputFaultInjection];
+  if (value === undefined) return null;
+  if (!exactKeys(value, ["artifact", "phase"])
+    || !["manifest", "compile-report", "reproducibility-report"].includes(value.artifact)
+    || !["after-partial-write", "after-write", "before-link", "after-link"].includes(value.phase)) {
+    throw new Error("media_surface_output_fault_injection_invalid");
+  }
+  return value.artifact === artifact ? value.phase : null;
+}
+
+async function removePublishedMediaSurfaceOutput(record) {
+  let metadata;
+  try {
+    metadata = await lstat(record.path);
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+  if (metadata?.isFile() && !metadata.isSymbolicLink() && metadata.dev === record.dev && metadata.ino === record.ino) {
+    await rm(record.path, { force: true });
+  }
+}
+
+async function removePublishedMediaSurfaceOutputs(records) {
+  const results = await Promise.allSettled(records.map(removePublishedMediaSurfaceOutput));
+  const failures = results.filter(({ status }) => status === "rejected").map(({ reason }) => reason);
+  if (failures.length !== 0) throw new AggregateError(failures, "media_surface_output_cleanup_failed");
+}
+
+async function publishMediaSurfaceOutputAtomically({ finalPath, bytes, label, validate, faultPhase }) {
+  const parent = dirname(finalPath);
+  let temporaryPath;
+  let temporaryHandle;
+  let temporaryOwned = false;
+  let finalCreated = false;
+  let finalRecord;
+  try {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      temporaryPath = resolve(parent, `.${basename(finalPath)}.${randomBytes(16).toString("hex")}.tmp`);
+      try {
+        temporaryHandle = await open(temporaryPath, "wx", 0o600);
+        temporaryOwned = true;
+        break;
+      } catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+      }
+    }
+    if (!temporaryHandle) throw new Error(`${label}_temporary_name_exhausted`);
+    if (faultPhase === "after-partial-write") {
+      await temporaryHandle.writeFile(bytes.subarray(0, Math.max(1, Math.floor(bytes.length / 2))));
+      await temporaryHandle.sync();
+      throw new Error(`${label}_fault_after_partial_write`);
+    }
+    await temporaryHandle.writeFile(bytes);
+    await temporaryHandle.sync();
+    if (faultPhase === "after-write") throw new Error(`${label}_fault_after_write`);
+    await temporaryHandle.close();
+    temporaryHandle = null;
+
+    const temporaryBytes = await readFile(temporaryPath);
+    if (!temporaryBytes.equals(bytes)) throw new Error(`${label}_temporary_bytes_mismatch`);
+    await validate(temporaryBytes);
+    if (faultPhase === "before-link") throw new Error(`${label}_fault_before_link`);
+    await link(temporaryPath, finalPath);
+    finalCreated = true;
+    const finalMetadata = await lstat(finalPath);
+    if (!finalMetadata.isFile() || finalMetadata.isSymbolicLink() || await realpath(finalPath) !== finalPath) {
+      throw new Error(`${label}_published_file_invalid`);
+    }
+    finalRecord = Object.freeze({ path: finalPath, dev: finalMetadata.dev, ino: finalMetadata.ino });
+    if (faultPhase === "after-link") throw new Error(`${label}_fault_after_link`);
+    await rm(temporaryPath, { force: true });
+    temporaryOwned = false;
+    return finalRecord;
+  } catch (error) {
+    const failures = [];
+    if (temporaryHandle) {
+      try {
+        await temporaryHandle.close();
+      } catch (closeError) {
+        failures.push(closeError);
+      }
+    }
+    const cleanup = [];
+    if (temporaryOwned && temporaryPath) cleanup.push(rm(temporaryPath, { force: true }));
+    if (finalCreated) cleanup.push(finalRecord
+      ? removePublishedMediaSurfaceOutput(finalRecord)
+      : rm(finalPath, { force: true }));
+    const results = await Promise.allSettled(cleanup);
+    failures.push(...results.filter(({ status }) => status === "rejected").map(({ reason }) => reason));
+    if (failures.length !== 0) throw new AggregateError([error, ...failures], `${label}_cleanup_failed`);
+    throw error;
+  }
+}
+
+function validateMediaSurfaceReportBytes(bytes, report, label) {
+  const text = bytes.toString("utf8");
+  const parsed = parseCanonicalJsonText(text, label);
+  if (text !== `${stableJson(report)}\n` || stableJson(parsed) !== stableJson(report)) throw new Error(`${label}_invalid`);
+}
+
+async function loadTrustedMediaSurfaceSource(options) {
+  const candidateRepositoryPath = await externalDirectory(
+    options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR,
+    "approved_candidate_repository"
+  );
+  const source = await loadApprovedCandidateMediaSurfaceSource({
+    candidateRepositoryPath,
+    candidateCommit: options.candidateCommit
+  });
+  return Object.freeze({ source, candidateRepositoryPath });
 }
 
 async function readFixture(path, expected, label) {
@@ -189,7 +323,8 @@ async function readGitBlob(repositoryPath, commit, path) {
 export function parseCandidateLockText(text) {
   const lock = parseCanonicalJsonText(text, "candidate_lock");
   const candidate = lock?.candidates?.candidate01;
-  const baseline = candidate?.architectureBaseline;
+  const architectureBaseline = candidate?.architectureBaseline;
+  const componentBaseline = candidate?.componentBaseline;
   const hashFieldsValid = (value, fields) => fields.every((field) => /^[0-9a-f]{64}$/.test(value?.[field] ?? ""));
   const inputBlobsValid = (value, paths) => value && typeof value === "object"
     && Object.keys(value).sort().join(",") === [...paths].sort().join(",")
@@ -201,7 +336,7 @@ export function parseCandidateLockText(text) {
     && /^[0-9a-f]{64}$/.test(value?.sha256 ?? "")
     && value?.objectCount === 19
     && value?.materialCount === 3;
-  const componentGlbEvidence = candidate?.componentGlbEvidence;
+  const componentGlbEvidence = componentBaseline?.componentGlbEvidence;
   const khronosEvidence = componentGlbEvidence?.khronosValidator;
   const componentGlbEvidenceValid = /^[0-9a-f]{64}$/.test(componentGlbEvidence?.sha256 ?? "")
     && Number.isSafeInteger(componentGlbEvidence?.byteLength) && componentGlbEvidence.byteLength > 0
@@ -216,40 +351,110 @@ export function parseCandidateLockText(text) {
     && khronosEvidence?.warnings === 0
     && Number.isSafeInteger(khronosEvidence?.infos) && khronosEvidence.infos >= 0
     && Number.isSafeInteger(khronosEvidence?.hints) && khronosEvidence.hints >= 0;
+  const componentCountsValid = stableJson(componentBaseline?.counts) === stableJson({
+    assetRecordCount: 2,
+    generationRecordCount: 0,
+    familyCount: 4,
+    partCount: 38,
+    overrideCount: 2,
+    componentCount: 11,
+    resolvedComponentCount: 11,
+    materialCount: 5,
+    resolvedMaterialCount: 4,
+    seatCount: 8
+  });
+  const mediaSurfaceCountsValid = stableJson(candidate?.counts) === stableJson({
+    assetRecordCount: 3,
+    generationRecordCount: 0,
+    familyCount: 4,
+    partCount: 38,
+    overrideCount: 2,
+    componentCount: 11,
+    resolvedComponentCount: 11,
+    materialCount: 5,
+    resolvedMaterialCount: 4,
+    seatCount: 8,
+    surfaceCount: 2,
+    resolvedSurfaceCount: 2
+  });
+  const boundariesValid = stableJson(candidate?.boundaries) === stableJson({
+    mediaSurfacesCompiled: false,
+    exteriorCompiled: false,
+    lightingCompiled: false,
+    finalCandidateGlbVerified: false,
+    releaseArtifactsCreated: false,
+    publicationReady: false,
+    artifactBytesIncludedInRepository: false
+  });
+  const projectionEvidenceValid = stableJson(candidate?.mediaSurfaceProjectionEvidence) === stableJson({
+    sha256: "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
+    byteLength: 1022,
+    mediaSurfaceCount: 2,
+    representation: "platform-runtime-plane",
+    byteIdentical: true
+  });
   if (lock?.schemaVersion !== 2
     || typeof candidate?.repository !== "string"
     || !/^[0-9a-f]{40}$/.test(candidate?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(candidate?.treeOid ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.sceneContractValidatorCommit ?? "")
     || !/^[0-9a-f]{40}$/.test(lock?.platformValidatorCommit ?? "")
-    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256"])
-    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 2
+    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256"])
+    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 3
     || candidate.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
     || !inputBlobsValid(candidate.inputBlobs, Object.values(candidatePaths))
+    || !mediaSurfaceCountsValid
+    || !projectionEvidenceValid
+    || !boundariesValid
+    || candidate.release !== null
+    || !/^[0-9a-f]{40}$/.test(componentBaseline?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(componentBaseline?.treeOid ?? "")
+    || !/^[0-9a-f]{40}$/.test(componentBaseline?.sceneContractValidatorCommit ?? "")
+    || !hashFieldsValid(componentBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256"])
+    || !Array.isArray(componentBaseline?.acceptedInputSha256) || componentBaseline.acceptedInputSha256.length !== 2
+    || componentBaseline.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
+    || !inputBlobsValid(componentBaseline?.inputBlobs, Object.values(candidatePaths).filter((path) => path !== candidatePaths.mediaSurfaceConstruction))
+    || !componentCountsValid
     || !componentGlbEvidenceValid
-    || !/^[0-9a-f]{40}$/.test(baseline?.commit ?? "")
-    || !/^[0-9a-f]{40}$/.test(baseline?.sceneContractValidatorCommit ?? "")
-    || !hashFieldsValid(baseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256"])
-    || !Array.isArray(baseline.acceptedInputSha256) || baseline.acceptedInputSha256.length !== 1
-    || !semanticEvidenceValid(baseline.semanticEvidence)
-    || !inputBlobsValid(baseline.inputBlobs, Object.values(candidatePaths).filter((path) => path !== candidatePaths.componentConstruction))) {
+    || !/^[0-9a-f]{40}$/.test(architectureBaseline?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(architectureBaseline?.sceneContractValidatorCommit ?? "")
+    || !hashFieldsValid(architectureBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256"])
+    || !Array.isArray(architectureBaseline.acceptedInputSha256) || architectureBaseline.acceptedInputSha256.length !== 1
+    || !semanticEvidenceValid(architectureBaseline.semanticEvidence)
+    || !inputBlobsValid(architectureBaseline.inputBlobs, Object.values(candidatePaths).filter((path) => ![candidatePaths.componentConstruction, candidatePaths.mediaSurfaceConstruction].includes(path)))) {
     throw new Error("approved_candidate_lock_invalid");
   }
   return Object.freeze({
     repository: candidate.repository,
     platformValidatorCommit: lock.platformValidatorCommit,
-    component: Object.freeze({
+    mediaSurface: Object.freeze({
       ...candidate,
       validatorCommit: candidate.sceneContractValidatorCommit
     }),
+    component: Object.freeze({
+      ...componentBaseline,
+      validatorCommit: componentBaseline.sceneContractValidatorCommit
+    }),
     architecture: Object.freeze({
-      ...baseline,
-      validatorCommit: baseline.sceneContractValidatorCommit
+      ...architectureBaseline,
+      validatorCommit: architectureBaseline.sceneContractValidatorCommit
     })
   });
 }
 
 async function loadCandidateLock() {
   return parseCandidateLockText(await readFile(candidateLockPath, "utf8"));
+}
+
+async function verifyLockedCandidateCommit(candidateRepositoryPath, lock, errorCode) {
+  try {
+    const topLevel = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--show-toplevel"], "utf8")).trim();
+    const commit = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--verify", `${lock.commit}^{commit}`], "utf8")).trim();
+    const treeOid = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--verify", `${lock.commit}^{tree}`], "utf8")).trim();
+    if (resolve(topLevel) !== candidateRepositoryPath || commit !== lock.commit || treeOid !== lock.treeOid) throw new Error("invalid_repository");
+  } catch {
+    throw new Error(errorCode);
+  }
 }
 
 export function validateCompilerSourceAttestation(attestation) {
@@ -353,20 +558,14 @@ export async function loadApprovedCandidateComponentSource(options = {}) {
   const lock = candidateLock.component;
   if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_component_commit_not_locked");
   const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
-  try {
-    const topLevel = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--show-toplevel"], "utf8")).trim();
-    const commit = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--verify", `${lock.commit}^{commit}`], "utf8")).trim();
-    if (resolve(topLevel) !== candidateRepositoryPath || commit !== lock.commit) throw new Error("invalid_repository");
-  } catch {
-    throw new Error("approved_candidate_component_commit_missing");
-  }
+  await verifyLockedCandidateCommit(candidateRepositoryPath, lock, "approved_candidate_component_commit_missing");
 
   const blobs = await Promise.all([
-    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.scene),
-    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.assetLedger),
-    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.generationLedger),
-    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.conceptSelection),
-    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.componentConstruction)
+    readGitBlob(candidateRepositoryPath, lock.treeOid, candidatePaths.scene),
+    readGitBlob(candidateRepositoryPath, lock.treeOid, candidatePaths.assetLedger),
+    readGitBlob(candidateRepositoryPath, lock.treeOid, candidatePaths.generationLedger),
+    readGitBlob(candidateRepositoryPath, lock.treeOid, candidatePaths.conceptSelection),
+    readGitBlob(candidateRepositoryPath, lock.treeOid, candidatePaths.componentConstruction)
   ]);
   verifyLockedInputBlobs(blobs, lock.inputBlobs);
   const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
@@ -435,6 +634,7 @@ export async function loadApprovedCandidateComponentSource(options = {}) {
     candidateSource: Object.freeze({
       repository: candidateLock.repository,
       commit: lock.commit,
+      treeOid: lock.treeOid,
       validatorCommit: lock.validatorCommit,
       platformValidatorCommit: candidateLock.platformValidatorCommit,
       inputBlobs
@@ -447,6 +647,124 @@ export async function loadApprovedCandidateComponentSource(options = {}) {
       componentConstructionRawSha256: contract.componentConstructionRawSha256
     }),
     counts: Object.freeze({ ...counts })
+  });
+}
+
+export async function loadApprovedCandidateMediaSurfaceSource(options = {}) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_media_surface_source_options_invalid");
+  const candidateLock = await loadCandidateLock();
+  const lock = candidateLock.mediaSurface;
+  if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_media_surface_commit_not_locked");
+  const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
+  await verifyLockedCandidateCommit(candidateRepositoryPath, lock, "approved_candidate_media_surface_commit_missing");
+
+  const blobs = await Promise.all(Object.values(candidatePaths).map((path) => readGitBlob(candidateRepositoryPath, lock.treeOid, path)));
+  verifyLockedInputBlobs(blobs, lock.inputBlobs);
+  const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
+  const sceneBlob = blobByPath.get(candidatePaths.scene);
+  const assetLedgerBlob = blobByPath.get(candidatePaths.assetLedger);
+  const generationLedgerBlob = blobByPath.get(candidatePaths.generationLedger);
+  const conceptSelectionBlob = blobByPath.get(candidatePaths.conceptSelection);
+  const componentConstructionBlob = blobByPath.get(candidatePaths.componentConstruction);
+  const mediaSurfaceConstructionBlob = blobByPath.get(candidatePaths.mediaSurfaceConstruction);
+  const sceneText = sceneBlob.bytes.toString("utf8");
+  const assetLedgerText = assetLedgerBlob.bytes.toString("utf8");
+  const generationLedgerText = generationLedgerBlob.bytes.toString("utf8");
+  const componentConstructionText = componentConstructionBlob.bytes.toString("utf8");
+  const mediaSurfaceConstructionText = mediaSurfaceConstructionBlob.bytes.toString("utf8");
+  const commonTexts = { sceneText, assetLedgerText, generationLedgerText };
+  const componentContract = parseComponentConstructionContract({ ...commonTexts, componentConstructionText });
+  const mediaSurfaceContract = parseMediaSurfaceConstructionContract({ ...commonTexts, mediaSurfaceConstructionText });
+  const counts = lock.counts;
+  const commonContractInvalid = [componentContract, mediaSurfaceContract].some((contract) => (
+    contract.specificationSha256 !== lock.specificationSha256
+      || contract.assetLedgerSha256 !== lock.assetLedgerSha256
+      || contract.generationLedgerSha256 !== lock.generationLedgerSha256
+      || contract.assetRecordCount !== counts.assetRecordCount
+      || contract.generationRecordCount !== counts.generationRecordCount
+      || contract.componentCount !== counts.componentCount
+      || contract.seatCount !== counts.seatCount
+  ));
+  if (commonContractInvalid
+    || componentContract.componentConstructionSha256 !== lock.componentConstructionSha256
+    || componentContract.componentConstructionRawSha256 !== lock.componentConstructionRawSha256
+    || componentContract.familyCount !== counts.familyCount
+    || componentContract.partCount !== counts.partCount
+    || componentContract.overrideCount !== counts.overrideCount
+    || componentContract.resolvedComponentCount !== counts.resolvedComponentCount
+    || componentContract.resolvedMaterialCount !== counts.resolvedMaterialCount
+    || mediaSurfaceContract.mediaSurfaceConstructionSha256 !== lock.mediaSurfaceConstructionSha256
+    || mediaSurfaceContract.mediaSurfaceConstructionRawSha256 !== lock.mediaSurfaceConstructionRawSha256
+    || mediaSurfaceContract.surfaceCount !== counts.surfaceCount
+    || mediaSurfaceContract.resolvedSurfaceCount !== counts.resolvedSurfaceCount) {
+    throw new Error("approved_candidate_media_surface_contract_lock_mismatch");
+  }
+
+  const scene = JSON.parse(sceneText);
+  const assetLedger = JSON.parse(assetLedgerText);
+  const componentConstruction = JSON.parse(componentConstructionText);
+  const mediaSurfaceConstruction = JSON.parse(mediaSurfaceConstructionText);
+  const acceptedSources = [conceptSelectionBlob, componentConstructionBlob, mediaSurfaceConstructionBlob];
+  const provenancePaths = [candidatePaths.conceptSelection, candidatePaths.componentConstruction, candidatePaths.mediaSurfaceConstruction];
+  const provenanceRecords = provenancePaths.map((path) => assetLedger.records.filter((record) => record?.source?.repositoryPath === path));
+  const semanticBoundariesValid = componentContract.boundaries?.componentsSpecified === true
+    && componentContract.boundaries?.componentsCompiled === false
+    && componentContract.boundaries?.finalCandidateGlbVerified === false
+    && componentContract.boundaries?.publicationReady === false
+    && mediaSurfaceContract.boundaries?.mediaSurfacesSpecified === true
+    && mediaSurfaceContract.boundaries?.mediaSurfacesCompiled === false
+    && mediaSurfaceContract.boundaries?.finalCandidateGlbVerified === false
+    && mediaSurfaceContract.boundaries?.publicationReady === false;
+  if (scene.generator?.commit !== lock.validatorCommit
+    || scene.materialRecipes.length !== counts.materialCount
+    || provenanceRecords.some((records) => records.length !== 1)
+    || provenanceRecords.some((records, index) => records[0].originalSha256 !== acceptedSources[index].rawSha256)
+    || stableJson(scene.generator.acceptedInputSha256) !== stableJson(lock.acceptedInputSha256)
+    || scene.generator.acceptedInputSha256.some((digest, index) => digest !== acceptedSources[index].rawSha256)
+    || !semanticBoundariesValid
+    || Object.values(lock.boundaries).some((value) => value !== false)
+    || lock.release !== null) {
+    throw new Error("approved_candidate_media_surface_provenance_mismatch");
+  }
+
+  const inputBlobs = Object.freeze(Object.fromEntries(blobs.map((blob) => [blob.path, Object.freeze({
+    gitBlobOid: blob.gitBlobOid,
+    rawSha256: blob.rawSha256,
+    byteLength: blob.byteLength
+  })])));
+  return Object.freeze({
+    inputKind: candidateMediaSurfaceInputKind,
+    fixtureOnly: false,
+    sceneBytes: Buffer.from(sceneBlob.bytes),
+    componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
+    mediaSurfaceConstructionBytes: Buffer.from(mediaSurfaceConstructionBlob.bytes),
+    scene,
+    componentConstruction,
+    mediaSurfaceConstruction,
+    componentContract,
+    mediaSurfaceContract,
+    semanticReports: Object.freeze({ component: componentContract, mediaSurfaces: mediaSurfaceContract }),
+    acceptedInputSha256: Object.freeze([...scene.generator.acceptedInputSha256]),
+    candidateSource: Object.freeze({
+      repository: candidateLock.repository,
+      commit: lock.commit,
+      treeOid: lock.treeOid,
+      validatorCommit: lock.validatorCommit,
+      platformValidatorCommit: candidateLock.platformValidatorCommit,
+      inputBlobs
+    }),
+    canonicalHashes: Object.freeze({
+      specificationSha256: componentContract.specificationSha256,
+      assetLedgerSha256: componentContract.assetLedgerSha256,
+      generationLedgerSha256: componentContract.generationLedgerSha256,
+      componentConstructionSha256: componentContract.componentConstructionSha256,
+      componentConstructionRawSha256: componentContract.componentConstructionRawSha256,
+      mediaSurfaceConstructionSha256: mediaSurfaceContract.mediaSurfaceConstructionSha256,
+      mediaSurfaceConstructionRawSha256: mediaSurfaceContract.mediaSurfaceConstructionRawSha256
+    }),
+    counts: Object.freeze({ ...counts }),
+    mediaSurfaceProjectionEvidence: Object.freeze({ ...lock.mediaSurfaceProjectionEvidence }),
+    boundaries: Object.freeze({ ...lock.boundaries })
   });
 }
 
@@ -1442,6 +1760,239 @@ export async function compileApprovedCandidateComponents(options) {
   return compileRoomArchitecture(options, await loadApprovedCandidateComponentSource(options));
 }
 
+function expectedMediaSurfaceProjection(source) {
+  const semanticById = new Map(source.mediaSurfaceConstruction.surfaces.map((surface) => [surface.surfaceId, surface]));
+  const mediaSurfaces = source.scene.mediaSurfaces.map((physical) => {
+    const semantic = semanticById.get(physical.surfaceId);
+    if (!semantic) throw new Error(`approved_candidate_media_surface_semantics_missing:${physical.surfaceId}`);
+    return {
+      surfaceId: physical.surfaceId,
+      representation: semantic.representation,
+      position: { x: physical.position.x, y: physical.position.y, z: physical.position.z },
+      yaw: physical.yaw,
+      widthM: physical.widthM,
+      heightM: physical.heightM,
+      pixelDimensions: { width: semantic.pixelDimensions.width, height: semantic.pixelDimensions.height },
+      frontFace: semantic.frontFace,
+      input: { enabled: semantic.input.enabled, maxDistanceM: semantic.input.maxDistanceM }
+    };
+  });
+  if (mediaSurfaces.length !== semanticById.size) throw new Error("approved_candidate_media_surface_projection_set_mismatch");
+  return {
+    schemaVersion: 1,
+    sceneId: source.scene.sceneId,
+    mediaSurfaces
+  };
+}
+
+export function validateApprovedCandidateMediaSurfaceProjection(projection, source) {
+  if (!source || typeof source !== "object" || source.inputKind !== candidateMediaSurfaceInputKind) {
+    throw new Error("approved_candidate_media_surface_projection_source_invalid");
+  }
+  const expected = expectedMediaSurfaceProjection(source);
+  if (!exactKeys(projection, ["mediaSurfaces", "sceneId", "schemaVersion"])
+    || !Array.isArray(projection.mediaSurfaces)
+    || projection.mediaSurfaces.some((surface) => !exactKeys(surface, ["frontFace", "heightM", "input", "pixelDimensions", "position", "representation", "surfaceId", "widthM", "yaw"])
+      || !exactKeys(surface.position, ["x", "y", "z"])
+      || !exactKeys(surface.pixelDimensions, ["height", "width"])
+      || !exactKeys(surface.input, ["enabled", "maxDistanceM"]))
+    || stableJson(projection) !== stableJson(expected)) {
+    throw new Error("approved_candidate_media_surface_projection_invalid");
+  }
+  return Object.freeze(projection);
+}
+
+export function parseApprovedCandidateMediaSurfaceProjectionText(text, source) {
+  const projection = parseCanonicalJsonText(text, "approved_candidate_media_surface_projection");
+  if (`${JSON.stringify(projection, null, 2)}\n` !== text) throw new Error("approved_candidate_media_surface_projection_encoding_noncanonical");
+  return validateApprovedCandidateMediaSurfaceProjection(projection, source);
+}
+
+function mediaSurfaceProjectionBoundaries(byteIdentical) {
+  return {
+    mediaSurfacesCompiled: true,
+    byteIdentical,
+    exteriorCompiled: false,
+    lightingCompiled: false,
+    finalCandidateGlbVerified: false,
+    releaseArtifactsCreated: false,
+    publicationReady: false,
+    artifactBytesIncludedInRepository: false
+  };
+}
+
+export async function compileApprovedCandidateMediaSurfaces(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_media_surface_compile_options_invalid");
+  const { source, candidateRepositoryPath } = await loadTrustedMediaSurfaceSource(options);
+  const sourceHashes = await compilerSourceSha256();
+  const forbiddenRoots = [repositoryRoot, candidateRepositoryPath];
+  const outputManifestPath = await newExternalOutput(options.outputManifestPath, ".json", "media_surface_manifest_output", forbiddenRoots);
+  const reportPath = await newExternalOutput(options.reportPath, ".json", "media_surface_manifest_report", forbiddenRoots);
+  if (outputManifestPath === reportPath) throw new Error("media_surface_manifest_output_paths_conflict");
+  const manifestFault = mediaSurfaceOutputFault(options, "manifest");
+  const reportFault = mediaSurfaceOutputFault(options, "compile-report");
+
+  const projection = expectedMediaSurfaceProjection(source);
+  validateApprovedCandidateMediaSurfaceProjection(projection, source);
+  const projectionBytes = Buffer.from(`${JSON.stringify(projection, null, 2)}\n`);
+  parseApprovedCandidateMediaSurfaceProjectionText(projectionBytes.toString("utf8"), source);
+  const projectionEvidence = Object.freeze({
+    sha256: sha256(projectionBytes),
+    byteLength: projectionBytes.length,
+    mediaSurfaceCount: projection.mediaSurfaces.length
+  });
+  if (stableJson({
+    ...projectionEvidence,
+    representation: source.mediaSurfaceContract.representation,
+    byteIdentical: true
+  }) !== stableJson(source.mediaSurfaceProjectionEvidence)) throw new Error("media_surface_projection_evidence_mismatch");
+  const boundaries = mediaSurfaceProjectionBoundaries(false);
+  const publishedRecords = [];
+  const report = {
+    schemaVersion: 1,
+    status: "stage3-approved-candidate-media-surfaces-compiled",
+    fixtureOnly: false,
+    sceneId: source.scene.sceneId,
+    approvedCandidateSpecification: true,
+    mediaSurfacesSpecified: true,
+    mediaSurfacesCompiled: true,
+    byteIdentical: false,
+    exteriorCompiled: false,
+    lightingCompiled: false,
+    finalCandidateGlbVerified: false,
+    releaseArtifactsCreated: false,
+    publicationReady: false,
+    artifactBytesIncludedInRepository: false,
+    candidateSource: source.candidateSource,
+    canonicalHashes: source.canonicalHashes,
+    acceptedInputSha256: source.acceptedInputSha256,
+    semanticReports: source.semanticReports,
+    compilerSourceSha256: sourceHashes,
+    projection: projectionEvidence,
+    boundaries
+  };
+  Object.defineProperty(report, publishedMediaSurfaceOutputs, { value: publishedRecords });
+  Object.freeze(report);
+  const reportBytes = Buffer.from(`${stableJson(report)}\n`);
+  try {
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: outputManifestPath,
+      bytes: projectionBytes,
+      label: "media_surface_manifest_output",
+      faultPhase: manifestFault,
+      validate: async (writtenProjectionBytes) => {
+        if (sha256(writtenProjectionBytes) !== projectionEvidence.sha256
+          || writtenProjectionBytes.length !== projectionEvidence.byteLength) throw new Error("media_surface_manifest_output_digest_mismatch");
+        parseApprovedCandidateMediaSurfaceProjectionText(writtenProjectionBytes.toString("utf8"), source);
+      }
+    }));
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: reportPath,
+      bytes: reportBytes,
+      label: "media_surface_manifest_report",
+      faultPhase: reportFault,
+      validate: async (writtenReportBytes) => validateMediaSurfaceReportBytes(writtenReportBytes, report, "media_surface_manifest_report")
+    }));
+    Object.freeze(publishedRecords);
+    return report;
+  } catch (error) {
+    try {
+      await removePublishedMediaSurfaceOutputs(publishedRecords);
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "media_surface_manifest_compile_cleanup_failed");
+    }
+    throw error;
+  }
+}
+
+export async function verifyApprovedCandidateMediaSurfacesReproducibility(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_media_surface_reproducibility_options_invalid");
+  const { candidateRepositoryPath } = await loadTrustedMediaSurfaceSource(options);
+  const forbiddenRoots = [repositoryRoot, candidateRepositoryPath];
+  const outputDirectory = await externalOutputDirectory(options.outputDirectory, "media_surface_reproducibility_output_directory", forbiddenRoots);
+  const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "media_surface_reproducibility_report", forbiddenRoots);
+  const runPaths = [1, 2].flatMap((number) => {
+    const prefix = `run-${String(number).padStart(2, "0")}`;
+    return [resolve(outputDirectory, `${prefix}.media-surfaces.json`), resolve(outputDirectory, `${prefix}.report.json`)];
+  });
+  const allPaths = [...runPaths, reproducibilityReportPath];
+  if (new Set(allPaths).size !== allPaths.length) throw new Error("media_surface_reproducibility_output_paths_conflict");
+  await Promise.all(runPaths.map((path) => newExternalOutput(path, ".json", "media_surface_reproducibility_run_output", forbiddenRoots)));
+  const reportFault = mediaSurfaceOutputFault(options, "reproducibility-report");
+  const publishedRecords = [];
+
+  try {
+    const runs = [];
+    for (const number of [1, 2]) {
+      const prefix = `run-${String(number).padStart(2, "0")}`;
+      runs.push(await compileApprovedCandidateMediaSurfaces({
+        candidateRepositoryPath,
+        candidateCommit: options.candidateCommit,
+        outputManifestPath: resolve(outputDirectory, `${prefix}.media-surfaces.json`),
+        reportPath: resolve(outputDirectory, `${prefix}.report.json`),
+        [mediaSurfaceOutputFaultInjection]: options[mediaSurfaceOutputFaultInjection]
+      }));
+      publishedRecords.push(...runs.at(-1)[publishedMediaSurfaceOutputs]);
+    }
+    const projectionPaths = [1, 2].map((number) => resolve(outputDirectory, `run-${String(number).padStart(2, "0")}.media-surfaces.json`));
+    const [firstBytes, secondBytes] = await Promise.all(projectionPaths.map((path) => readFile(path)));
+    if (!firstBytes.equals(secondBytes)
+      || runs[0].projection.sha256 !== runs[1].projection.sha256
+      || runs[0].projection.byteLength !== runs[1].projection.byteLength) throw new Error("media_surface_manifest_not_byte_identical");
+    if (stableJson(runs[0].candidateSource) !== stableJson(runs[1].candidateSource)
+      || stableJson(runs[0].semanticReports) !== stableJson(runs[1].semanticReports)
+      || stableJson(runs[0].compilerSourceSha256) !== stableJson(runs[1].compilerSourceSha256)) {
+      throw new Error("approved_candidate_media_surface_source_changed_between_runs");
+    }
+    const comparison = Object.freeze({
+      byteIdentical: true,
+      projectionSha256: runs[0].projection.sha256,
+      projectionByteLength: runs[0].projection.byteLength,
+      mediaSurfaceCount: runs[0].projection.mediaSurfaceCount
+    });
+    const report = Object.freeze({
+      schemaVersion: 1,
+      status: "stage3-approved-candidate-media-surfaces-byte-identical",
+      fixtureOnly: false,
+      sceneId: runs[0].sceneId,
+      approvedCandidateSpecification: true,
+      mediaSurfacesSpecified: true,
+      mediaSurfacesCompiled: true,
+      byteIdentical: true,
+      exteriorCompiled: false,
+      lightingCompiled: false,
+      finalCandidateGlbVerified: false,
+      releaseArtifactsCreated: false,
+      publicationReady: false,
+      artifactBytesIncludedInRepository: false,
+      candidateSource: runs[0].candidateSource,
+      canonicalHashes: runs[0].canonicalHashes,
+      acceptedInputSha256: runs[0].acceptedInputSha256,
+      semanticReports: runs[0].semanticReports,
+      compilerSourceSha256: runs[0].compilerSourceSha256,
+      runs: Object.freeze(runs.map((run, index) => Object.freeze({ run: index + 1, projection: run.projection }))),
+      comparison,
+      boundaries: mediaSurfaceProjectionBoundaries(true)
+    });
+    const reportBytes = Buffer.from(`${stableJson(report)}\n`);
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: reproducibilityReportPath,
+      bytes: reportBytes,
+      label: "media_surface_reproducibility_report",
+      faultPhase: reportFault,
+      validate: async (writtenReportBytes) => validateMediaSurfaceReportBytes(writtenReportBytes, report, "media_surface_reproducibility_report")
+    }));
+    return report;
+  } catch (error) {
+    try {
+      await removePublishedMediaSurfaceOutputs(publishedRecords);
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "media_surface_reproducibility_cleanup_failed");
+    }
+    throw error;
+  }
+}
+
 async function verifyRoomReproducibility(options, compile, mode) {
   const outputDirectory = await externalDirectory(options.outputDirectory, "room_reproducibility_output_directory");
   const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "room_reproducibility_report");
@@ -1637,6 +2188,20 @@ function parsePairs(arguments_, code) {
 function parseCompileCli(arguments_) {
   const values = parsePairs(arguments_, "room_shell_cli_arguments_invalid");
   const inputKind = values["--input-kind"] ?? syntheticInputKind;
+  if (inputKind === candidateMediaSurfaceInputKind) {
+    const allowed = new Set(["--candidate-dir", "--input-kind", "--output-manifest", "--report"]);
+    if (Object.keys(values).some((key) => !allowed.has(key))
+      || values["--output-manifest"] === undefined
+      || values["--report"] === undefined) throw new Error("room_shell_cli_arguments_invalid");
+    return {
+      inputKind,
+      options: {
+        candidateRepositoryPath: values["--candidate-dir"],
+        outputManifestPath: values["--output-manifest"],
+        reportPath: values["--report"]
+      }
+    };
+  }
   const common = {
     blenderPath: values["--blender"],
     outputBlendPath: values["--output-blend"],
@@ -1668,7 +2233,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ? await compileApprovedCandidateArchitecture(cli.options)
       : cli.inputKind === candidateComponentInputKind
         ? await compileApprovedCandidateComponents(cli.options)
-        : await compileSyntheticRoomShell(cli.options);
+        : cli.inputKind === candidateMediaSurfaceInputKind
+          ? await compileApprovedCandidateMediaSurfaces(cli.options)
+          : await compileSyntheticRoomShell(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_shell_compile_failed"}\n`);

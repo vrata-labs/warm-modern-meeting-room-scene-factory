@@ -1,23 +1,27 @@
 {
   "schemaVersion": 2,
-  "status": "candidate-01-exact-component-specification-pinned",
+  "status": "candidate-01-exact-media-surface-specification-pinned",
   "platformValidatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
   "candidates": {
     "candidate01": {
       "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
-      "commit": "8fec157a37bf619797f1ff200ccc32f611f94c18",
-      "sceneContractValidatorCommit": "60617c021a8434f6687af038706b411e2e4b265c",
-      "specificationSha256": "10106915ffabfdd4580b3866c3714f05f22bec9ce430a7bc62c7c4d2e1578644",
-      "assetLedgerSha256": "18f6efeaab40f19e68e012628f9f1f1f8db5603d7ac98c65b88e9a8d23c80419",
+      "commit": "26d3af6e2720576113431c22b9443533b919f390",
+      "treeOid": "f9974b153861112cd5b53bcbdc5d5530227edbe1",
+      "sceneContractValidatorCommit": "c3157b65c739bf784d5b8654e0808a3c3a84f611",
+      "specificationSha256": "4dc23d561b3e32d0a8e1aa0c96f52a62ec57726f03e7b7b20c42c1c2a8eaf15b",
+      "assetLedgerSha256": "7ed139f492589c229d0c1473fb444bc03ec6ca8f4c113e665cfaef4a6d92479a",
       "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
       "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
       "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+      "mediaSurfaceConstructionSha256": "829c7ccba37c9bf73e570ad3769224895dbd2d2784fb0e9c776ad959bb6f9e8f",
+      "mediaSurfaceConstructionRawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
       "acceptedInputSha256": [
         "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
-        "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1"
+        "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+        "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b"
       ],
       "counts": {
-        "assetRecordCount": 2,
+        "assetRecordCount": 3,
         "generationRecordCount": 0,
         "familyCount": 4,
         "partCount": 38,
@@ -26,18 +30,20 @@
         "resolvedComponentCount": 11,
         "materialCount": 5,
         "resolvedMaterialCount": 4,
-        "seatCount": 8
+        "seatCount": 8,
+        "surfaceCount": 2,
+        "resolvedSurfaceCount": 2
       },
       "inputBlobs": {
         "source/scene-spec.json": {
-          "gitBlobOid": "dd032ba685cea7f7e481469a205c21cf84276242",
-          "rawSha256": "0afe14089767436df4f3d286ccacd4a1fcc46772dab071266034550bf94fcf8e",
-          "byteLength": 12076
+          "gitBlobOid": "ebf8b026e6f091ab5fb7df7dde47f8a88fbe3a25",
+          "rawSha256": "61e3fe967f49afe13b36d3499cd0373ac370d282ca43f6b36d825230df71a99d",
+          "byteLength": 12144
         },
         "provenance/asset-ledger.json": {
-          "gitBlobOid": "c13f3de9d3a6ae0600bd6bba477453390a7ee200",
-          "rawSha256": "644af9a24d79f4cbdc08e84e273e6080173c994db3087d2705618206e0afd3fd",
-          "byteLength": 1703
+          "gitBlobOid": "51adf4ee9a48e7e7dfcd148c4ea9f1008c8b9f29",
+          "rawSha256": "39d7c53573f7350ecfb6fa10bf7e228a39c4d51762a0d792f24f98f17cdd5bef",
+          "byteLength": 2525
         },
         "provenance/generation-ledger.json": {
           "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
@@ -53,24 +59,28 @@
           "gitBlobOid": "f728ba5e555dcbb233f418b2306b39e576e094b1",
           "rawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
           "byteLength": 4250
+        },
+        "source/media-surface-constructions.json": {
+          "gitBlobOid": "87faedb5845ad1eed5cda3b1fac8a0f15cea5365",
+          "rawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+          "byteLength": 847
         }
       },
-      "componentGlbEvidence": {
-        "sha256": "a6e67219590ae4bbc1e887f97f9a7c071c924943223a90ef3560bdd7b06e5c69",
-        "byteLength": 557976,
-        "reopenInspectionSha256": "5a1014f9fad8f12929d43d7fae0fd8155274754dc514db6590151bbbcda5e810",
-        "meshCount": 57,
-        "materialCount": 5,
-        "decodedNormalCount": 15120,
-        "architectureSemanticSha256": "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
-        "khronosValidator": {
-          "package": "gltf-validator",
-          "version": "2.0.0-dev.3.10",
-          "errors": 0,
-          "warnings": 0,
-          "infos": 57,
-          "hints": 0
-        }
+      "mediaSurfaceProjectionEvidence": {
+        "sha256": "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
+        "byteLength": 1022,
+        "mediaSurfaceCount": 2,
+        "representation": "platform-runtime-plane",
+        "byteIdentical": true
+      },
+      "boundaries": {
+        "mediaSurfacesCompiled": false,
+        "exteriorCompiled": false,
+        "lightingCompiled": false,
+        "finalCandidateGlbVerified": false,
+        "releaseArtifactsCreated": false,
+        "publicationReady": false,
+        "artifactBytesIncludedInRepository": false
       },
       "architectureBaseline": {
         "commit": "df564befcd65cb51a345fa9d315e40cadef6e563",
@@ -121,6 +131,76 @@
           "decodedIndexCount": 852,
           "decodedTriangleCount": 284,
           "distinctPositionCount": 176
+        }
+      },
+      "componentBaseline": {
+        "commit": "8fec157a37bf619797f1ff200ccc32f611f94c18",
+        "treeOid": "2b0b3ecf36f80cad2301e325e821fd1bf48d3606",
+        "sceneContractValidatorCommit": "60617c021a8434f6687af038706b411e2e4b265c",
+        "specificationSha256": "10106915ffabfdd4580b3866c3714f05f22bec9ce430a7bc62c7c4d2e1578644",
+        "assetLedgerSha256": "18f6efeaab40f19e68e012628f9f1f1f8db5603d7ac98c65b88e9a8d23c80419",
+        "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
+        "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
+        "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+        "acceptedInputSha256": [
+          "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+          "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1"
+        ],
+        "counts": {
+          "assetRecordCount": 2,
+          "generationRecordCount": 0,
+          "familyCount": 4,
+          "partCount": 38,
+          "overrideCount": 2,
+          "componentCount": 11,
+          "resolvedComponentCount": 11,
+          "materialCount": 5,
+          "resolvedMaterialCount": 4,
+          "seatCount": 8
+        },
+        "inputBlobs": {
+          "source/scene-spec.json": {
+            "gitBlobOid": "dd032ba685cea7f7e481469a205c21cf84276242",
+            "rawSha256": "0afe14089767436df4f3d286ccacd4a1fcc46772dab071266034550bf94fcf8e",
+            "byteLength": 12076
+          },
+          "provenance/asset-ledger.json": {
+            "gitBlobOid": "c13f3de9d3a6ae0600bd6bba477453390a7ee200",
+            "rawSha256": "644af9a24d79f4cbdc08e84e273e6080173c994db3087d2705618206e0afd3fd",
+            "byteLength": 1703
+          },
+          "provenance/generation-ledger.json": {
+            "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
+            "rawSha256": "7928a70464b60ca12a35c5fbaefe30ba99c937dfd69e6f65e519366cdbfe891e",
+            "byteLength": 96
+          },
+          "source/concept-selection.json": {
+            "gitBlobOid": "71192d2e57ee35e4a301f61bbc50b77ebfdf4b21",
+            "rawSha256": "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+            "byteLength": 1361
+          },
+          "source/component-constructions.json": {
+            "gitBlobOid": "f728ba5e555dcbb233f418b2306b39e576e094b1",
+            "rawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+            "byteLength": 4250
+          }
+        },
+        "componentGlbEvidence": {
+          "sha256": "a6e67219590ae4bbc1e887f97f9a7c071c924943223a90ef3560bdd7b06e5c69",
+          "byteLength": 557976,
+          "reopenInspectionSha256": "5a1014f9fad8f12929d43d7fae0fd8155274754dc514db6590151bbbcda5e810",
+          "meshCount": 57,
+          "materialCount": 5,
+          "decodedNormalCount": 15120,
+          "architectureSemanticSha256": "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
+          "khronosValidator": {
+            "package": "gltf-validator",
+            "version": "2.0.0-dev.3.10",
+            "errors": 0,
+            "warnings": 0,
+            "infos": 57,
+            "hints": 0
+          }
         }
       },
       "release": null
