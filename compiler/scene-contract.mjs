@@ -167,6 +167,20 @@ function parseStrictJson(text, label, issues) {
   }
 }
 
+export function parseCanonicalJsonText(text, label = "canonical_json") {
+  if (typeof text !== "string") throw new SceneContractError([`${label}_text_invalid`]);
+  if (!text.endsWith("\n")
+    || text.endsWith("\n\n")
+    || text.includes("\r")
+    || text.includes("\t")
+    || text.charCodeAt(0) === 0xfeff
+    || /[^\x0A\x20-\x7E]/.test(text)) throw new SceneContractError([`${label}_encoding_noncanonical`]);
+  const issues = [];
+  const value = parseStrictJson(text, label, issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return value;
+}
+
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (isObject(value)) return `{${Object.keys(value).sort(asciiCompare).map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;

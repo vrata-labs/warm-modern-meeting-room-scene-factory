@@ -270,6 +270,8 @@ test("family, part, slot, override, and naming closure fails closed", async (t) 
     ["unused family", (value) => { value.scene.components.pop(); }, "component_construction_family_unused:pendant-luminaire"],
     ["unresolved scene family", (value) => { value.scene.components.at(-1).family = "credenza"; }, "component_construction_scene_family_unresolved:credenza"],
     ["duplicate part", (value) => { value.componentConstruction.families[1].parts[1].id = "seat"; }, "component_construction_part_duplicate:task-chair:seat"],
+    ["missing part", (value) => { value.componentConstruction.families[0].parts.pop(); }, "schema_component_construction:families:0:parts:minItems"],
+    ["extra part", (value) => { value.componentConstruction.families[0].parts.push({ ...structuredClone(value.componentConstruction.families[0].parts[0]), id: "extra" }); }, "schema_component_construction:families:0:parts:maxItems"],
     ["part redistribution preserving 38", (value) => { value.componentConstruction.families[2].parts.push(value.componentConstruction.families[0].parts.pop()); }, "schema_component_construction:families:0:parts:minItems"],
     ["duplicate slot", (value) => { value.componentConstruction.families[1].defaultMaterials[1].slot = "upholstery"; }, "component_construction_slot_duplicate:task-chair:upholstery"],
     ["unused slot", (value) => { value.componentConstruction.families[0].defaultMaterials.push({ slot: "unused", materialRecipeId: "warm-oak" }); }, "component_construction_slot_unused:conference-table:unused"],

@@ -49,31 +49,56 @@ and compiler work. Production/public publication remains blocked on DINO/model
 rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separate
 publication signoff.
 
-The Stage 3 contract defines exact scene, asset-ledger, and generation-ledger
-schemas plus Ajv Draft 2020-12 and semantic validation in `compiler/`. The checked-in
-scene specification remains a neutral synthetic contract fixture. Its fail-closed
-compiler and reproducibility paths remain unchanged.
+The Stage 3 contract defines exact scene, asset-ledger, generation-ledger, and
+component-construction schemas plus Ajv Draft 2020-12 and semantic validation in
+`compiler/`. The checked-in scene specification remains a neutral synthetic
+contract fixture. Its fail-closed compiler and reproducibility paths remain
+unchanged.
 
-The separate candidate-owned component construction slice is exposed through
+The candidate-owned component construction contract is exposed through
 `schemas/component-constructions.schema.json` and
 `parseComponentConstructionContract`. It strictly binds project-authored
-beveled-box family parts and instance material overrides to an already valid
+beveled-box family parts and two instance material overrides to an already valid
 scene contract while leaving route and spawn checks on the existing component
-envelopes. The checked-in fixture specifies 4 used families and 38 resolved
-parts for contract testing only. It does not compile Blender components, verify
-a final candidate GLB, change Candidate 01 readiness, or permit publication.
+envelopes. The checked-in fixture remains contract-test data only.
 
-The approved Candidate 01 architecture slice reads the four fixed source files
-only as Git blobs at the commit pinned by `candidate-lock.json`; candidate source
-files are not copied into this repository. The loader verifies the three canonical
-contract hashes, the raw concept-selection hash, and its binding to both provenance
-and `acceptedInputSha256`. Exact Blender then creates only the closed shell, door
-and window openings, frames, reveals, sill, baseboards, and architectural material
-zones. The resulting GLB has 19 meshes and 3 scalar PBR materials, no textures,
-cameras, or lights, and is required to be byte-identical across two independent
-runs. Reports retain Git blob identities, validator and compiler identities, and
-reopen/GLB inspection. Components, exterior, lighting, media surfaces, final
-candidate GLB verification, and publication readiness remain explicitly false.
+The F1 Candidate 01 architecture baseline remains pinned separately at commit
+`df564befcd65cb51a345fa9d315e40cadef6e563`, with its four Git blobs, canonical
+hashes, 19-mesh/3-material GLB evidence, and reopen digest retained in
+`candidate-lock.json` and `readiness.json`. The existing
+`compileApprovedCandidateArchitecture` and architecture reproducibility APIs are
+unchanged. An independent semantic digest also binds the 19 F1 object names,
+geometry, transforms, material assignments, and three scalar material records.
+F2 compile-plan, reopened-Blend, and decoded-GLB projections must all match that
+same pinned F1 digest.
+
+The F2 component slice reads exactly five Git blobs at Candidate 01 commit
+`8fec157a37bf619797f1ff200ccc32f611f94c18`: scene, asset ledger, generation
+ledger, concept selection, and component constructions. The hardened loader has
+no network fallback and verifies every blob identity/raw hash/size, all canonical
+hashes and counts, provenance, and both accepted inputs. Exact Blender compiles
+the 19 architecture meshes plus 38 individually named component meshes: 3 table
+parts, 32 chair parts, 1 conference AV part, and 2 pendant parts. Every component
+starts as an exact-dimension cube and has its locked bevel modifier applied before
+save and export. The resulting inventory is exactly 57 meshes and 5 scalar PBR
+materials, with no parents, helper objects, collision meshes, lights, cameras,
+images, textures, extensions, animations, or skins. Two independent exports are
+required to produce a byte-identical GLB and identical reopen inspection digest.
+Reopen reports contain actual material custom properties, Principled PBR values,
+and object material-slot evidence. Decoded normals must be finite and unit length,
+declared accessor bounds must match decoded values, and the pinned Khronos
+`gltf-validator` gate must report zero errors and zero warnings.
+
+Compiler source attestation covers every compiler entrypoint, all four Stage 3
+schemas, the candidate lock, and the exact package manifest and pnpm lockfile.
+Compiler and reproducibility reports retain the complete path-to-SHA-256 map, and
+readiness validation independently recomputes it. Candidate lock and readiness
+consumers reject duplicate JSON keys and noncanonical text encodings.
+
+Single-run reports keep `componentGlbByteIdentical` false. Only the two-run
+reproducibility report sets that component-scoped result true. Exterior, lighting,
+media surfaces, final candidate GLB verification, publication readiness, and
+repository inclusion of scene binaries remain explicitly false.
 
 The neutral low-fidelity concept gate selected the functional correction of
 Concept 03 and assigned its exact validated specification to Candidate 01 without
@@ -93,9 +118,14 @@ The Candidate 01 architecture tests require a separate local checkout through
 to the exact locked Blender 4.5.12 binary to run the compile, reopen, and
 two-run byte-identity gates instead of skipping them.
 
+The same checkout must contain the exact locked component commit. CI checks out
+`8fec157a37bf619797f1ff200ccc32f611f94c18` outside this repository with full
+history so both the current F2 blobs and historical F1 baseline are available.
+
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
 scorecard, fairness protocol, cross-repository locks, and the Stage 3 scene and
-provenance contract fixtures. Component construction tests separately cover
-strict JSON, schema exposure, provenance closure, material bindings, local and
-world geometry bounds, furniture relationships, and non-readiness boundaries.
+provenance contract fixtures. Component tests additionally cover the five-blob
+lock, exact construction expansion, material overrides, applied bevel topology,
+binary GLB geometry and inventory, reopen evidence, reproducibility, and focused
+negative cases. No production-track mapping is recorded.
