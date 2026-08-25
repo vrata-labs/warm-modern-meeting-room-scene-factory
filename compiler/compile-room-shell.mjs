@@ -5,8 +5,9 @@ import { tmpdir } from "node:os";
 import { dirname, extname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import gltfValidator from "gltf-validator";
 
-import { parseSceneContract } from "./scene-contract.mjs";
+import { parseCanonicalJsonText, parseComponentConstructionContract, parseSceneContract } from "./scene-contract.mjs";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "..");
@@ -21,17 +22,27 @@ const candidatePaths = Object.freeze({
   scene: "source/scene-spec.json",
   assetLedger: "provenance/asset-ledger.json",
   generationLedger: "provenance/generation-ledger.json",
-  conceptSelection: "source/concept-selection.json"
+  conceptSelection: "source/concept-selection.json",
+  componentConstruction: "source/component-constructions.json"
 });
-const compilerSourcePaths = Object.freeze([
+export const compilerSourceAttestationPaths = Object.freeze([
   "compiler/blender-room-shell.py",
   "compiler/compile-room-shell.mjs",
-  "compiler/scene-contract.mjs"
+  "compiler/scene-contract.mjs",
+  "compiler/verify-room-reproducibility.mjs",
+  "schemas/asset-ledger.schema.json",
+  "schemas/component-constructions.schema.json",
+  "schemas/generation-ledger.schema.json",
+  "schemas/scene-spec.schema.json",
+  "experiment/warm-modern-meeting-room/candidate-lock.json",
+  "package.json",
+  "pnpm-lock.yaml"
 ]);
 const expectedBlenderBinarySha256 = "33ac108ebce3c271f5357e5c664d0488717263bcf2145c80300edd0b12c31880";
 const blenderTimeoutMs = 300_000;
 const syntheticInputKind = "synthetic-fixture";
-const candidateInputKind = "approved-candidate-architecture";
+const candidateArchitectureInputKind = "approved-candidate-architecture";
+const candidateComponentInputKind = "approved-candidate-components";
 const gitProtocolDenyArguments = Object.freeze(["file", "git", "http", "https", "ssh"].flatMap((protocol) => ["-c", `protocol.${protocol}.allow=never`]));
 const gitEnvironmentNames = Object.freeze(process.platform === "win32"
   ? ["COMSPEC", "PATH", "PATHEXT", "SYSTEMROOT", "TEMP", "TMP", "WINDIR"]
@@ -62,6 +73,11 @@ const expectedArchitectureMaterials = Object.freeze({
   "material.mineral-plaster": Object.freeze({ recipeId: "mineral-plaster", baseColorSrgb: "#DDD6C8", roughness: 0.84, metalness: 0, textureScaleM: 0.5 }),
   "material.warm-oak": Object.freeze({ recipeId: "warm-oak", baseColorSrgb: "#A87543", roughness: 0.46, metalness: 0, textureScaleM: 0.18 })
 });
+const expectedComponentMaterials = Object.freeze({
+  ...expectedArchitectureMaterials,
+  "material.muted-grey-green-fabric": Object.freeze({ recipeId: "muted-grey-green-fabric", baseColorSrgb: "#77877B", roughness: 0.8, metalness: 0, textureScaleM: 0.003 }),
+  "material.sand-fabric": Object.freeze({ recipeId: "sand-fabric", baseColorSrgb: "#B9A98E", roughness: 0.72, metalness: 0, textureScaleM: 0.003 })
+});
 const allowedArchitectureMaterialSourceIds = new Set(["asset-layout-project", "asset-material-project"]);
 const accessorComponentTypes = Object.freeze({
   5120: Object.freeze({ byteLength: 1, read: "readInt8" }),
@@ -73,6 +89,8 @@ const accessorComponentTypes = Object.freeze({
 });
 const accessorTypeLengths = Object.freeze({ SCALAR: 1, VEC2: 2, VEC3: 3 });
 const geometryTolerance = 1e-5;
+const normalLengthTolerance = 1e-4;
+const expectedGltfValidatorVersion = "2.0.0-dev.3.10";
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -167,35 +185,87 @@ async function readGitBlob(repositoryPath, commit, path) {
   return Object.freeze({ path, gitBlobOid: oid, rawSha256: sha256(bytes), byteLength: bytes.length, bytes });
 }
 
-async function loadCandidateLock() {
-  const lock = JSON.parse(await readFile(candidateLockPath, "utf8"));
+export function parseCandidateLockText(text) {
+  const lock = parseCanonicalJsonText(text, "candidate_lock");
   const candidate = lock?.candidates?.candidate01;
-  if (lock?.schemaVersion !== 1
+  const baseline = candidate?.architectureBaseline;
+  const hashFieldsValid = (value, fields) => fields.every((field) => /^[0-9a-f]{64}$/.test(value?.[field] ?? ""));
+  const inputBlobsValid = (value, paths) => value && typeof value === "object"
+    && Object.keys(value).sort().join(",") === [...paths].sort().join(",")
+    && Object.values(value).every((blob) => /^[0-9a-f]{40}$/.test(blob?.gitBlobOid ?? "")
+      && /^[0-9a-f]{64}$/.test(blob?.rawSha256 ?? "")
+      && Number.isSafeInteger(blob?.byteLength) && blob.byteLength > 0);
+  const semanticEvidenceValid = (value) => value?.schemaVersion === 1
+    && value?.contract === "f1-architecture-objects-materials-v1"
+    && /^[0-9a-f]{64}$/.test(value?.sha256 ?? "")
+    && value?.objectCount === 19
+    && value?.materialCount === 3;
+  const componentGlbEvidence = candidate?.componentGlbEvidence;
+  const khronosEvidence = componentGlbEvidence?.khronosValidator;
+  const componentGlbEvidenceValid = /^[0-9a-f]{64}$/.test(componentGlbEvidence?.sha256 ?? "")
+    && Number.isSafeInteger(componentGlbEvidence?.byteLength) && componentGlbEvidence.byteLength > 0
+    && /^[0-9a-f]{64}$/.test(componentGlbEvidence?.reopenInspectionSha256 ?? "")
+    && componentGlbEvidence?.meshCount === 57
+    && componentGlbEvidence?.materialCount === 5
+    && componentGlbEvidence?.decodedNormalCount === 15120
+    && /^[0-9a-f]{64}$/.test(componentGlbEvidence?.architectureSemanticSha256 ?? "")
+    && khronosEvidence?.package === "gltf-validator"
+    && khronosEvidence?.version === expectedGltfValidatorVersion
+    && khronosEvidence?.errors === 0
+    && khronosEvidence?.warnings === 0
+    && Number.isSafeInteger(khronosEvidence?.infos) && khronosEvidence.infos >= 0
+    && Number.isSafeInteger(khronosEvidence?.hints) && khronosEvidence.hints >= 0;
+  if (lock?.schemaVersion !== 2
     || typeof candidate?.repository !== "string"
     || !/^[0-9a-f]{40}$/.test(candidate?.commit ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.sceneContractValidatorCommit ?? "")
     || !/^[0-9a-f]{40}$/.test(lock?.platformValidatorCommit ?? "")
-    || ![candidate?.specificationSha256, candidate?.assetLedgerSha256, candidate?.generationLedgerSha256].every((digest) => /^[0-9a-f]{64}$/.test(digest ?? ""))) {
+    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256"])
+    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 2
+    || candidate.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
+    || !inputBlobsValid(candidate.inputBlobs, Object.values(candidatePaths))
+    || !componentGlbEvidenceValid
+    || !/^[0-9a-f]{40}$/.test(baseline?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(baseline?.sceneContractValidatorCommit ?? "")
+    || !hashFieldsValid(baseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256"])
+    || !Array.isArray(baseline.acceptedInputSha256) || baseline.acceptedInputSha256.length !== 1
+    || !semanticEvidenceValid(baseline.semanticEvidence)
+    || !inputBlobsValid(baseline.inputBlobs, Object.values(candidatePaths).filter((path) => path !== candidatePaths.componentConstruction))) {
     throw new Error("approved_candidate_lock_invalid");
   }
   return Object.freeze({
     repository: candidate.repository,
-    commit: candidate.commit,
-    validatorCommit: candidate.sceneContractValidatorCommit,
     platformValidatorCommit: lock.platformValidatorCommit,
-    specificationSha256: candidate.specificationSha256,
-    assetLedgerSha256: candidate.assetLedgerSha256,
-    generationLedgerSha256: candidate.generationLedgerSha256
+    component: Object.freeze({
+      ...candidate,
+      validatorCommit: candidate.sceneContractValidatorCommit
+    }),
+    architecture: Object.freeze({
+      ...baseline,
+      validatorCommit: baseline.sceneContractValidatorCommit
+    })
   });
 }
 
+async function loadCandidateLock() {
+  return parseCandidateLockText(await readFile(candidateLockPath, "utf8"));
+}
+
+export function validateCompilerSourceAttestation(attestation) {
+  const paths = attestation && typeof attestation === "object" ? Object.keys(attestation).sort() : [];
+  if (!exactStringSet(paths, compilerSourceAttestationPaths)
+    || paths.some((path) => !/^[0-9a-f]{64}$/.test(attestation[path]))) throw new Error("compiler_source_attestation_invalid");
+  return Object.freeze({ ...attestation });
+}
+
 async function compilerSourceSha256() {
-  return Object.freeze(Object.fromEntries(await Promise.all(compilerSourcePaths.map(async (path) => [path, sha256(await readFile(resolve(repositoryRoot, path)))]))));
+  return validateCompilerSourceAttestation(Object.fromEntries(await Promise.all(compilerSourceAttestationPaths.map(async (path) => [path, sha256(await readFile(resolve(repositoryRoot, path)))]))));
 }
 
 export async function loadApprovedCandidateArchitectureSource(options = {}) {
   if (!options || typeof options !== "object") throw new Error("approved_candidate_source_options_invalid");
-  const lock = await loadCandidateLock();
+  const candidateLock = await loadCandidateLock();
+  const lock = candidateLock.architecture;
   if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_commit_not_locked");
   const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
   try {
@@ -212,6 +282,7 @@ export async function loadApprovedCandidateArchitectureSource(options = {}) {
     readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.generationLedger),
     readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.conceptSelection)
   ]);
+  verifyLockedInputBlobs([sceneBlob, assetLedgerBlob, generationLedgerBlob, conceptSelectionBlob], lock.inputBlobs);
   const sceneText = sceneBlob.bytes.toString("utf8");
   const assetLedgerText = assetLedgerBlob.bytes.toString("utf8");
   const generationLedgerText = generationLedgerBlob.bytes.toString("utf8");
@@ -237,18 +308,20 @@ export async function loadApprovedCandidateArchitectureSource(options = {}) {
     byteLength: blob.byteLength
   })])));
   return Object.freeze({
-    inputKind: candidateInputKind,
+    inputKind: candidateArchitectureInputKind,
     fixtureOnly: false,
+    componentsIncluded: false,
     sceneBytes: Buffer.from(sceneBlob.bytes),
     scene,
     contract,
     acceptedInputSha256: Object.freeze([...scene.generator.acceptedInputSha256]),
     rawSceneSha256: sceneBlob.rawSha256,
+    architectureBaseline: Object.freeze({ ...lock.semanticEvidence }),
     candidateSource: Object.freeze({
-      repository: lock.repository,
+      repository: candidateLock.repository,
       commit: lock.commit,
       validatorCommit: lock.validatorCommit,
-      platformValidatorCommit: lock.platformValidatorCommit,
+      platformValidatorCommit: candidateLock.platformValidatorCommit,
       inputBlobs
     }),
     canonicalHashes: Object.freeze({
@@ -256,6 +329,123 @@ export async function loadApprovedCandidateArchitectureSource(options = {}) {
       assetLedgerSha256: contract.assetLedgerSha256,
       generationLedgerSha256: contract.generationLedgerSha256
     })
+  });
+}
+
+function verifyLockedInputBlobs(blobs, expected) {
+  const actualPaths = blobs.map(({ path }) => path).sort();
+  const expectedPaths = Object.keys(expected).sort();
+  if (actualPaths.length !== expectedPaths.length || actualPaths.some((path, index) => path !== expectedPaths[index])) {
+    throw new Error("approved_candidate_input_blob_set_mismatch");
+  }
+  for (const blob of blobs) {
+    const locked = expected[blob.path];
+    if (blob.gitBlobOid !== locked.gitBlobOid || blob.rawSha256 !== locked.rawSha256 || blob.byteLength !== locked.byteLength) {
+      throw new Error(`approved_candidate_input_blob_mismatch:${blob.path}`);
+    }
+  }
+}
+
+export async function loadApprovedCandidateComponentSource(options = {}) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_component_source_options_invalid");
+  const candidateLock = await loadCandidateLock();
+  const lock = candidateLock.component;
+  if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_component_commit_not_locked");
+  const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
+  try {
+    const topLevel = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--show-toplevel"], "utf8")).trim();
+    const commit = String(await gitOutput(candidateRepositoryPath, ["rev-parse", "--verify", `${lock.commit}^{commit}`], "utf8")).trim();
+    if (resolve(topLevel) !== candidateRepositoryPath || commit !== lock.commit) throw new Error("invalid_repository");
+  } catch {
+    throw new Error("approved_candidate_component_commit_missing");
+  }
+
+  const blobs = await Promise.all([
+    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.scene),
+    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.assetLedger),
+    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.generationLedger),
+    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.conceptSelection),
+    readGitBlob(candidateRepositoryPath, lock.commit, candidatePaths.componentConstruction)
+  ]);
+  verifyLockedInputBlobs(blobs, lock.inputBlobs);
+  const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
+  const sceneBlob = blobByPath.get(candidatePaths.scene);
+  const assetLedgerBlob = blobByPath.get(candidatePaths.assetLedger);
+  const generationLedgerBlob = blobByPath.get(candidatePaths.generationLedger);
+  const conceptSelectionBlob = blobByPath.get(candidatePaths.conceptSelection);
+  const componentConstructionBlob = blobByPath.get(candidatePaths.componentConstruction);
+  const sceneText = sceneBlob.bytes.toString("utf8");
+  const assetLedgerText = assetLedgerBlob.bytes.toString("utf8");
+  const generationLedgerText = generationLedgerBlob.bytes.toString("utf8");
+  const componentConstructionText = componentConstructionBlob.bytes.toString("utf8");
+  const contract = parseComponentConstructionContract({ sceneText, assetLedgerText, generationLedgerText, componentConstructionText });
+  const counts = lock.counts;
+  if (contract.specificationSha256 !== lock.specificationSha256
+    || contract.assetLedgerSha256 !== lock.assetLedgerSha256
+    || contract.generationLedgerSha256 !== lock.generationLedgerSha256
+    || contract.componentConstructionSha256 !== lock.componentConstructionSha256
+    || contract.componentConstructionRawSha256 !== lock.componentConstructionRawSha256
+    || contract.assetRecordCount !== counts.assetRecordCount
+    || contract.generationRecordCount !== counts.generationRecordCount
+    || contract.familyCount !== counts.familyCount
+    || contract.partCount !== counts.partCount
+    || contract.overrideCount !== counts.overrideCount
+    || contract.componentCount !== counts.componentCount
+    || contract.resolvedComponentCount !== counts.resolvedComponentCount
+    || contract.resolvedMaterialCount !== counts.resolvedMaterialCount
+    || contract.seatCount !== counts.seatCount) throw new Error("approved_candidate_component_contract_lock_mismatch");
+
+  const scene = JSON.parse(sceneText);
+  const assetLedger = JSON.parse(assetLedgerText);
+  const componentConstruction = JSON.parse(componentConstructionText);
+  const conceptRecords = assetLedger.records.filter((record) => record?.source?.repositoryPath === candidatePaths.conceptSelection);
+  const constructionRecords = assetLedger.records.filter((record) => record?.source?.repositoryPath === candidatePaths.componentConstruction);
+  if (scene.generator?.commit !== lock.validatorCommit
+    || scene.materialRecipes.length !== counts.materialCount
+    || conceptRecords.length !== 1
+    || constructionRecords.length !== 1
+    || conceptRecords[0].originalSha256 !== conceptSelectionBlob.rawSha256
+    || constructionRecords[0].originalSha256 !== componentConstructionBlob.rawSha256
+    || stableJson(scene.generator.acceptedInputSha256) !== stableJson(lock.acceptedInputSha256)
+    || scene.generator.acceptedInputSha256[0] !== conceptSelectionBlob.rawSha256
+    || scene.generator.acceptedInputSha256[1] !== componentConstructionBlob.rawSha256) {
+    throw new Error("approved_candidate_component_accepted_input_mismatch");
+  }
+
+  const inputBlobs = Object.freeze(Object.fromEntries(blobs.map((blob) => [blob.path, Object.freeze({
+    gitBlobOid: blob.gitBlobOid,
+    rawSha256: blob.rawSha256,
+    byteLength: blob.byteLength
+  })])));
+  return Object.freeze({
+    inputKind: candidateComponentInputKind,
+    fixtureOnly: false,
+    componentsIncluded: true,
+    sceneBytes: Buffer.from(sceneBlob.bytes),
+    componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
+    scene,
+    componentConstruction,
+    contract,
+    acceptedInputSha256: Object.freeze([...scene.generator.acceptedInputSha256]),
+    rawSceneSha256: sceneBlob.rawSha256,
+    rawComponentConstructionSha256: componentConstructionBlob.rawSha256,
+    architectureBaseline: Object.freeze({ ...candidateLock.architecture.semanticEvidence }),
+    componentGlbEvidence: Object.freeze(structuredClone(lock.componentGlbEvidence)),
+    candidateSource: Object.freeze({
+      repository: candidateLock.repository,
+      commit: lock.commit,
+      validatorCommit: lock.validatorCommit,
+      platformValidatorCommit: candidateLock.platformValidatorCommit,
+      inputBlobs
+    }),
+    canonicalHashes: Object.freeze({
+      specificationSha256: contract.specificationSha256,
+      assetLedgerSha256: contract.assetLedgerSha256,
+      generationLedgerSha256: contract.generationLedgerSha256,
+      componentConstructionSha256: contract.componentConstructionSha256,
+      componentConstructionRawSha256: contract.componentConstructionRawSha256
+    }),
+    counts: Object.freeze({ ...counts })
   });
 }
 
@@ -275,6 +465,7 @@ async function loadSyntheticSource(options) {
   return Object.freeze({
     inputKind: syntheticInputKind,
     fixtureOnly: true,
+    componentsIncluded: false,
     sceneBytes,
     scene,
     contract,
@@ -283,11 +474,16 @@ async function loadSyntheticSource(options) {
   });
 }
 
-function verifyCompilerReport(report, source, binarySha256) {
+export function validateCompilerReport(report, source, binarySha256) {
   const wall = report.shell?.objects?.find(({ name }) => name === "shell.walls");
   const expectedStatus = source.fixtureOnly
     ? "stage3-synthetic-room-profiles-materials-compiled"
-    : "stage3-approved-candidate-architecture-compiled";
+    : source.componentsIncluded
+      ? "stage3-approved-candidate-components-compiled"
+      : "stage3-approved-candidate-architecture-compiled";
+  const expectedMaterialRecipeCount = source.componentsIncluded ? 5 : 3;
+  const expectedMaterialZoneCount = source.componentsIncluded ? 60 : 22;
+  const expectedInventoryCount = source.componentsIncluded ? 57 : 19;
   const commonInvalid = report?.status !== expectedStatus
     || report.fixtureOnly !== source.fixtureOnly
     || report.sceneId !== source.contract.sceneId
@@ -313,9 +509,9 @@ function verifyCompilerReport(report, source, binarySha256) {
     || report.profiles?.baseboardObjectCount !== 5
     || report.profiles?.overlapPairCount !== 0
     || report.materials?.compiled !== true
-    || report.materials?.recipeCount !== 3
-    || report.materials?.zoneCount !== 22
-    || report.materials?.assignmentCount !== 19
+    || report.materials?.recipeCount !== expectedMaterialRecipeCount
+    || report.materials?.zoneCount !== expectedMaterialZoneCount
+    || report.materials?.assignmentCount !== expectedInventoryCount
     || report.materials?.imageCount !== 0
     || report.materials?.textureCount !== 0
     || report.materials?.textureNodeCount !== 0
@@ -326,29 +522,53 @@ function verifyCompilerReport(report, source, binarySha256) {
     || report.outputGlb?.exportSettings?.exportCameras !== false
     || report.outputGlb?.exportSettings?.exportLights !== false
     || report.outputGlb?.exportSettings?.exportYup !== true
-    || report.inventory?.objectCount !== 19
-    || report.inventory?.meshCount !== 19
-    || report.inventory?.materialCount !== 3
+    || report.inventory?.objectCount !== expectedInventoryCount
+    || report.inventory?.meshCount !== expectedInventoryCount
+    || report.inventory?.materialCount !== expectedMaterialRecipeCount
     || report.inventory?.imageCount !== 0
     || report.inventory?.textureCount !== 0
     || report.boundaries?.openingsCompiled !== true
     || report.boundaries?.materialsCompiled !== true
-    || report.boundaries?.componentsCompiled !== false
+    || report.boundaries?.componentsCompiled !== source.componentsIncluded
     || report.boundaries?.profilesCompiled !== true
     || report.boundaries?.sceneBinaryAddedToRepository !== false;
+  const componentInvalid = source.componentsIncluded && (report.components?.specified !== true
+    || report.components?.compiled !== true
+    || report.components?.componentCount !== 11
+    || report.components?.familyCount !== 4
+    || report.components?.partObjectCount !== 38
+    || report.components?.overrideCount !== 2
+    || stableJson(report.components?.familyObjectCounts) !== stableJson({ "conference-av": 1, "conference-table": 3, "pendant-luminaire": 2, "task-chair": 32 })
+    || report.materials?.architectureRecipeCount !== 3
+    || report.materials?.architectureZoneCount !== 22
+    || report.materials?.architectureAssignmentCount !== 19
+    || report.materials?.componentAssignmentCount !== 38
+    || report.materials?.componentOverrideCount !== 2
+    || report.componentsSpecified !== true
+    || report.componentsCompiled !== true
+    || report.componentGlbByteIdentical !== false
+    || report.exteriorCompiled !== false
+    || report.lightingCompiled !== false
+    || report.mediaSurfacesCompiled !== false
+    || report.sceneBinaryAddedToRepository !== false
+    || report.boundaries?.componentsSpecified !== true
+    || report.boundaries?.componentGlbByteIdentical !== false
+    || report.boundaries?.exteriorCompiled !== false
+    || report.boundaries?.lightingCompiled !== false
+    || report.boundaries?.mediaSurfacesCompiled !== false);
   const boundaryInvalid = source.fixtureOnly
     ? report.boundaries?.approvedCandidateSpecification !== false || report.boundaries?.byteIdenticalExportsVerified !== false
     : report.approvedCandidateSpecification !== true
       || report.candidateArchitectureCompiled !== true
-      || report.componentsCompiled !== false
+      || report.componentsCompiled !== source.componentsIncluded
       || report.finalCandidateGlbVerified !== false
       || report.publicationReady !== false
       || report.boundaries?.approvedCandidateSpecification !== true
-      || report.boundaries?.byteIdenticalExportsVerified !== false
       || report.boundaries?.candidateArchitectureCompiled !== true
       || report.boundaries?.finalCandidateGlbVerified !== false
       || report.boundaries?.publicationReady !== false;
-  if (commonInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
+  if (!source.componentsIncluded && !source.fixtureOnly && report.boundaries?.byteIdenticalExportsVerified !== false) throw new Error("room_shell_report_invalid");
+  if (commonInvalid || componentInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
 }
 
 function exactKeys(value, expected) {
@@ -382,27 +602,78 @@ function approximatelyEqual(actual, expected, tolerance = 1e-6) {
   return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
 }
 
-function normalizeExpectedArchitectureRecords(records) {
-  if (!Array.isArray(records) || records.length !== expectedArchitectureNodeNames.length) throw new Error("room_glb_expected_architecture_invalid");
+function normalizeExpectedRecords(records, componentMode) {
+  const expectedCount = componentMode ? 57 : expectedArchitectureNodeNames.length;
+  if (!Array.isArray(records) || records.length !== expectedCount) throw new Error("room_glb_expected_inventory_invalid");
   const normalized = records.map((record) => {
     const center = record?.centerM;
     const dimensions = record?.dimensionsM;
     if (typeof record?.name !== "string"
       || ![center?.x, center?.y, center?.z, dimensions?.widthM, dimensions?.heightM, dimensions?.depthM].every(Number.isFinite)
-      || dimensions.widthM <= 0 || dimensions.heightM <= 0 || dimensions.depthM <= 0) throw new Error("room_glb_expected_architecture_invalid");
-    return {
+      || dimensions.widthM <= 0 || dimensions.heightM <= 0 || dimensions.depthM <= 0) throw new Error("room_glb_expected_inventory_invalid");
+    const normalizedRecord = {
       name: record.name,
       centerM: { x: center.x, y: center.y, z: center.z },
-      dimensionsM: { widthM: dimensions.widthM, heightM: dimensions.heightM, depthM: dimensions.depthM }
+      dimensionsM: { widthM: dimensions.widthM, heightM: dimensions.heightM, depthM: dimensions.depthM },
+      geometry: record.geometry,
+      materialRecipeId: record.materialRecipeId
     };
+    if (record.geometry === "beveled-box") {
+      if (!/^component\.[a-z0-9-]+\.[a-z0-9-]+$/.test(record.name)
+        || !Number.isFinite(record.bevel?.widthM) || record.bevel.widthM <= 0
+        || record.bevel?.segments !== 3 || record.bevel?.clampOverlap !== true
+        || typeof record.materialRecipeId !== "string") throw new Error("room_glb_expected_component_invalid");
+      normalizedRecord.bevel = {
+        widthM: record.bevel.widthM,
+        segments: record.bevel.segments,
+        clampOverlap: record.bevel.clampOverlap
+      };
+    } else if (componentMode && record.name.startsWith("component.")) {
+      throw new Error("room_glb_expected_component_invalid");
+    }
+    return normalizedRecord;
   }).sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
-  if (!exactStringSet(normalized.map(({ name }) => name), expectedArchitectureNodeNames)) throw new Error("room_glb_expected_architecture_invalid");
+  const names = normalized.map(({ name }) => name);
+  if (new Set(names).size !== names.length
+    || expectedArchitectureNodeNames.some((name) => !names.includes(name))
+    || (!componentMode && !exactStringSet(names, expectedArchitectureNodeNames))
+    || (componentMode && normalized.filter(({ geometry }) => geometry === "beveled-box").length !== 38)) {
+    throw new Error("room_glb_expected_inventory_invalid");
+  }
   return normalized;
 }
 
-export function inspectGlb(bytes, expectedArchitectureRecords) {
-  const expectedRecords = normalizeExpectedArchitectureRecords(expectedArchitectureRecords);
+function normalizeExpectedGlbContract(value) {
+  if (Array.isArray(value)) return Object.freeze({
+    status: "architecture-only-glb-inspection-valid",
+    componentMode: false,
+    records: normalizeExpectedRecords(value, false),
+    materials: expectedArchitectureMaterials,
+    allowedMaterialSourceIds: allowedArchitectureMaterialSourceIds,
+    requiredMaterialSourceCount: 1
+  });
+  const componentMode = value?.status === "approved-candidate-components-glb-inspection-valid";
+  const allowedMaterialSourceIds = new Set(value?.allowedMaterialSourceIds);
+  if (!componentMode
+    || stableJson(value?.materials) !== stableJson(expectedComponentMaterials)
+    || !exactStringSet(value?.allowedMaterialSourceIds, ["asset-layout-project"])
+    || value?.requiredMaterialSourceCount !== 1) throw new Error("room_glb_expected_contract_invalid");
+  return Object.freeze({
+    status: value.status,
+    componentMode,
+    records: normalizeExpectedRecords(value.records, true),
+    materials: value.materials,
+    allowedMaterialSourceIds,
+    requiredMaterialSourceCount: value.requiredMaterialSourceCount
+  });
+}
+
+export function inspectGlb(bytes, expectedContract) {
+  const normalizedContract = normalizeExpectedGlbContract(expectedContract);
+  const expectedRecords = normalizedContract.records;
   const expectedRecordByName = new Map(expectedRecords.map((record) => [record.name, record]));
+  const expectedNodeNames = expectedRecords.map(({ name }) => name);
+  const expectedMaterials = normalizedContract.materials;
   if (bytes.length < 20 || bytes.toString("ascii", 0, 4) !== "glTF" || bytes.readUInt32LE(4) !== 2 || bytes.readUInt32LE(8) !== bytes.length) {
     throw new Error("room_glb_header_invalid");
   }
@@ -468,12 +739,12 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
   const nodeNames = nodes?.map(({ name }) => name).sort();
   const meshNames = meshes?.map(({ name }) => name).sort();
   const materialNames = materials?.map(({ name }) => name).sort();
-  if (nodes?.length !== expectedArchitectureNodeNames.length
-    || meshes?.length !== expectedArchitectureNodeNames.length
-    || materials?.length !== Object.keys(expectedArchitectureMaterials).length
-    || !exactStringSet(nodeNames, expectedArchitectureNodeNames)
-    || !exactStringSet(meshNames, expectedArchitectureNodeNames.map((name) => `mesh.${name}`))
-    || !exactStringSet(materialNames, Object.keys(expectedArchitectureMaterials))) throw new Error("room_glb_inventory_invalid");
+  if (nodes?.length !== expectedNodeNames.length
+    || meshes?.length !== expectedNodeNames.length
+    || materials?.length !== Object.keys(expectedMaterials).length
+    || !exactStringSet(nodeNames, expectedNodeNames)
+    || !exactStringSet(meshNames, expectedNodeNames.map((name) => `mesh.${name}`))
+    || !exactStringSet(materialNames, Object.keys(expectedMaterials))) throw new Error("room_glb_inventory_invalid");
 
   if (document.scene !== 0 || document.scenes?.length !== 1 || !Array.isArray(document.scenes[0]?.nodes)) throw new Error("room_glb_scene_invalid");
   const incomingReferences = Array(nodes.length).fill(0);
@@ -552,6 +823,9 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
   let decodedIndexCount = 0;
   let decodedTriangleCount = 0;
   let decodedDistinctReferencedPositionCount = 0;
+  let decodedNormalCount = 0;
+  let minimumNormalLength = Number.POSITIVE_INFINITY;
+  let maximumNormalLength = Number.NEGATIVE_INFINITY;
   const geometryEvidence = [];
   const decodeAccessor = (index, semantic) => {
     const layout = accessorLayouts[index];
@@ -567,6 +841,19 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
       if (!Number.isFinite(value)) throw new Error("room_glb_accessor_data_invalid");
       return value;
     }));
+    for (const key of ["min", "max"]) {
+      const declared = layout.accessor[key];
+      if (declared === undefined) continue;
+      const decoded = Array.from({ length: layout.componentCount }, (_, componentIndex) => (
+        key === "min"
+          ? Math.min(...values.map((value) => value[componentIndex]))
+          : Math.max(...values.map((value) => value[componentIndex]))
+      ));
+      const tolerance = layout.accessor.componentType === 5126 ? geometryTolerance : 0;
+      if (declared.some((value, componentIndex) => !approximatelyEqual(value, decoded[componentIndex], tolerance))) {
+        throw new Error("room_glb_accessor_bounds_invalid");
+      }
+    }
     decodedAccessors.set(index, values);
     return { layout, values };
   };
@@ -587,6 +874,13 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
       || position.values.length < 3 || normal.values.length !== position.values.length || uv.values.length !== position.values.length
       || indexData.values.length < 3 || indexData.values.length % 3 !== 0
       || !Number.isInteger(primitive.material) || primitive.material < 0 || primitive.material >= materials.length) throw new Error("room_glb_mesh_invalid");
+    const normalLengths = normal.values.map((value) => Math.hypot(...value));
+    if (normalLengths.some((length) => !Number.isFinite(length) || Math.abs(length - 1) > normalLengthTolerance)) {
+      throw new Error("room_glb_normal_invalid");
+    }
+    decodedNormalCount += normalLengths.length;
+    minimumNormalLength = Math.min(minimumNormalLength, ...normalLengths);
+    maximumNormalLength = Math.max(maximumNormalLength, ...normalLengths);
 
     const indices = indexData.values.map(([value]) => value);
     if (indices.some((value) => !Number.isInteger(value) || value < 0 || value >= position.values.length)) throw new Error("room_glb_index_invalid");
@@ -626,6 +920,18 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
       || decodedMax.some((value, axis) => !approximatelyEqual(value, expectedDimensions[axis] / 2, geometryTolerance))) {
       throw new Error("room_glb_expected_bound_mismatch");
     }
+    if (expectedRecord.materialRecipeId !== undefined
+      && materials[primitive.material].name !== `material.${expectedRecord.materialRecipeId}`) {
+      throw new Error("room_glb_material_binding_invalid");
+    }
+    let bevelInsetAxisCount = 0;
+    if (expectedRecord.geometry === "beveled-box") {
+      if (position.values.length <= 8 || distinctPositions.size <= 8) throw new Error("room_glb_bevel_topology_invalid");
+      bevelInsetAxisCount = [0, 1, 2].filter((axis) => position.values.some((coordinates) => (
+        approximatelyEqual(Math.abs(coordinates[axis]), expectedDimensions[axis] / 2 - expectedRecord.bevel.widthM, geometryTolerance)
+      ))).length;
+      if (bevelInsetAxisCount !== 3) throw new Error("room_glb_bevel_evidence_invalid");
+    }
 
     usedMaterials.add(primitive.material);
     primitiveCount += 1;
@@ -633,7 +939,7 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
     decodedIndexCount += indices.length;
     decodedTriangleCount += indices.length / 3;
     decodedDistinctReferencedPositionCount += distinctPositions.size;
-    geometryEvidence.push({
+    const evidence = {
       name: node.name,
       translation: [...translation],
       localPositionMin: decodedMin,
@@ -641,8 +947,13 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
       decodedVertexCount: position.values.length,
       decodedIndexCount: indices.length,
       decodedTriangleCount: indices.length / 3,
-      distinctReferencedPositionCount: distinctPositions.size
-    });
+      distinctReferencedPositionCount: distinctPositions.size,
+      geometry: expectedRecord.geometry,
+      materialRecipeId: materials[primitive.material].name.replace(/^material\./, ""),
+      bevelInsetAxisCount
+    };
+    if (expectedRecord.bevel !== undefined) evidence.bevel = expectedRecord.bevel;
+    geometryEvidence.push(evidence);
   }
   if (referencedAccessors.size !== accessors.length
     || referencedBufferViews.size !== bufferViews.length
@@ -651,7 +962,7 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
   const materialSourceIds = new Set();
   const materialEvidence = [];
   for (const material of materials) {
-    const expected = expectedArchitectureMaterials[material.name];
+    const expected = expectedMaterials[material.name];
     const pbr = material.pbrMetallicRoughness;
     const extras = material.extras;
     const expectedColor = expected && srgbColorFactor(expected.baseColorSrgb);
@@ -668,23 +979,23 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
       || extras.wmmr_recipe_id !== expected.recipeId
       || extras.wmmr_base_color_srgb !== expected.baseColorSrgb
       || !approximatelyEqual(extras.wmmr_texture_scale_m, expected.textureScaleM)
-      || !allowedArchitectureMaterialSourceIds.has(extras.wmmr_source_record_id)) throw new Error("room_glb_material_invalid");
+      || !normalizedContract.allowedMaterialSourceIds.has(extras.wmmr_source_record_id)) throw new Error("room_glb_material_invalid");
     materialSourceIds.add(extras.wmmr_source_record_id);
     materialEvidence.push({
       name: material.name,
-      recipeId: expected.recipeId,
-      baseColorSrgb: expected.baseColorSrgb,
-      roughness: expected.roughness,
-      metalness: expected.metalness,
-      textureScaleM: expected.textureScaleM,
+      recipeId: extras.wmmr_recipe_id,
+      baseColorSrgb: extras.wmmr_base_color_srgb,
+      roughness: pbr.roughnessFactor,
+      metalness: pbr.metallicFactor,
+      textureScaleM: extras.wmmr_texture_scale_m,
       sourceRecordId: extras.wmmr_source_record_id
     });
   }
-  if (materialSourceIds.size !== 1) throw new Error("room_glb_material_invalid");
+  if (materialSourceIds.size !== normalizedContract.requiredMaterialSourceCount) throw new Error("room_glb_material_invalid");
   materialEvidence.sort((left, right) => left.name.localeCompare(right.name));
   geometryEvidence.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
   return Object.freeze({
-    status: "architecture-only-glb-inspection-valid",
+    status: normalizedContract.status,
     nodeCount: document.nodes.length,
     meshCount: document.meshes.length,
     materialCount: document.materials.length,
@@ -707,12 +1018,252 @@ export function inspectGlb(bytes, expectedArchitectureRecords) {
     decodedIndexCount,
     decodedTriangleCount,
     decodedDistinctReferencedPositionCount,
+    decodedNormalCount,
+    minimumNormalLength,
+    maximumNormalLength,
     extensionCount: 0,
     nodeNames: Object.freeze([...nodeNames]),
     meshNames: Object.freeze([...meshNames]),
     materialNames: Object.freeze([...materialNames]),
     materialEvidence: Object.freeze(materialEvidence),
     geometryEvidence: Object.freeze(geometryEvidence)
+  });
+}
+
+export async function validateGlbWithKhronos(bytes) {
+  if (gltfValidator.version() !== expectedGltfValidatorVersion) throw new Error("khronos_gltf_validator_version_invalid");
+  let report;
+  try {
+    report = await gltfValidator.validateBytes(new Uint8Array(bytes), {
+      uri: "approved-candidate.glb",
+      format: "glb",
+      writeTimestamp: false,
+      maxIssues: 0
+    });
+  } catch {
+    throw new Error("khronos_gltf_validation_failed");
+  }
+  const issues = report?.issues;
+  if (![issues?.numErrors, issues?.numWarnings, issues?.numInfos, issues?.numHints].every(Number.isInteger)
+    || !Array.isArray(issues.messages) || issues.truncated !== false) throw new Error("khronos_gltf_report_invalid");
+  const codeCounts = Object.fromEntries([...new Set(issues.messages.map(({ code }) => code))].sort().map((code) => [
+    code,
+    issues.messages.filter((message) => message.code === code).length
+  ]));
+  const summary = Object.freeze({
+    status: "khronos-gltf-validator-valid",
+    package: "gltf-validator",
+    version: gltfValidator.version(),
+    issueCounts: Object.freeze({
+      errors: issues.numErrors,
+      warnings: issues.numWarnings,
+      infos: issues.numInfos,
+      hints: issues.numHints
+    }),
+    issueCodeCounts: Object.freeze(codeCounts),
+    truncated: issues.truncated,
+    asset: Object.freeze({
+      gltfVersion: report.info?.version,
+      generator: report.info?.generator,
+      drawCallCount: report.info?.drawCallCount,
+      totalVertexCount: report.info?.totalVertexCount,
+      totalTriangleCount: report.info?.totalTriangleCount,
+      materialCount: report.info?.materialCount,
+      animationCount: report.info?.animationCount,
+      hasSkins: report.info?.hasSkins,
+      hasTextures: report.info?.hasTextures
+    })
+  });
+  if (summary.issueCounts.errors !== 0 || summary.issueCounts.warnings !== 0) throw new Error("khronos_gltf_validation_issues");
+  return summary;
+}
+
+function baselineNumber(value) {
+  return Object.is(value, -0) ? 0 : Number(value.toFixed(6));
+}
+
+function baselinePoint(value) {
+  return Object.fromEntries(Object.entries(value).map(([key, number]) => [key, baselineNumber(number)]));
+}
+
+function normalizeArchitectureMaterials(materials) {
+  const expectedNames = Object.keys(expectedArchitectureMaterials);
+  const normalized = materials.filter(({ name }) => expectedNames.includes(name)).map((material) => ({
+    name: material.name,
+    recipeId: material.recipeId ?? material.id,
+    baseColorSrgb: material.baseColorSrgb,
+    textureScaleM: baselineNumber(material.textureScaleM),
+    sourceRecordId: material.sourceRecordId,
+    metalness: baselineNumber(material.metalness),
+    roughness: baselineNumber(material.roughness)
+  })).sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  if (!exactStringSet(normalized.map(({ name }) => name), expectedNames)
+    || normalized.some((material) => stableJson({
+      recipeId: material.recipeId,
+      baseColorSrgb: material.baseColorSrgb,
+      textureScaleM: material.textureScaleM,
+      metalness: material.metalness,
+      roughness: material.roughness
+    }) !== stableJson(expectedArchitectureMaterials[material.name])
+      || material.sourceRecordId !== "asset-layout-project")) throw new Error("architecture_baseline_material_invalid");
+  return normalized;
+}
+
+export function createArchitectureBaselineEvidenceFromReport(report) {
+  const assignments = new Map(report?.materials?.assignments?.map((assignment) => [assignment.objectName, assignment]));
+  const objects = report?.inventory?.objects?.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).map((record) => {
+    const assignment = assignments.get(record.name);
+    const actualRecipeIds = assignment?.materialSlots?.map(({ recipeId }) => recipeId) ?? assignment?.recipeIds;
+    if (!Array.isArray(actualRecipeIds) || actualRecipeIds.length !== 1) throw new Error("architecture_baseline_assignment_invalid");
+    return {
+      name: record.name,
+      geometry: record.geometry,
+      centerM: baselinePoint(record.centerM),
+      dimensionsM: baselinePoint(record.dimensionsM),
+      materialRecipeId: actualRecipeIds[0]
+    };
+  }).sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  if (!exactStringSet(objects?.map(({ name }) => name), expectedArchitectureNodeNames)) throw new Error("architecture_baseline_inventory_invalid");
+  const materialRecords = report.materials.materialEvidence ?? report.materials.recipes.map((recipe) => ({
+    name: `material.${recipe.id}`,
+    ...recipe
+  }));
+  return Object.freeze({
+    schemaVersion: 1,
+    objects: Object.freeze(objects),
+    materials: Object.freeze(normalizeArchitectureMaterials(materialRecords))
+  });
+}
+
+export function createArchitectureBaselineEvidenceFromGlb(inspection) {
+  const geometry = new Map(inspection?.geometryEvidence?.map((record) => [record.name, record]));
+  const objects = expectedArchitectureNodeNames.map((name) => {
+    const record = geometry.get(name);
+    if (!record) throw new Error("architecture_baseline_glb_inventory_invalid");
+    return {
+      name,
+      geometry: record.geometry,
+      centerM: baselinePoint({ x: record.translation[0], y: record.translation[1], z: -record.translation[2] }),
+      dimensionsM: baselinePoint({
+        widthM: record.localPositionMax[0] - record.localPositionMin[0],
+        heightM: record.localPositionMax[1] - record.localPositionMin[1],
+        depthM: record.localPositionMax[2] - record.localPositionMin[2]
+      }),
+      materialRecipeId: record.materialRecipeId
+    };
+  });
+  return Object.freeze({
+    schemaVersion: 1,
+    objects: Object.freeze(objects),
+    materials: Object.freeze(normalizeArchitectureMaterials(inspection.materialEvidence))
+  });
+}
+
+export function architectureBaselineSha256(evidence) {
+  return sha256(stableJson(evidence));
+}
+
+export function verifyArchitectureBaselineEvidence(expected, planReport, reopenReport, glbInspection) {
+  if (expected?.schemaVersion !== 1
+    || expected?.contract !== "f1-architecture-objects-materials-v1"
+    || !/^[0-9a-f]{64}$/.test(expected?.sha256 ?? "")
+    || expected?.objectCount !== 19
+    || expected?.materialCount !== 3) throw new Error("architecture_baseline_lock_invalid");
+  const plan = createArchitectureBaselineEvidenceFromReport(planReport);
+  const reopen = createArchitectureBaselineEvidenceFromReport(reopenReport);
+  const glb = createArchitectureBaselineEvidenceFromGlb(glbInspection);
+  const digests = Object.freeze({
+    planSha256: architectureBaselineSha256(plan),
+    reopenSha256: architectureBaselineSha256(reopen),
+    glbSha256: architectureBaselineSha256(glb)
+  });
+  if (Object.values(digests).some((digest) => digest !== expected.sha256)) throw new Error("architecture_baseline_mismatch");
+  return Object.freeze({
+    status: "f1-architecture-baseline-matched",
+    contract: expected.contract,
+    expectedSha256: expected.sha256,
+    ...digests,
+    objectCount: plan.objects.length,
+    materialCount: plan.materials.length,
+    evidence: plan
+  });
+}
+
+function expectedComponentRecords(source) {
+  const families = new Map(source.componentConstruction.families.map((family) => [family.id, family]));
+  const overrides = new Map(source.componentConstruction.instanceMaterialOverrides.map((override) => [
+    `${override.componentId}:${override.slot}`,
+    override.materialRecipeId
+  ]));
+  const records = [];
+  for (const component of source.scene.components) {
+    const family = families.get(component.family);
+    const defaultMaterials = new Map(family.defaultMaterials.map((mapping) => [mapping.slot, mapping.materialRecipeId]));
+    for (const part of family.parts) {
+      const yaw = component.transform.yaw;
+      const local = part.localTransform.position;
+      records.push({
+        name: `component.${component.id}.${part.id}`,
+        centerM: {
+          x: component.transform.position.x + Math.cos(yaw) * local.x - Math.sin(yaw) * local.z,
+          y: component.transform.position.y + local.y,
+          z: component.transform.position.z + Math.sin(yaw) * local.x + Math.cos(yaw) * local.z
+        },
+        dimensionsM: {
+          widthM: part.dimensions.widthM,
+          heightM: part.dimensions.heightM,
+          depthM: part.dimensions.depthM
+        },
+        geometry: "beveled-box",
+        bevel: { ...part.bevel },
+        materialRecipeId: overrides.get(`${component.id}:${part.materialSlotId}`) ?? defaultMaterials.get(part.materialSlotId)
+      });
+    }
+  }
+  records.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  if (records.length !== 38 || new Set(records.map(({ name }) => name)).size !== 38) throw new Error("approved_candidate_component_inventory_invalid");
+  return records;
+}
+
+export function createApprovedCandidateComponentGlbContract(report, source) {
+  const materialAssignments = new Map(report.materials.assignments.map((assignment) => [assignment.objectName, assignment.recipeIds]));
+  const architectureRecords = report.inventory.objects
+    .filter(({ name }) => !name.startsWith("component."))
+    .map((record) => {
+      const recipeIds = materialAssignments.get(record.name);
+      if (!Array.isArray(recipeIds) || recipeIds.length !== 1) throw new Error("approved_candidate_architecture_material_binding_invalid");
+      return {
+        name: record.name,
+        centerM: record.centerM,
+        dimensionsM: record.dimensionsM,
+        geometry: record.geometry,
+        materialRecipeId: recipeIds[0]
+      };
+    });
+  const componentRecords = expectedComponentRecords(source);
+  const reportComponents = new Map(report.components.objects.map((record) => [record.name, record]));
+  for (const expected of componentRecords) {
+    const actual = reportComponents.get(expected.name);
+    if (!actual
+      || actual.geometry !== "beveled-box"
+      || Object.keys(expected.dimensionsM).some((axis) => !approximatelyEqual(actual.dimensionsM?.[axis], expected.dimensionsM[axis], 1e-6))
+      || Object.keys(expected.centerM).some((axis) => !approximatelyEqual(actual.centerM?.[axis], expected.centerM[axis], 1e-6))
+      || stableJson(actual.bevel) !== stableJson(expected.bevel)
+      || actual.materialRecipeId !== expected.materialRecipeId
+      || actual.modifierCount !== 0
+      || actual.bevelApplied !== true
+      || actual.bevelInsetAxisCount !== 3
+      || actual.vertexCount !== 96
+      || actual.edgeCount !== 192
+      || actual.faceCount !== 98
+      || !/^[0-9a-f]{64}$/.test(actual.topologySha256 ?? "")) throw new Error("approved_candidate_component_report_evidence_invalid");
+  }
+  return Object.freeze({
+    status: "approved-candidate-components-glb-inspection-valid",
+    records: Object.freeze([...architectureRecords, ...componentRecords]),
+    materials: expectedComponentMaterials,
+    allowedMaterialSourceIds: Object.freeze(["asset-layout-project"]),
+    requiredMaterialSourceCount: 1
   });
 }
 
@@ -729,9 +1280,19 @@ async function compileRoomArchitecture(options, source) {
 
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "wmmr-room-shell-"));
   const temporaryScenePath = resolve(temporaryRoot, "scene-spec.json");
+  const temporaryComponentPath = resolve(temporaryRoot, "component-constructions.json");
+  const componentArguments = source.componentsIncluded ? [
+    "--component-constructions",
+    temporaryComponentPath,
+    "--expected-component-raw-sha256",
+    source.rawComponentConstructionSha256,
+    "--expected-component-sha256",
+    source.contract.componentConstructionSha256
+  ] : [];
 
   try {
     await writeFile(temporaryScenePath, source.sceneBytes, { flag: "wx", mode: 0o600 });
+    if (source.componentsIncluded) await writeFile(temporaryComponentPath, source.componentConstructionBytes, { flag: "wx", mode: 0o600 });
     await execFileAsync(blenderPath, [
       "--background",
       "--factory-startup",
@@ -746,6 +1307,7 @@ async function compileRoomArchitecture(options, source) {
       source.rawSceneSha256,
       "--expected-specification-sha256",
       source.contract.specificationSha256,
+      ...componentArguments,
       "--report",
       reportPath,
       "--output-blend",
@@ -759,7 +1321,7 @@ async function compileRoomArchitecture(options, source) {
       timeout: blenderTimeoutMs
     });
     const report = JSON.parse(await readFile(reportPath, "utf8"));
-    verifyCompilerReport(report, source, binarySha256);
+    validateCompilerReport(report, source, binarySha256);
     const outputBytes = await readFile(outputBlendPath);
     if (report.outputBlend?.byteLength !== outputBytes.length || report.outputBlend?.sha256 !== sha256(outputBytes)) throw new Error("room_shell_output_digest_mismatch");
     const glbBytes = await readFile(outputGlbPath);
@@ -779,6 +1341,7 @@ async function compileRoomArchitecture(options, source) {
       source.rawSceneSha256,
       "--expected-specification-sha256",
       source.contract.specificationSha256,
+      ...componentArguments,
       "--report",
       inspectionPath,
       "--inspect-only"
@@ -791,7 +1354,9 @@ async function compileRoomArchitecture(options, source) {
     const inspection = JSON.parse(await readFile(inspectionPath, "utf8"));
     const expectedInspectionStatus = source.fixtureOnly
       ? "stage3-synthetic-room-profiles-materials-inspection-valid"
-      : "stage3-approved-candidate-architecture-inspection-valid";
+      : source.componentsIncluded
+        ? "stage3-approved-candidate-components-inspection-valid"
+        : "stage3-approved-candidate-architecture-inspection-valid";
     if (inspection.status !== expectedInspectionStatus
       || inspection.fixtureOnly !== source.fixtureOnly
       || inspection.specificationSha256 !== source.contract.specificationSha256
@@ -804,9 +1369,34 @@ async function compileRoomArchitecture(options, source) {
       || inspection.inventory?.lightCount !== 0
       || inspection.inventory?.vertexCount !== report.inventory.vertexCount
       || inspection.inventory?.faceCount !== report.inventory.faceCount
-      || stableJson(inspection.inventory?.objects) !== stableJson(report.inventory.objects)) throw new Error("room_shell_saved_inspection_invalid");
-    const glbInspection = inspectGlb(glbBytes, report.inventory.objects);
+      || stableJson(inspection.inventory?.objects) !== stableJson(report.inventory.objects)
+      || stableJson(inspection.materials) !== stableJson(report.materials)
+      || (source.componentsIncluded && stableJson(inspection.components) !== stableJson(report.components))) throw new Error("room_shell_saved_inspection_invalid");
+    const glbInspection = inspectGlb(glbBytes, source.componentsIncluded
+      ? createApprovedCandidateComponentGlbContract(report, source)
+      : report.inventory.objects);
+    const khronosValidation = await validateGlbWithKhronos(glbBytes);
+    const architectureBaseline = source.architectureBaseline
+      ? verifyArchitectureBaselineEvidence(source.architectureBaseline, report, inspection, glbInspection)
+      : null;
     const reopenInspectionSha256 = sha256(stableJson(inspection));
+    if (source.componentsIncluded) {
+      const locked = source.componentGlbEvidence;
+      const issueCounts = khronosValidation.issueCounts;
+      if (report.outputGlb.sha256 !== locked.sha256
+        || report.outputGlb.byteLength !== locked.byteLength
+        || reopenInspectionSha256 !== locked.reopenInspectionSha256
+        || report.inventory.meshCount !== locked.meshCount
+        || report.inventory.materialCount !== locked.materialCount
+        || glbInspection.decodedNormalCount !== locked.decodedNormalCount
+        || architectureBaseline.expectedSha256 !== locked.architectureSemanticSha256
+        || khronosValidation.package !== locked.khronosValidator.package
+        || khronosValidation.version !== locked.khronosValidator.version
+        || issueCounts.errors !== locked.khronosValidator.errors
+        || issueCounts.warnings !== locked.khronosValidator.warnings
+        || issueCounts.infos !== locked.khronosValidator.infos
+        || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_component_glb_evidence_mismatch");
+    }
 
     const commonEnvelope = {
       ...report,
@@ -814,6 +1404,9 @@ async function compileRoomArchitecture(options, source) {
       generationLedgerSha256: source.contract.generationLedgerSha256,
       acceptedInputSha256: source.acceptedInputSha256,
       glbInspection,
+      khronosValidation,
+      architectureBaseline,
+      lockedComponentGlbEvidence: source.componentGlbEvidence ?? null,
       reopenInspection: inspection,
       reopenInspectionSha256
     };
@@ -843,7 +1436,12 @@ export async function compileApprovedCandidateArchitecture(options) {
   return compileRoomArchitecture(options, await loadApprovedCandidateArchitectureSource(options));
 }
 
-async function verifyRoomReproducibility(options, compile, candidate) {
+export async function compileApprovedCandidateComponents(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_component_compile_options_invalid");
+  return compileRoomArchitecture(options, await loadApprovedCandidateComponentSource(options));
+}
+
+async function verifyRoomReproducibility(options, compile, mode) {
   const outputDirectory = await externalDirectory(options.outputDirectory, "room_reproducibility_output_directory");
   const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "room_reproducibility_report");
   const runPaths = [
@@ -855,6 +1453,8 @@ async function verifyRoomReproducibility(options, compile, candidate) {
   ];
   if (new Set(runPaths).size !== runPaths.length) throw new Error("room_reproducibility_output_paths_conflict");
   await Promise.all(runPaths.slice(0, -1).map((path) => newExternalOutput(path, path.endsWith(".blend") ? ".blend" : path.endsWith(".glb") ? ".glb" : ".json", "room_reproducibility_run_output")));
+  const candidate = mode !== "synthetic";
+  const components = mode === "components";
   const common = candidate ? {
     blenderPath: options.blenderPath,
     candidateRepositoryPath: options.candidateRepositoryPath,
@@ -884,7 +1484,9 @@ async function verifyRoomReproducibility(options, compile, candidate) {
     if (runs.some((run) => run.reopenInspectionSha256 !== sha256(stableJson(run.reopenInspection)))
       || runs[0].reopenInspectionSha256 !== runs[1].reopenInspectionSha256) throw new Error("room_reopen_inspection_not_identical");
     if (candidate && (stableJson(runs[0].candidateSource) !== stableJson(runs[1].candidateSource)
-      || stableJson(runs[0].compilerSourceSha256) !== stableJson(runs[1].compilerSourceSha256))) {
+      || stableJson(runs[0].compilerSourceSha256) !== stableJson(runs[1].compilerSourceSha256)
+      || stableJson(runs[0].khronosValidation) !== stableJson(runs[1].khronosValidation)
+      || stableJson(runs[0].architectureBaseline) !== stableJson(runs[1].architectureBaseline))) {
       throw new Error("approved_candidate_source_changed_between_runs");
     }
 
@@ -893,6 +1495,8 @@ async function verifyRoomReproducibility(options, compile, candidate) {
       blend: run.outputBlend,
       glb: run.outputGlb,
       inventory: run.glbInspection,
+      khronosValidation: run.khronosValidation,
+      architectureBaseline: run.architectureBaseline,
       reopenInspection: {
         status: run.reopenInspection.status,
         inventory: run.reopenInspection.inventory,
@@ -907,7 +1511,45 @@ async function verifyRoomReproducibility(options, compile, candidate) {
       reopenInspectionIdentical: true,
       reopenInspectionSha256: runs[0].reopenInspectionSha256
     };
-    const report = candidate ? {
+    const candidateReport = components ? {
+      schemaVersion: 1,
+      status: "stage3-approved-candidate-components-glb-byte-identical",
+      fixtureOnly: false,
+      approvedCandidateSpecification: true,
+      candidateArchitectureCompiled: true,
+      componentsSpecified: true,
+      componentsCompiled: true,
+      componentGlbByteIdentical: true,
+      exteriorCompiled: false,
+      lightingCompiled: false,
+      mediaSurfacesCompiled: false,
+      sceneBinaryAddedToRepository: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false,
+      candidateSource: runs[0].candidateSource,
+      canonicalHashes: runs[0].canonicalHashes,
+      acceptedInputSha256: runs[0].acceptedInputSha256,
+      blender: runs[0].blender,
+      compilerSourceSha256: runs[0].compilerSourceSha256,
+      khronosValidation: runs[0].khronosValidation,
+      architectureBaseline: runs[0].architectureBaseline,
+      exporter: runs[0].outputGlb.exportSettings,
+      runs: runReports,
+      comparison,
+      boundaries: {
+        approvedCandidateSpecification: true,
+        candidateArchitectureCompiled: true,
+        componentsSpecified: true,
+        componentsCompiled: true,
+        componentGlbByteIdentical: true,
+        exteriorCompiled: false,
+        lightingCompiled: false,
+        mediaSurfacesCompiled: false,
+        finalCandidateGlbVerified: false,
+        publicationReady: false,
+        sceneBinaryAddedToRepository: false
+      }
+    } : {
       schemaVersion: 1,
       status: "stage3-approved-candidate-architecture-glb-byte-identical",
       fixtureOnly: false,
@@ -921,6 +1563,8 @@ async function verifyRoomReproducibility(options, compile, candidate) {
       acceptedInputSha256: runs[0].acceptedInputSha256,
       blender: runs[0].blender,
       compilerSourceSha256: runs[0].compilerSourceSha256,
+      khronosValidation: runs[0].khronosValidation,
+      architectureBaseline: runs[0].architectureBaseline,
       exporter: runs[0].outputGlb.exportSettings,
       runs: runReports,
       comparison,
@@ -933,7 +1577,8 @@ async function verifyRoomReproducibility(options, compile, candidate) {
         publicationReady: false,
         sceneBinaryAddedToRepository: false
       }
-    } : {
+    };
+    const report = candidate ? candidateReport : {
       schemaVersion: 1,
       status: "stage3-synthetic-room-glb-byte-identical",
       fixtureOnly: true,
@@ -942,6 +1587,8 @@ async function verifyRoomReproducibility(options, compile, candidate) {
       generationLedgerSha256: runs[0].generationLedgerSha256,
       acceptedInputSha256: runs[0].acceptedInputSha256,
       blender: runs[0].blender,
+      khronosValidation: runs[0].khronosValidation,
+      architectureBaseline: runs[0].architectureBaseline,
       exporter: runs[0].outputGlb.exportSettings,
       runs: runReports,
       comparison,
@@ -962,12 +1609,17 @@ async function verifyRoomReproducibility(options, compile, candidate) {
 
 export async function verifySyntheticRoomReproducibility(options) {
   if (!options || typeof options !== "object") throw new Error("room_reproducibility_options_invalid");
-  return verifyRoomReproducibility(options, compileSyntheticRoomShell, false);
+  return verifyRoomReproducibility(options, compileSyntheticRoomShell, "synthetic");
 }
 
 export async function verifyApprovedCandidateArchitectureReproducibility(options) {
   if (!options || typeof options !== "object") throw new Error("approved_candidate_reproducibility_options_invalid");
-  return verifyRoomReproducibility(options, compileApprovedCandidateArchitecture, true);
+  return verifyRoomReproducibility(options, compileApprovedCandidateArchitecture, "architecture");
+}
+
+export async function verifyApprovedCandidateComponentsReproducibility(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_component_reproducibility_options_invalid");
+  return verifyRoomReproducibility(options, compileApprovedCandidateComponents, "components");
 }
 
 function parsePairs(arguments_, code) {
@@ -990,7 +1642,7 @@ function parseCompileCli(arguments_) {
     outputGlbPath: values["--output-glb"],
     reportPath: values["--report"]
   };
-  if (inputKind === candidateInputKind) {
+  if ([candidateArchitectureInputKind, candidateComponentInputKind].includes(inputKind)) {
     const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-blend", "--output-glb", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key)) || Object.values(common).some((value) => value === undefined)) throw new Error("room_shell_cli_arguments_invalid");
     return { inputKind, options: { ...common, candidateRepositoryPath: values["--candidate-dir"] } };
@@ -1011,9 +1663,11 @@ function parseCompileCli(arguments_) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const cli = parseCompileCli(process.argv.slice(2));
-    const report = cli.inputKind === candidateInputKind
+    const report = cli.inputKind === candidateArchitectureInputKind
       ? await compileApprovedCandidateArchitecture(cli.options)
-      : await compileSyntheticRoomShell(cli.options);
+      : cli.inputKind === candidateComponentInputKind
+        ? await compileApprovedCandidateComponents(cli.options)
+        : await compileSyntheticRoomShell(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_shell_compile_failed"}\n`);

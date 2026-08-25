@@ -2,10 +2,12 @@ import { pathToFileURL } from "node:url";
 
 import {
   verifyApprovedCandidateArchitectureReproducibility,
+  verifyApprovedCandidateComponentsReproducibility,
   verifySyntheticRoomReproducibility
 } from "./compile-room-shell.mjs";
 
-const candidateInputKind = "approved-candidate-architecture";
+const candidateArchitectureInputKind = "approved-candidate-architecture";
+const candidateComponentInputKind = "approved-candidate-components";
 
 function parseCli(arguments_) {
   const values = {};
@@ -15,12 +17,12 @@ function parseCli(arguments_) {
     if (!flag?.startsWith("--") || value === undefined || values[flag] !== undefined) throw new Error("room_reproducibility_cli_arguments_invalid");
     values[flag] = value;
   }
-  if (values["--input-kind"] === candidateInputKind) {
+  if ([candidateArchitectureInputKind, candidateComponentInputKind].includes(values["--input-kind"])) {
     const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-directory", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key))
       || ["--blender", "--output-directory", "--report"].some((key) => values[key] === undefined)) throw new Error("room_reproducibility_cli_arguments_invalid");
     return {
-      inputKind: candidateInputKind,
+      inputKind: values["--input-kind"],
       options: {
         blenderPath: values["--blender"],
         candidateRepositoryPath: values["--candidate-dir"],
@@ -47,9 +49,11 @@ function parseCli(arguments_) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const cli = parseCli(process.argv.slice(2));
-    const report = cli.inputKind === candidateInputKind
+    const report = cli.inputKind === candidateArchitectureInputKind
       ? await verifyApprovedCandidateArchitectureReproducibility(cli.options)
-      : await verifySyntheticRoomReproducibility(cli.options);
+      : cli.inputKind === candidateComponentInputKind
+        ? await verifyApprovedCandidateComponentsReproducibility(cli.options)
+        : await verifySyntheticRoomReproducibility(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_reproducibility_failed"}\n`);
