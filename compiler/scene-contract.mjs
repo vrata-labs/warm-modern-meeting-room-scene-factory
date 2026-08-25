@@ -772,12 +772,13 @@ const constructionOverrides = Object.freeze(new Map([
   ["chair-02:upholstery", "muted-grey-green-fabric"],
   ["chair-07:upholstery", "muted-grey-green-fabric"]
 ]));
+const constructionMaterialSourceKinds = Object.freeze(new Set(["material", "project-authored-input"]));
 const constructionMaterialRecipes = Object.freeze(new Map([
-  ["warm-oak", Object.freeze({ category: "wood", baseColorSrgb: "#A87543", roughness: 0.46, metalness: 0, textureScaleM: 0.18, sourceRecordId: "asset-material-project" })],
-  ["mineral-plaster", Object.freeze({ category: "mineral", baseColorSrgb: "#DDD6C8", roughness: 0.84, metalness: 0, textureScaleM: 0.5, sourceRecordId: "asset-material-project" })],
-  ["graphite-metal", Object.freeze({ category: "metal", baseColorSrgb: "#343A3C", roughness: 0.35, metalness: 0.7, textureScaleM: 0.2, sourceRecordId: "asset-material-project" })],
-  ["sand-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#B9A98E", roughness: 0.72, metalness: 0, textureScaleM: 0.003, sourceRecordId: "asset-material-project" })],
-  ["muted-grey-green-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#77877B", roughness: 0.76, metalness: 0, textureScaleM: 0.003, sourceRecordId: "asset-material-project" })]
+  ["warm-oak", Object.freeze({ category: "wood", baseColorSrgb: "#A87543", roughness: 0.46, metalness: 0, textureScaleM: 0.18 })],
+  ["mineral-plaster", Object.freeze({ category: "mineral", baseColorSrgb: "#DDD6C8", roughness: 0.84, metalness: 0, textureScaleM: 0.5 })],
+  ["graphite-metal", Object.freeze({ category: "metal", baseColorSrgb: "#343A3C", roughness: 0.35, metalness: 0.7, textureScaleM: 0.2 })],
+  ["sand-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#B9A98E", roughness: 0.72, metalness: 0, textureScaleM: 0.003 })],
+  ["muted-grey-green-fabric", Object.freeze({ category: "fabric", baseColorSrgb: "#77877B", roughness: 0.8, metalness: 0, textureScaleM: 0.003 })]
 ]));
 
 function validateConstructionMaterial(recipeId, context, recipes, assets, resolvedMaterials, issues) {
@@ -851,6 +852,19 @@ function validateComponentConstructionContract(scene, assetLedger, construction,
   }
   if (!scene.generator.acceptedInputSha256.includes(constructionRawSha256)) issues.push(`component_construction_input_sha256_missing:${constructionRawSha256}`);
 
+  if (construction.materialSourceRecordId === construction.sourceRecordId) issues.push("component_construction_material_source_must_be_separate");
+  const materialSource = assets.get(construction.materialSourceRecordId);
+  if (!materialSource) issues.push(`component_construction_material_source_unknown:${construction.materialSourceRecordId}`);
+  else {
+    if (!constructionMaterialSourceKinds.has(materialSource.kind)) issues.push(`component_construction_material_source_kind_invalid:${construction.materialSourceRecordId}`);
+    if (materialSource.source?.classification !== "project-authored"
+      || materialSource.source?.publicUrl !== null
+      || typeof materialSource.source?.repositoryPath !== "string"
+      || !materialSource.source.repositoryPath.startsWith("source/")
+      || materialSource.source.repositoryPath === "source/component-constructions.json") issues.push(`component_construction_material_source_invalid:${construction.materialSourceRecordId}`);
+    if (!consumedAssetUsable(materialSource)) issues.push(`component_construction_material_source_use_invalid:${construction.materialSourceRecordId}`);
+  }
+
   if (scene.materialRecipes.length !== constructionMaterialRecipes.size) issues.push(`component_construction_material_recipe_count_invalid:${scene.materialRecipes.length}`);
   for (const [recipeId, expected] of constructionMaterialRecipes) {
     const recipe = recipes.get(recipeId);
@@ -859,6 +873,7 @@ function validateComponentConstructionContract(scene, assetLedger, construction,
       continue;
     }
     for (const [field, value] of Object.entries(expected)) if (recipe[field] !== value) issues.push(`component_construction_material_recipe_mismatch:${recipeId}:${field}`);
+    if (recipe.sourceRecordId !== construction.materialSourceRecordId) issues.push(`component_construction_material_source_mismatch:${recipeId}:${recipe.sourceRecordId}`);
   }
   for (const recipeId of recipes.keys()) if (!constructionMaterialRecipes.has(recipeId)) issues.push(`component_construction_material_recipe_unexpected:${recipeId}`);
 

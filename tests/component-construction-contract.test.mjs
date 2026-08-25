@@ -34,10 +34,10 @@ async function validObjects() {
     id: "muted-grey-green-fabric",
     category: "fabric",
     baseColorSrgb: "#77877B",
-    roughness: 0.76,
+    roughness: 0.8,
     metalness: 0,
     textureScaleM: 0.003,
-    sourceRecordId: "asset-material-project"
+    sourceRecordId: componentConstruction.materialSourceRecordId
   });
   for (const component of scene.components) {
     component.sourceRecordId = componentConstruction.sourceRecordId;
@@ -45,7 +45,7 @@ async function validObjects() {
   }
   const assetLedger = {
     ...sourceAssetLedger,
-    records: sourceAssetLedger.records.filter(({ id }) => ["asset-exterior-project", "asset-material-project"].includes(id))
+    records: sourceAssetLedger.records.filter(({ id }) => ["asset-exterior-project", componentConstruction.materialSourceRecordId].includes(id))
   };
   assetLedger.records.push({
     id: componentConstruction.sourceRecordId,
@@ -112,15 +112,15 @@ test("candidate-owned component construction contract returns a stable non-readi
   assert.deepEqual(report, {
     status: "stage3-component-construction-contract-valid",
     sceneId: "warm-modern-meeting-room-candidate-01",
-    specificationSha256: "f1ebc373c176631522f27f8657136e8f4c2992c9a34b449bb283907be2174779",
-    assetLedgerSha256: "89e773e2611373b86d62d3b5f86bfbbabf938c4064399a35d79db87d744cb910",
+    specificationSha256: "63e1b366c45630e9311d38f3c9685296cf24c5f8eaf17626298f79f2b3296ef5",
+    assetLedgerSha256: "250fe897e467fc8266c603d66eb224e695fd436829ce9d89aaca038d5f151f82",
     generationLedgerSha256: "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
     assetRecordCount: 3,
     generationRecordCount: 0,
     componentCount: 11,
     seatCount: 8,
-    componentConstructionSha256: "6bdce8fb597987982dbbd59f148787d95285bbba08ceea23bc49044da3c41ff2",
-    componentConstructionRawSha256: "9fa6d756d6b55042d2a8c52356789fa920877262e29e54c99240d3ab89de5758",
+    componentConstructionSha256: "8a92cdf511b5ff1f8de5113505b59cf3ccb19c4124cd0b6dfa02a368d9317ce6",
+    componentConstructionRawSha256: "6488d0db2572e62f91fa3770f288bf09dc524194946061e47eb942a34d6cd841",
     familyCount: 4,
     partCount: 38,
     overrideCount: 2,
@@ -157,6 +157,17 @@ test("existing scene parser remains unchanged and does not require construction 
     "seatCount"
   ]);
   assert.equal(oldReport.status, "stage3-scene-contract-valid");
+});
+
+test("material source binding accepts Candidate project-authored input without a hardcoded asset id", async () => {
+  const value = await validObjects();
+  const materialSource = value.assetLedger.records.find(({ id }) => id === value.componentConstruction.materialSourceRecordId);
+  materialSource.id = "asset-layout-project";
+  materialSource.kind = "project-authored-input";
+  materialSource.source.repositoryPath = "source/concept-selection.json";
+  value.componentConstruction.materialSourceRecordId = materialSource.id;
+  for (const recipe of value.scene.materialRecipes) recipe.sourceRecordId = materialSource.id;
+  assert.equal(parseComponentConstructionContract(textsFromObjects(value)).status, "stage3-component-construction-contract-valid");
 });
 
 test("parser snapshots getter and proxy text inputs once before parsing", async () => {
@@ -312,7 +323,7 @@ test("source, raw-byte, component provenance, and material rights closure fails 
     ["unknown source", (value) => { value.componentConstruction.sourceRecordId = "missing-source"; }, {}, "component_construction_source_unknown:missing-source"],
     ["source kind", (value) => { value.assetLedger.records[2].kind = "mesh"; }, {}, "component_construction_source_kind_invalid:asset-component-constructions"],
     ["raw hash", (value) => { value.componentConstruction.instanceMaterialOverrides.reverse(); }, { bindSource: false, bindAcceptedInput: false }, "component_construction_source_sha256_mismatch:asset-component-constructions"],
-    ["accepted input", (value) => { value.scene.generator.acceptedInputSha256 = [value.assetLedger.records[0].originalSha256]; }, { bindAcceptedInput: false }, "component_construction_input_sha256_missing:9fa6d756d6b55042d2a8c52356789fa920877262e29e54c99240d3ab89de5758"],
+    ["accepted input", (value) => { value.scene.generator.acceptedInputSha256 = [value.assetLedger.records[0].originalSha256]; }, { bindAcceptedInput: false }, "component_construction_input_sha256_missing:6488d0db2572e62f91fa3770f288bf09dc524194946061e47eb942a34d6cd841"],
     ["component source", (value) => { value.scene.components[0].sourceRecordId = "asset-material-project"; }, {}, "component_construction_component_source_mismatch:conference-table"],
     ["component generation", (value) => { value.scene.components[0].generationRecordId = "missing-generation"; }, {}, "component_generation_unknown:conference-table:missing-generation"],
     ["construction source rights", (value) => { value.assetLedger.records[2].allowedUse.webRuntime = false; }, {}, "component_source_use_invalid:chair-01:asset-component-constructions"],
@@ -359,11 +370,17 @@ test("construction geometry and furniture relationships fail closed", async (t) 
   });
 });
 
-test("all five component-scoped material recipes are exact, including approved muted green and sources", async (t) => {
+test("all five component-scoped material recipes are exact and share one approved material source", async (t) => {
   const cases = [
     ["muted color drift", (value) => { value.scene.materialRecipes.find(({ id }) => id === "muted-grey-green-fabric").baseColorSrgb = "#78877B"; }, "component_construction_material_recipe_mismatch:muted-grey-green-fabric:baseColorSrgb"],
     ["scalar drift", (value) => { value.scene.materialRecipes.find(({ id }) => id === "warm-oak").roughness = 0.47; }, "component_construction_material_recipe_mismatch:warm-oak:roughness"],
-    ["source drift", (value) => { value.scene.materialRecipes.find(({ id }) => id === "mineral-plaster").sourceRecordId = "asset-exterior-project"; }, "component_construction_material_recipe_mismatch:mineral-plaster:sourceRecordId"]
+    ["muted roughness drift", (value) => { value.scene.materialRecipes.find(({ id }) => id === "muted-grey-green-fabric").roughness = 0.76; }, "component_construction_material_recipe_mismatch:muted-grey-green-fabric:roughness"],
+    ["unknown material source", (value) => { value.componentConstruction.materialSourceRecordId = "missing-material-source"; }, "component_construction_material_source_unknown:missing-material-source"],
+    ["construction source reused as material source", (value) => { value.componentConstruction.materialSourceRecordId = value.componentConstruction.sourceRecordId; }, "component_construction_material_source_must_be_separate"],
+    ["unusable material source", (value) => { const source = structuredClone(value.assetLedger.records.find(({ id }) => id === value.componentConstruction.materialSourceRecordId)); source.id = "asset-unusable-material"; source.allowedUse.webRuntime = false; value.assetLedger.records.push(source); value.componentConstruction.materialSourceRecordId = source.id; }, "component_construction_material_source_use_invalid:asset-unusable-material"],
+    ["mixed material sources", (value) => { value.scene.materialRecipes.find(({ id }) => id === "mineral-plaster").sourceRecordId = "asset-exterior-project"; }, "component_construction_material_source_mismatch:mineral-plaster:asset-exterior-project"],
+    ["invalid material source kind", (value) => { value.componentConstruction.materialSourceRecordId = "asset-exterior-project"; }, "component_construction_material_source_kind_invalid:asset-exterior-project"],
+    ["non-project-authored material source", (value) => { const source = value.assetLedger.records.find(({ id }) => id === value.componentConstruction.materialSourceRecordId); source.source.classification = "cc0"; }, "component_construction_material_source_invalid:asset-material-project"]
   ];
   for (const [name, mutate, expectedIssue] of cases) await t.test(name, async () => {
     const value = await validObjects();
@@ -377,7 +394,8 @@ test("component construction schema exposes only the scoped candidate-owned cont
   const schema = JSON.parse(await readFixture(root, "schemas/component-constructions.schema.json"));
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
   assert.equal(schema.additionalProperties, false);
-  assert.deepEqual(schema.required, ["schemaVersion", "sceneId", "sourceRecordId", "families", "instanceMaterialOverrides"]);
+  assert.deepEqual(schema.required, ["schemaVersion", "sceneId", "sourceRecordId", "materialSourceRecordId", "families", "instanceMaterialOverrides"]);
+  assert.equal(schema.properties.materialSourceRecordId.$ref, "#/$defs/id");
   assert.equal(schema.$defs.family.additionalProperties, false);
   assert.equal(schema.$defs.part.properties.geometry.const, "beveled-box");
   assert.equal(schema.$defs.part.properties.bevel.$ref, "#/$defs/bevel");

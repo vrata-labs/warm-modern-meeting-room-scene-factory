@@ -4,11 +4,12 @@
   "title": "Warm Modern Meeting Room Candidate-Owned Component Constructions",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "sceneId", "sourceRecordId", "families", "instanceMaterialOverrides"],
+  "required": ["schemaVersion", "sceneId", "sourceRecordId", "materialSourceRecordId", "families", "instanceMaterialOverrides"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
     "sourceRecordId": { "$ref": "#/$defs/id" },
+    "materialSourceRecordId": { "$ref": "#/$defs/id" },
     "families": { "type": "array", "items": { "$ref": "#/$defs/family" }, "minItems": 4, "maxItems": 4 },
     "instanceMaterialOverrides": { "type": "array", "items": { "$ref": "#/$defs/materialOverride" }, "minItems": 2, "maxItems": 2 }
   },
