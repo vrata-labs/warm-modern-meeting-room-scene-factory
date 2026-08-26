@@ -1,0 +1,6 @@
+{
+  "target": "exteriorConstruction",
+  "path": "objects.1.id",
+  "value": "near-ground",
+  "expectedIssue": "exterior_construction_object_duplicate:near-ground"
+}

@@ -73,6 +73,7 @@ test("compiler source attestation covers every trusted build input and rejects o
     "compiler/verify-room-reproducibility.mjs",
     "schemas/asset-ledger.schema.json",
     "schemas/component-constructions.schema.json",
+    "schemas/exterior-constructions.schema.json",
     "schemas/generation-ledger.schema.json",
     "schemas/media-surface-constructions.schema.json",
     "schemas/scene-spec.schema.json",
@@ -207,6 +208,14 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.approvedCandidateMediaSurfaceProjectionByteIdenticalVerified, true);
   assert.equal(readiness.stage3.approvedCandidateMediaSurfaceOutputAtomicNoClobber, true);
   assert.equal(readiness.stage3.approvedCandidateMediaSurfaceRepositoryRootsRejected, true);
+  assert.equal(readiness.stage3.exteriorConstructionContractImplemented, true);
+  assert.equal(readiness.stage3.exteriorConstructionContractStatus, "fixture-validated-awaiting-candidate-source");
+  assert.equal(readiness.stage3.exteriorConstructionFixtureOnly, true);
+  assert.equal(readiness.stage3.exteriorConstructionValidatorApi, "parseExteriorConstructionContract");
+  assert.equal(readiness.stage3.exteriorConstructionObjectCount, 4);
+  assert.equal(readiness.stage3.exteriorConstructionMaterialCount, 3);
+  assert.equal(readiness.stage3.exteriorConstructionNegativeFixtureCount, 4);
+  assert.equal(readiness.stage3.approvedCandidateExteriorSpecified, false);
   assert.equal(readiness.stage3.approvedCandidateExteriorCompiled, false);
   assert.equal(readiness.stage3.approvedCandidateLightingCompiled, false);
   assert.equal(readiness.stage3.approvedCandidateMediaSurfacesCompiled, true);

@@ -1,0 +1,6 @@
+{
+  "target": "exteriorConstruction",
+  "path": "windowOpeningId",
+  "value": "main-door",
+  "expectedIssue": "exterior_construction_window_mismatch:main-door"
+}

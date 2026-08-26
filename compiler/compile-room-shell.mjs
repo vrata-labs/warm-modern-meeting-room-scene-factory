@@ -38,6 +38,7 @@ export const compilerSourceAttestationPaths = Object.freeze([
   "compiler/verify-room-reproducibility.mjs",
   "schemas/asset-ledger.schema.json",
   "schemas/component-constructions.schema.json",
+  "schemas/exterior-constructions.schema.json",
   "schemas/generation-ledger.schema.json",
   "schemas/media-surface-constructions.schema.json",
   "schemas/scene-spec.schema.json",

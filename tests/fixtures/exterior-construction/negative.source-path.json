@@ -1,0 +1,6 @@
+{
+  "target": "sourceRecord",
+  "path": "source.repositoryPath",
+  "value": "source/exterior/geometry.json",
+  "expectedIssue": "exterior_construction_source_path_invalid:asset-exterior-constructions"
+}

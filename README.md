@@ -50,10 +50,22 @@ rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separat
 publication signoff.
 
 The Stage 3 contract defines exact scene, asset-ledger, generation-ledger,
-component-construction, and media-surface-construction schemas plus Ajv Draft
+component-construction, media-surface-construction, and exterior-construction schemas plus Ajv Draft
 2020-12 and semantic validation in `compiler/`. The checked-in scene
 specification remains a neutral synthetic contract fixture. Its fail-closed
 compiler and reproducibility paths remain unchanged.
+
+The exterior-construction contract is exposed through
+`schemas/exterior-constructions.schema.json` and
+`parseExteriorConstructionContract`. It permits only project-authored scalar
+materials and deterministic beveled-box volumes, binds the north-side
+`main-window`, verifies raw source provenance and accepted-input closure, and
+fails closed on support cycles, unsupported footprints, positive-volume
+overlap, room intrusion, declared-bounds drift, missing visible vegetation, or
+unbounded middle-distance context. The four-object/three-material checked-in
+source is contract-test data only. Candidate 01 does not yet contain this
+source, so exterior specified, compiled, final GLB, release, and publication
+claims remain false.
 
 The candidate-owned component construction contract is exposed through
 `schemas/component-constructions.schema.json` and
@@ -85,7 +97,7 @@ SHA-256 `352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb`.
 That exact 1022-byte, two-surface, `platform-runtime-plane`, byte-identical
 evidence is pinned separately as `mediaSurfaceProjectionEvidence` in the active
 Candidate lock.
-No Blender geometry, GLB, exterior, or lighting is compiled, and final, release,
+No exterior Blender geometry, final GLB, or lighting is compiled, and final, release,
 repository-inclusion, and publication boundaries remain false.
 
 The F1 Candidate 01 architecture baseline remains pinned separately at commit
@@ -116,7 +128,7 @@ and object material-slot evidence. Decoded normals must be finite and unit lengt
 declared accessor bounds must match decoded values, and the pinned Khronos
 `gltf-validator` gate must report zero errors and zero warnings.
 
-Compiler source attestation covers every compiler entrypoint, all five Stage 3
+Compiler source attestation covers every compiler entrypoint, all six Stage 3
 schemas, the candidate lock, and the exact package manifest and pnpm lockfile.
 Compiler and reproducibility reports retain the complete path-to-SHA-256 map, and
 readiness validation independently recomputes it. Candidate lock and readiness
@@ -162,3 +174,9 @@ negative cases. Media-surface tests cover the six-blob lock, source ownership,
 canonical projection bytes, reproducibility, hostile Git/worktree drift,
 malformed projections, and fail-closed output handling. No production-track
 mapping is recorded.
+
+Exterior contract tests additionally cover canonical source bytes, exact scene
+and source-ledger closure, material-role compatibility, north-window visibility,
+support topology, declared bounds, deterministic naming, and stable negative
+diagnostics. They do not claim a Candidate 01 exterior source or compiled
+exterior geometry.

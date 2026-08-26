@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/exterior-constructions.schema.json",
+  "title": "Warm Modern Meeting Room Candidate-Owned Exterior Constructions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "sourceRecordId", "strategy", "windowOpeningId", "boundsM", "materials", "objects"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "sourceRecordId": { "$ref": "#/$defs/id" },
+    "strategy": { "const": "project-authored-geometry" },
+    "windowOpeningId": { "$ref": "#/$defs/id" },
+    "boundsM": { "$ref": "#/$defs/bounds" },
+    "materials": { "type": "array", "items": { "$ref": "#/$defs/material" }, "minItems": 3, "maxItems": 6 },
+    "objects": { "type": "array", "items": { "$ref": "#/$defs/object" }, "minItems": 4, "maxItems": 12 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "$ref": "#/$defs/position" },
+        "max": { "$ref": "#/$defs/position" }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "heightM", "depthM"],
+      "properties": {
+        "widthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 20 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
+        "depthM": { "type": "number", "exclusiveMinimum": 0, "maximum": 20 }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "yaw"],
+      "properties": {
+        "position": { "$ref": "#/$defs/position" },
+        "yaw": { "const": 0 }
+      }
+    },
+    "bevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "segments", "clampOverlap"],
+      "properties": {
+        "widthM": { "type": "number", "minimum": 0.003, "maximum": 0.05 },
+        "segments": { "const": 3 },
+        "clampOverlap": { "const": true }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "baseColorSrgb", "roughness", "metalness", "textureScaleM"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "category": { "enum": ["ground", "metal", "mineral", "vegetation"] },
+        "baseColorSrgb": { "type": "string", "pattern": "^#[0-9A-F]{6}$" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "textureScaleM": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "geometry", "dimensions", "transform", "bevel", "materialId", "supportObjectId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "role": { "enum": ["nearby-ground", "vegetation-container", "vegetation", "middle-distance-context"] },
+        "geometry": { "const": "beveled-box" },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "transform": { "$ref": "#/$defs/transform" },
+        "bevel": { "$ref": "#/$defs/bevel" },
+        "materialId": { "$ref": "#/$defs/id" },
+        "supportObjectId": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    }
+  }
+}
