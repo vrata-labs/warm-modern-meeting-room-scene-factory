@@ -10,6 +10,7 @@ import gltfValidator from "gltf-validator";
 import {
   parseCanonicalJsonText,
   parseComponentConstructionContract,
+  parseExteriorConstructionContract,
   parseMediaSurfaceConstructionContract,
   parseSceneContract
 } from "./scene-contract.mjs";
@@ -29,8 +30,18 @@ const candidatePaths = Object.freeze({
   generationLedger: "provenance/generation-ledger.json",
   conceptSelection: "source/concept-selection.json",
   componentConstruction: "source/component-constructions.json",
-  mediaSurfaceConstruction: "source/media-surface-constructions.json"
+  mediaSurfaceConstruction: "source/media-surface-constructions.json",
+  exteriorConstruction: "source/exterior-constructions.json"
 });
+const candidateArchitecturePaths = Object.freeze([
+  candidatePaths.scene,
+  candidatePaths.assetLedger,
+  candidatePaths.generationLedger,
+  candidatePaths.conceptSelection
+]);
+const candidateComponentPaths = Object.freeze([...candidateArchitecturePaths, candidatePaths.componentConstruction]);
+const candidateMediaSurfacePaths = Object.freeze([...candidateComponentPaths, candidatePaths.mediaSurfaceConstruction]);
+const candidateExteriorPaths = Object.freeze([...candidateMediaSurfacePaths, candidatePaths.exteriorConstruction]);
 export const compilerSourceAttestationPaths = Object.freeze([
   "compiler/blender-room-shell.py",
   "compiler/compile-room-shell.mjs",
@@ -52,8 +63,11 @@ const syntheticInputKind = "synthetic-fixture";
 const candidateArchitectureInputKind = "approved-candidate-architecture";
 const candidateComponentInputKind = "approved-candidate-components";
 const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
+const candidateExteriorInputKind = "approved-candidate-exterior";
 export const mediaSurfaceOutputFaultInjection = Symbol("mediaSurfaceOutputFaultInjection");
 const publishedMediaSurfaceOutputs = Symbol("publishedMediaSurfaceOutputs");
+export const roomOutputFaultInjection = Symbol("roomOutputFaultInjection");
+const publishedRoomOutputs = Symbol("publishedRoomOutputs");
 const gitProtocolDenyArguments = Object.freeze(["file", "git", "http", "https", "ssh"].flatMap((protocol) => ["-c", `protocol.${protocol}.allow=never`]));
 const gitEnvironmentNames = Object.freeze(process.platform === "win32"
   ? ["COMSPEC", "PATH", "PATHEXT", "SYSTEMROOT", "TEMP", "TMP", "WINDIR"]
@@ -169,6 +183,17 @@ function mediaSurfaceOutputFault(options, artifact) {
   return value.artifact === artifact ? value.phase : null;
 }
 
+function roomOutputFault(options, artifact) {
+  const value = options?.[roomOutputFaultInjection];
+  if (value === undefined) return null;
+  if (!exactKeys(value, ["artifact", "phase"])
+    || !["blend", "glb", "compile-report", "reproducibility-report"].includes(value.artifact)
+    || !["after-partial-write", "after-write", "before-link", "replace-before-link", "after-link"].includes(value.phase)) {
+    throw new Error("room_output_fault_injection_invalid");
+  }
+  return value.artifact === artifact ? value.phase : null;
+}
+
 async function removePublishedMediaSurfaceOutput(record) {
   let metadata;
   try {
@@ -222,13 +247,16 @@ async function publishMediaSurfaceOutputAtomically({ finalPath, bytes, label, va
     if (!temporaryBytes.equals(bytes)) throw new Error(`${label}_temporary_bytes_mismatch`);
     await validate(temporaryBytes);
     if (faultPhase === "before-link") throw new Error(`${label}_fault_before_link`);
+    if (faultPhase === "replace-before-link") await writeFile(finalPath, "external-race\n", { flag: "wx", mode: 0o600 });
+    const temporaryMetadata = await lstat(temporaryPath);
     await link(temporaryPath, finalPath);
+    finalRecord = Object.freeze({ path: finalPath, dev: temporaryMetadata.dev, ino: temporaryMetadata.ino });
     finalCreated = true;
     const finalMetadata = await lstat(finalPath);
-    if (!finalMetadata.isFile() || finalMetadata.isSymbolicLink() || await realpath(finalPath) !== finalPath) {
+    if (!finalMetadata.isFile() || finalMetadata.isSymbolicLink() || await realpath(finalPath) !== finalPath
+      || finalMetadata.dev !== finalRecord.dev || finalMetadata.ino !== finalRecord.ino) {
       throw new Error(`${label}_published_file_invalid`);
     }
-    finalRecord = Object.freeze({ path: finalPath, dev: finalMetadata.dev, ino: finalMetadata.ino });
     if (faultPhase === "after-link") throw new Error(`${label}_fault_after_link`);
     await rm(temporaryPath, { force: true });
     temporaryOwned = false;
@@ -244,9 +272,7 @@ async function publishMediaSurfaceOutputAtomically({ finalPath, bytes, label, va
     }
     const cleanup = [];
     if (temporaryOwned && temporaryPath) cleanup.push(rm(temporaryPath, { force: true }));
-    if (finalCreated) cleanup.push(finalRecord
-      ? removePublishedMediaSurfaceOutput(finalRecord)
-      : rm(finalPath, { force: true }));
+    if (finalCreated) cleanup.push(removePublishedMediaSurfaceOutput(finalRecord));
     const results = await Promise.allSettled(cleanup);
     failures.push(...results.filter(({ status }) => status === "rejected").map(({ reason }) => reason));
     if (failures.length !== 0) throw new AggregateError([error, ...failures], `${label}_cleanup_failed`);
@@ -326,6 +352,7 @@ export function parseCandidateLockText(text) {
   const candidate = lock?.candidates?.candidate01;
   const architectureBaseline = candidate?.architectureBaseline;
   const componentBaseline = candidate?.componentBaseline;
+  const mediaSurfaceBaseline = candidate?.mediaSurfaceBaseline;
   const hashFieldsValid = (value, fields) => fields.every((field) => /^[0-9a-f]{64}$/.test(value?.[field] ?? ""));
   const inputBlobsValid = (value, paths) => value && typeof value === "object"
     && Object.keys(value).sort().join(",") === [...paths].sort().join(",")
@@ -352,6 +379,37 @@ export function parseCandidateLockText(text) {
     && khronosEvidence?.warnings === 0
     && Number.isSafeInteger(khronosEvidence?.infos) && khronosEvidence.infos >= 0
     && Number.isSafeInteger(khronosEvidence?.hints) && khronosEvidence.hints >= 0;
+  const exteriorGlbEvidence = candidate?.exteriorGlbEvidence;
+  const exteriorKhronosEvidence = exteriorGlbEvidence?.khronosValidator;
+  const exteriorGlbEvidenceValid = /^[0-9a-f]{64}$/.test(exteriorGlbEvidence?.sha256 ?? "")
+    && Number.isSafeInteger(exteriorGlbEvidence?.byteLength) && exteriorGlbEvidence.byteLength > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.blendByteLength) && exteriorGlbEvidence.blendByteLength > 0
+    && Array.isArray(exteriorGlbEvidence?.observedBlendSha256) && exteriorGlbEvidence.observedBlendSha256.length === 2
+    && exteriorGlbEvidence.observedBlendSha256.every((digest) => /^[0-9a-f]{64}$/.test(digest))
+    && exteriorGlbEvidence?.blendByteIdentical === false
+    && /^[0-9a-f]{64}$/.test(exteriorGlbEvidence?.reopenInspectionSha256 ?? "")
+    && exteriorGlbEvidence?.meshCount === 61
+    && exteriorGlbEvidence?.architectureMeshCount === 19
+    && exteriorGlbEvidence?.componentMeshCount === 38
+    && exteriorGlbEvidence?.exteriorMeshCount === 4
+    && exteriorGlbEvidence?.materialCount === 8
+    && Number.isSafeInteger(exteriorGlbEvidence?.binaryByteLength) && exteriorGlbEvidence.binaryByteLength > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.decodedVertexCount) && exteriorGlbEvidence.decodedVertexCount > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.decodedIndexCount) && exteriorGlbEvidence.decodedIndexCount > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.decodedTriangleCount) && exteriorGlbEvidence.decodedTriangleCount > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.distinctPositionCount) && exteriorGlbEvidence.distinctPositionCount > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.decodedNormalCount) && exteriorGlbEvidence.decodedNormalCount > 0
+    && Number.isFinite(exteriorGlbEvidence?.minimumNormalLength) && Math.abs(exteriorGlbEvidence.minimumNormalLength - 1) <= normalLengthTolerance
+    && Number.isFinite(exteriorGlbEvidence?.maximumNormalLength) && Math.abs(exteriorGlbEvidence.maximumNormalLength - 1) <= normalLengthTolerance
+    && Number.isSafeInteger(exteriorGlbEvidence?.objectVertexCount) && exteriorGlbEvidence.objectVertexCount > 0
+    && Number.isSafeInteger(exteriorGlbEvidence?.objectFaceCount) && exteriorGlbEvidence.objectFaceCount > 0
+    && /^[0-9a-f]{64}$/.test(exteriorGlbEvidence?.architectureSemanticSha256 ?? "")
+    && exteriorKhronosEvidence?.package === "gltf-validator"
+    && exteriorKhronosEvidence?.version === expectedGltfValidatorVersion
+    && exteriorKhronosEvidence?.errors === 0
+    && exteriorKhronosEvidence?.warnings === 0
+    && Number.isSafeInteger(exteriorKhronosEvidence?.infos) && exteriorKhronosEvidence.infos >= 0
+    && Number.isSafeInteger(exteriorKhronosEvidence?.hints) && exteriorKhronosEvidence.hints >= 0;
   const componentCountsValid = stableJson(componentBaseline?.counts) === stableJson({
     assetRecordCount: 2,
     generationRecordCount: 0,
@@ -364,7 +422,7 @@ export function parseCandidateLockText(text) {
     resolvedMaterialCount: 4,
     seatCount: 8
   });
-  const mediaSurfaceCountsValid = stableJson(candidate?.counts) === stableJson({
+  const mediaSurfaceCountsValid = stableJson(mediaSurfaceBaseline?.counts) === stableJson({
     assetRecordCount: 3,
     generationRecordCount: 0,
     familyCount: 4,
@@ -378,7 +436,31 @@ export function parseCandidateLockText(text) {
     surfaceCount: 2,
     resolvedSurfaceCount: 2
   });
-  const boundariesValid = stableJson(candidate?.boundaries) === stableJson({
+  const exteriorCountsValid = stableJson(candidate?.counts) === stableJson({
+    assetRecordCount: 4,
+    generationRecordCount: 0,
+    familyCount: 4,
+    partCount: 38,
+    overrideCount: 2,
+    componentCount: 11,
+    resolvedComponentCount: 11,
+    materialCount: 5,
+    resolvedMaterialCount: 4,
+    seatCount: 8,
+    surfaceCount: 2,
+    resolvedSurfaceCount: 2,
+    exteriorObjectCount: 4,
+    exteriorResolvedObjectCount: 4,
+    exteriorMaterialCount: 3,
+    exteriorRoleCount: 4
+  });
+  const priorPhaseHashesValid = candidate?.componentConstructionSha256 === componentBaseline?.componentConstructionSha256
+    && candidate?.componentConstructionRawSha256 === componentBaseline?.componentConstructionRawSha256
+    && candidate?.mediaSurfaceConstructionSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionSha256
+    && candidate?.mediaSurfaceConstructionRawSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionRawSha256
+    && stableJson(candidate?.acceptedInputSha256?.slice(0, 3)) === stableJson(mediaSurfaceBaseline?.acceptedInputSha256)
+    && stableJson(candidate?.acceptedInputSha256?.slice(0, 2)) === stableJson(componentBaseline?.acceptedInputSha256);
+  const mediaSurfaceBoundariesValid = stableJson(mediaSurfaceBaseline?.boundaries) === stableJson({
     mediaSurfacesCompiled: false,
     exteriorCompiled: false,
     lightingCompiled: false,
@@ -387,34 +469,56 @@ export function parseCandidateLockText(text) {
     publicationReady: false,
     artifactBytesIncludedInRepository: false
   });
-  const projectionEvidenceValid = stableJson(candidate?.mediaSurfaceProjectionEvidence) === stableJson({
+  const exteriorBoundariesValid = stableJson(candidate?.boundaries) === stableJson({
+    componentsCompiled: false,
+    mediaSurfacesCompiled: false,
+    exteriorCompiled: false,
+    lightingCompiled: false,
+    finalCandidateGlbVerified: false,
+    releaseArtifactsCreated: false,
+    publicationReady: false,
+    artifactBytesIncludedInRepository: false
+  });
+  const projectionEvidenceValid = stableJson(mediaSurfaceBaseline?.mediaSurfaceProjectionEvidence) === stableJson({
     sha256: "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
     byteLength: 1022,
     mediaSurfaceCount: 2,
     representation: "platform-runtime-plane",
     byteIdentical: true
   });
-  if (lock?.schemaVersion !== 2
+  if (lock?.schemaVersion !== 3
     || typeof candidate?.repository !== "string"
     || !/^[0-9a-f]{40}$/.test(candidate?.commit ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.treeOid ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.sceneContractValidatorCommit ?? "")
     || !/^[0-9a-f]{40}$/.test(lock?.platformValidatorCommit ?? "")
-    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256"])
-    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 3
+    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256", "exteriorConstructionSha256", "exteriorConstructionRawSha256"])
+    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 4
     || candidate.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
-    || !inputBlobsValid(candidate.inputBlobs, Object.values(candidatePaths))
+    || !inputBlobsValid(candidate.inputBlobs, candidateExteriorPaths)
+    || !exteriorCountsValid
+    || !priorPhaseHashesValid
+    || !exteriorGlbEvidenceValid
+    || !exteriorBoundariesValid
+    || candidate.release !== null
+    || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.treeOid ?? "")
+    || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.sceneContractValidatorCommit ?? "")
+    || !hashFieldsValid(mediaSurfaceBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256"])
+    || !Array.isArray(mediaSurfaceBaseline?.acceptedInputSha256) || mediaSurfaceBaseline.acceptedInputSha256.length !== 3
+    || mediaSurfaceBaseline.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
+    || !inputBlobsValid(mediaSurfaceBaseline?.inputBlobs, candidateMediaSurfacePaths)
     || !mediaSurfaceCountsValid
     || !projectionEvidenceValid
-    || !boundariesValid
-    || candidate.release !== null
+    || !mediaSurfaceBoundariesValid
+    || mediaSurfaceBaseline?.release !== null
     || !/^[0-9a-f]{40}$/.test(componentBaseline?.commit ?? "")
     || !/^[0-9a-f]{40}$/.test(componentBaseline?.treeOid ?? "")
     || !/^[0-9a-f]{40}$/.test(componentBaseline?.sceneContractValidatorCommit ?? "")
     || !hashFieldsValid(componentBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256"])
     || !Array.isArray(componentBaseline?.acceptedInputSha256) || componentBaseline.acceptedInputSha256.length !== 2
     || componentBaseline.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
-    || !inputBlobsValid(componentBaseline?.inputBlobs, Object.values(candidatePaths).filter((path) => path !== candidatePaths.mediaSurfaceConstruction))
+    || !inputBlobsValid(componentBaseline?.inputBlobs, candidateComponentPaths)
     || !componentCountsValid
     || !componentGlbEvidenceValid
     || !/^[0-9a-f]{40}$/.test(architectureBaseline?.commit ?? "")
@@ -422,15 +526,19 @@ export function parseCandidateLockText(text) {
     || !hashFieldsValid(architectureBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256"])
     || !Array.isArray(architectureBaseline.acceptedInputSha256) || architectureBaseline.acceptedInputSha256.length !== 1
     || !semanticEvidenceValid(architectureBaseline.semanticEvidence)
-    || !inputBlobsValid(architectureBaseline.inputBlobs, Object.values(candidatePaths).filter((path) => ![candidatePaths.componentConstruction, candidatePaths.mediaSurfaceConstruction].includes(path)))) {
+    || !inputBlobsValid(architectureBaseline.inputBlobs, candidateArchitecturePaths)) {
     throw new Error("approved_candidate_lock_invalid");
   }
   return Object.freeze({
     repository: candidate.repository,
     platformValidatorCommit: lock.platformValidatorCommit,
-    mediaSurface: Object.freeze({
+    exterior: Object.freeze({
       ...candidate,
       validatorCommit: candidate.sceneContractValidatorCommit
+    }),
+    mediaSurface: Object.freeze({
+      ...mediaSurfaceBaseline,
+      validatorCommit: mediaSurfaceBaseline.sceneContractValidatorCommit
     }),
     component: Object.freeze({
       ...componentBaseline,
@@ -518,6 +626,7 @@ export async function loadApprovedCandidateArchitectureSource(options = {}) {
     inputKind: candidateArchitectureInputKind,
     fixtureOnly: false,
     componentsIncluded: false,
+    exteriorIncluded: false,
     sceneBytes: Buffer.from(sceneBlob.bytes),
     scene,
     contract,
@@ -622,6 +731,7 @@ export async function loadApprovedCandidateComponentSource(options = {}) {
     inputKind: candidateComponentInputKind,
     fixtureOnly: false,
     componentsIncluded: true,
+    exteriorIncluded: false,
     sceneBytes: Buffer.from(sceneBlob.bytes),
     componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
     scene,
@@ -659,7 +769,7 @@ export async function loadApprovedCandidateMediaSurfaceSource(options = {}) {
   const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
   await verifyLockedCandidateCommit(candidateRepositoryPath, lock, "approved_candidate_media_surface_commit_missing");
 
-  const blobs = await Promise.all(Object.values(candidatePaths).map((path) => readGitBlob(candidateRepositoryPath, lock.treeOid, path)));
+  const blobs = await Promise.all(candidateMediaSurfacePaths.map((path) => readGitBlob(candidateRepositoryPath, lock.treeOid, path)));
   verifyLockedInputBlobs(blobs, lock.inputBlobs);
   const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
   const sceneBlob = blobByPath.get(candidatePaths.scene);
@@ -769,6 +879,182 @@ export async function loadApprovedCandidateMediaSurfaceSource(options = {}) {
   });
 }
 
+export function validateApprovedCandidateExteriorPhaseIsolation(scene, componentConstruction, mediaSurfaceConstruction, componentBaselineSource, mediaSurfaceBaselineSource) {
+  const currentComponents = {
+    components: scene?.components,
+    materialRecipes: scene?.materialRecipes,
+    componentConstruction
+  };
+  const baselineComponents = {
+    components: componentBaselineSource?.scene?.components,
+    materialRecipes: componentBaselineSource?.scene?.materialRecipes,
+    componentConstruction: componentBaselineSource?.componentConstruction
+  };
+  const currentMediaSurfaces = {
+    mediaSurfaces: scene?.mediaSurfaces,
+    mediaSurfaceConstruction
+  };
+  const baselineMediaSurfaces = {
+    mediaSurfaces: mediaSurfaceBaselineSource?.scene?.mediaSurfaces,
+    mediaSurfaceConstruction: mediaSurfaceBaselineSource?.mediaSurfaceConstruction
+  };
+  if (stableJson(currentComponents) !== stableJson(baselineComponents)
+    || stableJson(currentMediaSurfaces) !== stableJson(baselineMediaSurfaces)) {
+    throw new Error("approved_candidate_exterior_phase_isolation_mismatch");
+  }
+  return true;
+}
+
+export async function loadApprovedCandidateExteriorSource(options = {}) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_exterior_source_options_invalid");
+  const candidateLock = await loadCandidateLock();
+  const lock = candidateLock.exterior;
+  if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_exterior_commit_not_locked");
+  const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
+  await verifyLockedCandidateCommit(candidateRepositoryPath, lock, "approved_candidate_exterior_commit_missing");
+
+  const blobs = await Promise.all(candidateExteriorPaths.map((path) => readGitBlob(candidateRepositoryPath, lock.treeOid, path)));
+  verifyLockedInputBlobs(blobs, lock.inputBlobs);
+  const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
+  const sceneBlob = blobByPath.get(candidatePaths.scene);
+  const assetLedgerBlob = blobByPath.get(candidatePaths.assetLedger);
+  const generationLedgerBlob = blobByPath.get(candidatePaths.generationLedger);
+  const conceptSelectionBlob = blobByPath.get(candidatePaths.conceptSelection);
+  const componentConstructionBlob = blobByPath.get(candidatePaths.componentConstruction);
+  const mediaSurfaceConstructionBlob = blobByPath.get(candidatePaths.mediaSurfaceConstruction);
+  const exteriorConstructionBlob = blobByPath.get(candidatePaths.exteriorConstruction);
+  const sceneText = sceneBlob.bytes.toString("utf8");
+  const assetLedgerText = assetLedgerBlob.bytes.toString("utf8");
+  const generationLedgerText = generationLedgerBlob.bytes.toString("utf8");
+  const componentConstructionText = componentConstructionBlob.bytes.toString("utf8");
+  const mediaSurfaceConstructionText = mediaSurfaceConstructionBlob.bytes.toString("utf8");
+  const exteriorConstructionText = exteriorConstructionBlob.bytes.toString("utf8");
+  const commonTexts = { sceneText, assetLedgerText, generationLedgerText };
+  const componentContract = parseComponentConstructionContract({ ...commonTexts, componentConstructionText });
+  const mediaSurfaceContract = parseMediaSurfaceConstructionContract({ ...commonTexts, mediaSurfaceConstructionText });
+  const exteriorContract = parseExteriorConstructionContract({ ...commonTexts, exteriorConstructionText });
+  const contracts = [componentContract, mediaSurfaceContract, exteriorContract];
+  const counts = lock.counts;
+  if (contracts.some((contract) => contract.specificationSha256 !== lock.specificationSha256
+    || contract.assetLedgerSha256 !== lock.assetLedgerSha256
+    || contract.generationLedgerSha256 !== lock.generationLedgerSha256
+    || contract.assetRecordCount !== counts.assetRecordCount
+    || contract.generationRecordCount !== counts.generationRecordCount
+    || contract.componentCount !== counts.componentCount
+    || contract.seatCount !== counts.seatCount)
+    || componentContract.componentConstructionSha256 !== lock.componentConstructionSha256
+    || componentContract.componentConstructionRawSha256 !== lock.componentConstructionRawSha256
+    || componentContract.familyCount !== counts.familyCount
+    || componentContract.partCount !== counts.partCount
+    || componentContract.overrideCount !== counts.overrideCount
+    || componentContract.resolvedComponentCount !== counts.resolvedComponentCount
+    || componentContract.resolvedMaterialCount !== counts.resolvedMaterialCount
+    || mediaSurfaceContract.mediaSurfaceConstructionSha256 !== lock.mediaSurfaceConstructionSha256
+    || mediaSurfaceContract.mediaSurfaceConstructionRawSha256 !== lock.mediaSurfaceConstructionRawSha256
+    || mediaSurfaceContract.surfaceCount !== counts.surfaceCount
+    || mediaSurfaceContract.resolvedSurfaceCount !== counts.resolvedSurfaceCount
+    || exteriorContract.exteriorConstructionSha256 !== lock.exteriorConstructionSha256
+    || exteriorContract.exteriorConstructionRawSha256 !== lock.exteriorConstructionRawSha256
+    || exteriorContract.objectCount !== counts.exteriorObjectCount
+    || exteriorContract.resolvedObjectCount !== counts.exteriorResolvedObjectCount
+    || exteriorContract.materialCount !== counts.exteriorMaterialCount
+    || exteriorContract.roleCount !== counts.exteriorRoleCount) {
+    throw new Error("approved_candidate_exterior_contract_lock_mismatch");
+  }
+
+  const scene = JSON.parse(sceneText);
+  const assetLedger = JSON.parse(assetLedgerText);
+  const componentConstruction = JSON.parse(componentConstructionText);
+  const mediaSurfaceConstruction = JSON.parse(mediaSurfaceConstructionText);
+  const exteriorConstruction = JSON.parse(exteriorConstructionText);
+  const [componentBaselineSource, mediaSurfaceBaselineSource] = await Promise.all([
+    loadApprovedCandidateComponentSource({ candidateRepositoryPath }),
+    loadApprovedCandidateMediaSurfaceSource({ candidateRepositoryPath })
+  ]);
+  validateApprovedCandidateExteriorPhaseIsolation(
+    scene,
+    componentConstruction,
+    mediaSurfaceConstruction,
+    componentBaselineSource,
+    mediaSurfaceBaselineSource
+  );
+  const acceptedSources = [conceptSelectionBlob, componentConstructionBlob, mediaSurfaceConstructionBlob, exteriorConstructionBlob];
+  const provenancePaths = [candidatePaths.conceptSelection, candidatePaths.componentConstruction, candidatePaths.mediaSurfaceConstruction, candidatePaths.exteriorConstruction];
+  const provenanceRecords = provenancePaths.map((path) => assetLedger.records.filter((record) => record?.source?.repositoryPath === path));
+  const semanticBoundariesValid = componentContract.boundaries?.componentsSpecified === true
+    && componentContract.boundaries?.componentsCompiled === false
+    && mediaSurfaceContract.boundaries?.mediaSurfacesSpecified === true
+    && mediaSurfaceContract.boundaries?.mediaSurfacesCompiled === false
+    && exteriorContract.boundaries?.exteriorSpecified === true
+    && exteriorContract.boundaries?.exteriorCompiled === false
+    && contracts.every((contract) => contract.boundaries?.finalCandidateGlbVerified === false && contract.boundaries?.publicationReady === false);
+  if (scene.generator?.commit !== lock.validatorCommit
+    || scene.materialRecipes.length !== counts.materialCount
+    || scene.exterior?.strategy !== exteriorContract.strategy
+    || scene.exterior?.windowOpeningId !== exteriorContract.windowOpeningId
+    || provenanceRecords.some((records) => records.length !== 1)
+    || provenanceRecords.some((records, index) => records[0].originalSha256 !== acceptedSources[index].rawSha256)
+    || stableJson(scene.generator.acceptedInputSha256) !== stableJson(lock.acceptedInputSha256)
+    || scene.generator.acceptedInputSha256.some((digest, index) => digest !== acceptedSources[index].rawSha256)
+    || !semanticBoundariesValid
+    || Object.values(lock.boundaries).some((value) => value !== false)
+    || lock.release !== null) {
+    throw new Error("approved_candidate_exterior_provenance_mismatch");
+  }
+
+  const inputBlobs = Object.freeze(Object.fromEntries(blobs.map((blob) => [blob.path, Object.freeze({
+    gitBlobOid: blob.gitBlobOid,
+    rawSha256: blob.rawSha256,
+    byteLength: blob.byteLength
+  })])));
+  return Object.freeze({
+    inputKind: candidateExteriorInputKind,
+    fixtureOnly: false,
+    componentsIncluded: true,
+    exteriorIncluded: true,
+    sceneBytes: Buffer.from(sceneBlob.bytes),
+    componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
+    exteriorConstructionBytes: Buffer.from(exteriorConstructionBlob.bytes),
+    scene,
+    componentConstruction,
+    mediaSurfaceConstruction,
+    exteriorConstruction,
+    contract: exteriorContract,
+    componentContract,
+    mediaSurfaceContract,
+    exteriorContract,
+    semanticReports: Object.freeze({ component: componentContract, mediaSurfaces: mediaSurfaceContract, exterior: exteriorContract }),
+    acceptedInputSha256: Object.freeze([...scene.generator.acceptedInputSha256]),
+    rawSceneSha256: sceneBlob.rawSha256,
+    rawComponentConstructionSha256: componentConstructionBlob.rawSha256,
+    rawExteriorConstructionSha256: exteriorConstructionBlob.rawSha256,
+    architectureBaseline: Object.freeze({ ...candidateLock.architecture.semanticEvidence }),
+    exteriorGlbEvidence: Object.freeze(structuredClone(lock.exteriorGlbEvidence)),
+    mediaSurfaceProjectionEvidence: Object.freeze({ ...candidateLock.mediaSurface.mediaSurfaceProjectionEvidence }),
+    candidateSource: Object.freeze({
+      repository: candidateLock.repository,
+      commit: lock.commit,
+      treeOid: lock.treeOid,
+      validatorCommit: lock.validatorCommit,
+      platformValidatorCommit: candidateLock.platformValidatorCommit,
+      inputBlobs
+    }),
+    canonicalHashes: Object.freeze({
+      specificationSha256: exteriorContract.specificationSha256,
+      assetLedgerSha256: exteriorContract.assetLedgerSha256,
+      generationLedgerSha256: exteriorContract.generationLedgerSha256,
+      componentConstructionSha256: componentContract.componentConstructionSha256,
+      componentConstructionRawSha256: componentContract.componentConstructionRawSha256,
+      mediaSurfaceConstructionSha256: mediaSurfaceContract.mediaSurfaceConstructionSha256,
+      mediaSurfaceConstructionRawSha256: mediaSurfaceContract.mediaSurfaceConstructionRawSha256,
+      exteriorConstructionSha256: exteriorContract.exteriorConstructionSha256,
+      exteriorConstructionRawSha256: exteriorContract.exteriorConstructionRawSha256
+    }),
+    counts: Object.freeze({ ...counts }),
+    boundaries: Object.freeze({ ...lock.boundaries })
+  });
+}
+
 async function loadSyntheticSource(options) {
   const [sceneBytes, assetLedgerBytes, generationLedgerBytes] = await Promise.all([
     readFixture(options.scenePath, fixturePaths.scene, "room_shell_scene"),
@@ -786,6 +1072,7 @@ async function loadSyntheticSource(options) {
     inputKind: syntheticInputKind,
     fixtureOnly: true,
     componentsIncluded: false,
+    exteriorIncluded: false,
     sceneBytes,
     scene,
     contract,
@@ -798,12 +1085,14 @@ export function validateCompilerReport(report, source, binarySha256) {
   const wall = report.shell?.objects?.find(({ name }) => name === "shell.walls");
   const expectedStatus = source.fixtureOnly
     ? "stage3-synthetic-room-profiles-materials-compiled"
-    : source.componentsIncluded
+    : source.exteriorIncluded
+      ? "stage3-approved-candidate-exterior-compiled"
+      : source.componentsIncluded
       ? "stage3-approved-candidate-components-compiled"
       : "stage3-approved-candidate-architecture-compiled";
-  const expectedMaterialRecipeCount = source.componentsIncluded ? 5 : 3;
-  const expectedMaterialZoneCount = source.componentsIncluded ? 60 : 22;
-  const expectedInventoryCount = source.componentsIncluded ? 57 : 19;
+  const expectedMaterialRecipeCount = source.exteriorIncluded ? 8 : source.componentsIncluded ? 5 : 3;
+  const expectedMaterialZoneCount = source.exteriorIncluded ? 64 : source.componentsIncluded ? 60 : 22;
+  const expectedInventoryCount = source.exteriorIncluded ? 61 : source.componentsIncluded ? 57 : 19;
   const commonInvalid = report?.status !== expectedStatus
     || report.fixtureOnly !== source.fixtureOnly
     || report.sceneId !== source.contract.sceneId
@@ -867,15 +1156,38 @@ export function validateCompilerReport(report, source, binarySha256) {
     || report.componentsSpecified !== true
     || report.componentsCompiled !== true
     || report.componentGlbByteIdentical !== false
-    || report.exteriorCompiled !== false
+    || report.exteriorCompiled !== source.exteriorIncluded
     || report.lightingCompiled !== false
     || report.mediaSurfacesCompiled !== false
     || report.sceneBinaryAddedToRepository !== false
     || report.boundaries?.componentsSpecified !== true
     || report.boundaries?.componentGlbByteIdentical !== false
-    || report.boundaries?.exteriorCompiled !== false
+    || report.boundaries?.exteriorCompiled !== source.exteriorIncluded
     || report.boundaries?.lightingCompiled !== false
     || report.boundaries?.mediaSurfacesCompiled !== false);
+  const exteriorInvalid = source.exteriorIncluded && (report.exterior?.specified !== true
+    || report.exterior?.compiled !== true
+    || report.exterior?.strategy !== "project-authored-geometry"
+    || report.exterior?.windowOpeningId !== "main-window"
+    || report.exterior?.sourceRecordId !== "asset-exterior-constructions-project"
+    || report.exterior?.objectNamePattern !== "exterior.<objectId>"
+    || report.exterior?.objectCount !== 4
+    || report.exterior?.materialCount !== 3
+    || report.exterior?.objects?.length !== 4
+    || report.materials?.exteriorAssignmentCount !== 4
+    || report.materials?.exteriorMaterialCount !== 3
+    || report.exteriorSpecified !== true
+    || report.exteriorCompiled !== true
+    || report.exteriorGlbByteIdentical !== false
+    || report.byteIdenticalExportsVerified !== false
+    || report.releaseArtifactsCreated !== false
+    || report.artifactBytesIncludedInRepository !== false
+    || report.boundaries?.exteriorSpecified !== true
+    || report.boundaries?.exteriorCompiled !== true
+    || report.boundaries?.exteriorGlbByteIdentical !== false
+    || report.boundaries?.byteIdenticalExportsVerified !== false
+    || report.boundaries?.releaseArtifactsCreated !== false
+    || report.boundaries?.artifactBytesIncludedInRepository !== false);
   const boundaryInvalid = source.fixtureOnly
     ? report.boundaries?.approvedCandidateSpecification !== false || report.boundaries?.byteIdenticalExportsVerified !== false
     : report.approvedCandidateSpecification !== true
@@ -888,7 +1200,7 @@ export function validateCompilerReport(report, source, binarySha256) {
       || report.boundaries?.finalCandidateGlbVerified !== false
       || report.boundaries?.publicationReady !== false;
   if (!source.componentsIncluded && !source.fixtureOnly && report.boundaries?.byteIdenticalExportsVerified !== false) throw new Error("room_shell_report_invalid");
-  if (commonInvalid || componentInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
+  if (commonInvalid || componentInvalid || exteriorInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
 }
 
 function exactKeys(value, expected) {
@@ -922,8 +1234,10 @@ function approximatelyEqual(actual, expected, tolerance = 1e-6) {
   return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
 }
 
-function normalizeExpectedRecords(records, componentMode) {
-  const expectedCount = componentMode ? 57 : expectedArchitectureNodeNames.length;
+function normalizeExpectedRecords(records, mode) {
+  const componentMode = mode === "components" || mode === "exterior";
+  const exteriorMode = mode === "exterior";
+  const expectedCount = exteriorMode ? 61 : componentMode ? 57 : expectedArchitectureNodeNames.length;
   if (!Array.isArray(records) || records.length !== expectedCount) throw new Error("room_glb_expected_inventory_invalid");
   const normalized = records.map((record) => {
     const center = record?.centerM;
@@ -939,7 +1253,9 @@ function normalizeExpectedRecords(records, componentMode) {
       materialRecipeId: record.materialRecipeId
     };
     if (record.geometry === "beveled-box") {
-      if (!/^component\.[a-z0-9-]+\.[a-z0-9-]+$/.test(record.name)
+      const componentName = /^component\.[a-z0-9-]+\.[a-z0-9-]+$/.test(record.name);
+      const exteriorName = /^exterior\.[a-z0-9-]+$/.test(record.name);
+      if ((!componentName && !(exteriorMode && exteriorName))
         || !Number.isFinite(record.bevel?.widthM) || record.bevel.widthM <= 0
         || record.bevel?.segments !== 3 || record.bevel?.clampOverlap !== true
         || typeof record.materialRecipeId !== "string") throw new Error("room_glb_expected_component_invalid");
@@ -948,6 +1264,13 @@ function normalizeExpectedRecords(records, componentMode) {
         segments: record.bevel.segments,
         clampOverlap: record.bevel.clampOverlap
       };
+      if (exteriorName) {
+        if (typeof record.role !== "string" || !(record.supportObjectId === null || typeof record.supportObjectId === "string")) {
+          throw new Error("room_glb_expected_exterior_invalid");
+        }
+        normalizedRecord.role = record.role;
+        normalizedRecord.supportObjectId = record.supportObjectId;
+      }
     } else if (componentMode && record.name.startsWith("component.")) {
       throw new Error("room_glb_expected_component_invalid");
     }
@@ -957,7 +1280,9 @@ function normalizeExpectedRecords(records, componentMode) {
   if (new Set(names).size !== names.length
     || expectedArchitectureNodeNames.some((name) => !names.includes(name))
     || (!componentMode && !exactStringSet(names, expectedArchitectureNodeNames))
-    || (componentMode && normalized.filter(({ geometry }) => geometry === "beveled-box").length !== 38)) {
+    || (componentMode && normalized.filter(({ name }) => name.startsWith("component.")).length !== 38)
+    || (exteriorMode && normalized.filter(({ name }) => name.startsWith("exterior.")).length !== 4)
+    || (!exteriorMode && normalized.some(({ name }) => name.startsWith("exterior.")))) {
     throw new Error("room_glb_expected_inventory_invalid");
   }
   return normalized;
@@ -967,24 +1292,44 @@ function normalizeExpectedGlbContract(value) {
   if (Array.isArray(value)) return Object.freeze({
     status: "architecture-only-glb-inspection-valid",
     componentMode: false,
-    records: normalizeExpectedRecords(value, false),
+    exteriorMode: false,
+    records: normalizeExpectedRecords(value, "architecture"),
     materials: expectedArchitectureMaterials,
     allowedMaterialSourceIds: allowedArchitectureMaterialSourceIds,
-    requiredMaterialSourceCount: 1
+    requiredMaterialSourceCount: 1,
+    materialSourceIds: null
   });
   const componentMode = value?.status === "approved-candidate-components-glb-inspection-valid";
+  const exteriorMode = value?.status === "approved-candidate-exterior-glb-inspection-valid";
   const allowedMaterialSourceIds = new Set(value?.allowedMaterialSourceIds);
-  if (!componentMode
-    || stableJson(value?.materials) !== stableJson(expectedComponentMaterials)
-    || !exactStringSet(value?.allowedMaterialSourceIds, ["asset-layout-project"])
-    || value?.requiredMaterialSourceCount !== 1) throw new Error("room_glb_expected_contract_invalid");
+  const materialNames = Object.keys(value?.materials ?? {});
+  const exteriorContractValid = exteriorMode
+    && materialNames.length === 8
+    && Object.values(value.materials).every((material) => typeof material?.recipeId === "string"
+      && /^#[0-9A-F]{6}$/.test(material?.baseColorSrgb ?? "")
+      && [material?.roughness, material?.metalness].every((number) => Number.isFinite(number) && number >= 0 && number <= 1)
+      && Number.isFinite(material?.textureScaleM) && material.textureScaleM > 0)
+    && !exactStringSet(materialNames, Object.keys(expectedComponentMaterials))
+    && exactStringSet(value?.allowedMaterialSourceIds, ["asset-layout-project", "asset-exterior-constructions-project"])
+    && value?.requiredMaterialSourceCount === 2
+    && exactStringSet(Object.keys(value?.materialSourceIds ?? {}), materialNames)
+    && Object.entries(value.materialSourceIds).every(([name, sourceId]) => value.allowedMaterialSourceIds.includes(sourceId)
+      && value.materials[name]?.sourceRecordId === sourceId);
+  const componentContractValid = componentMode
+    && stableJson(value?.materials) === stableJson(expectedComponentMaterials)
+    && exactStringSet(value?.allowedMaterialSourceIds, ["asset-layout-project"])
+    && value?.requiredMaterialSourceCount === 1
+    && value?.materialSourceIds === undefined;
+  if (!componentContractValid && !exteriorContractValid) throw new Error("room_glb_expected_contract_invalid");
   return Object.freeze({
     status: value.status,
     componentMode,
-    records: normalizeExpectedRecords(value.records, true),
+    exteriorMode,
+    records: normalizeExpectedRecords(value.records, exteriorMode ? "exterior" : "components"),
     materials: value.materials,
     allowedMaterialSourceIds,
-    requiredMaterialSourceCount: value.requiredMaterialSourceCount
+    requiredMaterialSourceCount: value.requiredMaterialSourceCount,
+    materialSourceIds: value.materialSourceIds ?? null
   });
 }
 
@@ -1230,6 +1575,15 @@ export function inspectGlb(bytes, expectedContract) {
       throw new Error("room_glb_position_bounds_invalid");
     }
     const expectedRecord = expectedRecordByName.get(node.name);
+    if (expectedRecord.supportObjectId !== undefined) {
+      const extras = node.extras;
+      if (extras?.wmmr_exterior_object_id !== node.name.replace(/^exterior\./, "")
+        || extras?.wmmr_exterior_role !== expectedRecord.role
+        || extras?.wmmr_exterior_material_id !== expectedRecord.materialRecipeId
+        || extras?.wmmr_support_object_id !== (expectedRecord.supportObjectId ?? "")) {
+        throw new Error("room_glb_exterior_metadata_invalid");
+      }
+    }
     const expectedTranslation = [expectedRecord.centerM.x, expectedRecord.centerM.y, -expectedRecord.centerM.z];
     const expectedDimensions = [expectedRecord.dimensionsM.widthM, expectedRecord.dimensionsM.heightM, expectedRecord.dimensionsM.depthM];
     const translation = node.translation ?? [0, 0, 0];
@@ -1299,7 +1653,9 @@ export function inspectGlb(bytes, expectedContract) {
       || extras.wmmr_recipe_id !== expected.recipeId
       || extras.wmmr_base_color_srgb !== expected.baseColorSrgb
       || !approximatelyEqual(extras.wmmr_texture_scale_m, expected.textureScaleM)
-      || !normalizedContract.allowedMaterialSourceIds.has(extras.wmmr_source_record_id)) throw new Error("room_glb_material_invalid");
+      || !normalizedContract.allowedMaterialSourceIds.has(extras.wmmr_source_record_id)
+      || (normalizedContract.materialSourceIds !== null
+        && normalizedContract.materialSourceIds[material.name] !== extras.wmmr_source_record_id)) throw new Error("room_glb_material_invalid");
     materialSourceIds.add(extras.wmmr_source_record_id);
     materialEvidence.push({
       name: material.name,
@@ -1548,7 +1904,7 @@ function expectedComponentRecords(source) {
 export function createApprovedCandidateComponentGlbContract(report, source) {
   const materialAssignments = new Map(report.materials.assignments.map((assignment) => [assignment.objectName, assignment.recipeIds]));
   const architectureRecords = report.inventory.objects
-    .filter(({ name }) => !name.startsWith("component."))
+    .filter(({ name }) => expectedArchitectureNodeNames.includes(name))
     .map((record) => {
       const recipeIds = materialAssignments.get(record.name);
       if (!Array.isArray(recipeIds) || recipeIds.length !== 1) throw new Error("approved_candidate_architecture_material_binding_invalid");
@@ -1587,32 +1943,110 @@ export function createApprovedCandidateComponentGlbContract(report, source) {
   });
 }
 
+export function createApprovedCandidateExteriorGlbContract(report, source) {
+  const componentContract = createApprovedCandidateComponentGlbContract(report, source);
+  const exteriorRecords = source.exteriorConstruction.objects.map((record) => ({
+    name: `exterior.${record.id}`,
+    centerM: { ...record.transform.position },
+    dimensionsM: { ...record.dimensions },
+    geometry: record.geometry,
+    bevel: { ...record.bevel },
+    role: record.role,
+    supportObjectId: record.supportObjectId,
+    materialRecipeId: record.materialId
+  })).sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  const reportExterior = new Map(report.exterior.objects.map((record) => [record.name, record]));
+  for (const expected of exteriorRecords) {
+    const actual = reportExterior.get(expected.name);
+    if (!actual
+      || actual.geometry !== "beveled-box"
+      || Object.keys(expected.dimensionsM).some((axis) => !approximatelyEqual(actual.dimensionsM?.[axis], expected.dimensionsM[axis], 1e-6))
+      || Object.keys(expected.centerM).some((axis) => !approximatelyEqual(actual.centerM?.[axis], expected.centerM[axis], 1e-6))
+      || stableJson(actual.bevel) !== stableJson(expected.bevel)
+      || actual.role !== expected.role
+      || actual.supportObjectId !== expected.supportObjectId
+      || actual.parentName !== null
+      || actual.materialRecipeId !== expected.materialRecipeId
+      || actual.modifierCount !== 0
+      || actual.bevelApplied !== true
+      || actual.bevelInsetAxisCount !== 3
+      || actual.vertexCount !== 96
+      || actual.edgeCount !== 192
+      || actual.faceCount !== 98
+      || !/^[0-9a-f]{64}$/.test(actual.topologySha256 ?? "")) throw new Error("approved_candidate_exterior_report_evidence_invalid");
+  }
+  const componentMaterials = Object.fromEntries(Object.entries(expectedComponentMaterials).map(([name, material]) => [name, {
+    ...material,
+    sourceRecordId: "asset-layout-project"
+  }]));
+  const exteriorMaterials = Object.fromEntries(source.exteriorConstruction.materials.map((material) => [`material.${material.id}`, {
+    recipeId: material.id,
+    baseColorSrgb: material.baseColorSrgb,
+    roughness: material.roughness,
+    metalness: material.metalness,
+    textureScaleM: material.textureScaleM,
+    sourceRecordId: source.exteriorConstruction.sourceRecordId
+  }]));
+  const materials = Object.freeze({ ...componentMaterials, ...exteriorMaterials });
+  const materialSourceIds = Object.freeze(Object.fromEntries(Object.entries(materials).map(([name, material]) => [name, material.sourceRecordId])));
+  return Object.freeze({
+    status: "approved-candidate-exterior-glb-inspection-valid",
+    records: Object.freeze([...componentContract.records, ...exteriorRecords]),
+    materials,
+    allowedMaterialSourceIds: Object.freeze(["asset-layout-project", source.exteriorConstruction.sourceRecordId]),
+    requiredMaterialSourceCount: 2,
+    materialSourceIds
+  });
+}
+
 async function compileRoomArchitecture(options, source) {
   const sourceHashes = source.fixtureOnly ? null : await compilerSourceSha256();
   const blenderPath = await exactRegularFile(options.blenderPath, "room_shell_blender");
   const blenderBytes = await readFile(blenderPath);
   const binarySha256 = sha256(blenderBytes);
   if (binarySha256 !== expectedBlenderBinarySha256) throw new Error("room_shell_blender_sha256_invalid");
-  const outputBlendPath = await newExternalOutput(options.outputBlendPath, ".blend", "room_shell_output");
-  const outputGlbPath = await newExternalOutput(options.outputGlbPath, ".glb", "room_glb_output");
-  const reportPath = await newExternalOutput(options.reportPath, ".json", "room_shell_report");
+  const forbiddenRoots = source.exteriorIncluded
+    ? [repositoryRoot, await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository")]
+    : [repositoryRoot];
+  const outputBlendPath = await newExternalOutput(options.outputBlendPath, ".blend", "room_shell_output", forbiddenRoots);
+  const outputGlbPath = await newExternalOutput(options.outputGlbPath, ".glb", "room_glb_output", forbiddenRoots);
+  const reportPath = await newExternalOutput(options.reportPath, ".json", "room_shell_report", forbiddenRoots);
   if (new Set([outputBlendPath, outputGlbPath, reportPath]).size !== 3) throw new Error("room_shell_output_paths_conflict");
+  const outputFaults = {
+    blend: roomOutputFault(options, "blend"),
+    glb: roomOutputFault(options, "glb"),
+    report: roomOutputFault(options, "compile-report")
+  };
+  const publishedRecords = [];
 
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "wmmr-room-shell-"));
   const temporaryScenePath = resolve(temporaryRoot, "scene-spec.json");
   const temporaryComponentPath = resolve(temporaryRoot, "component-constructions.json");
+  const temporaryExteriorPath = resolve(temporaryRoot, "exterior-constructions.json");
+  const temporaryBlendOutputPath = resolve(temporaryRoot, "output.blend");
+  const temporaryGlbOutputPath = resolve(temporaryRoot, "output.glb");
+  const temporaryAdapterReportPath = resolve(temporaryRoot, "compile-report.json");
   const componentArguments = source.componentsIncluded ? [
     "--component-constructions",
     temporaryComponentPath,
     "--expected-component-raw-sha256",
     source.rawComponentConstructionSha256,
     "--expected-component-sha256",
-    source.contract.componentConstructionSha256
+    source.componentContract?.componentConstructionSha256 ?? source.contract.componentConstructionSha256
+  ] : [];
+  const exteriorArguments = source.exteriorIncluded ? [
+    "--exterior-constructions",
+    temporaryExteriorPath,
+    "--expected-exterior-raw-sha256",
+    source.rawExteriorConstructionSha256,
+    "--expected-exterior-sha256",
+    source.exteriorContract.exteriorConstructionSha256
   ] : [];
 
   try {
     await writeFile(temporaryScenePath, source.sceneBytes, { flag: "wx", mode: 0o600 });
     if (source.componentsIncluded) await writeFile(temporaryComponentPath, source.componentConstructionBytes, { flag: "wx", mode: 0o600 });
+    if (source.exteriorIncluded) await writeFile(temporaryExteriorPath, source.exteriorConstructionBytes, { flag: "wx", mode: 0o600 });
     await execFileAsync(blenderPath, [
       "--background",
       "--factory-startup",
@@ -1628,28 +2062,29 @@ async function compileRoomArchitecture(options, source) {
       "--expected-specification-sha256",
       source.contract.specificationSha256,
       ...componentArguments,
+      ...exteriorArguments,
       "--report",
-      reportPath,
+      temporaryAdapterReportPath,
       "--output-blend",
-      outputBlendPath,
+      temporaryBlendOutputPath,
       "--output-glb",
-      outputGlbPath
+      temporaryGlbOutputPath
     ], {
       cwd: temporaryRoot,
       encoding: "utf8",
       maxBuffer: 4 * 1024 * 1024,
       timeout: blenderTimeoutMs
     });
-    const report = JSON.parse(await readFile(reportPath, "utf8"));
+    const report = JSON.parse(await readFile(temporaryAdapterReportPath, "utf8"));
     validateCompilerReport(report, source, binarySha256);
-    const outputBytes = await readFile(outputBlendPath);
+    const outputBytes = await readFile(temporaryBlendOutputPath);
     if (report.outputBlend?.byteLength !== outputBytes.length || report.outputBlend?.sha256 !== sha256(outputBytes)) throw new Error("room_shell_output_digest_mismatch");
-    const glbBytes = await readFile(outputGlbPath);
+    const glbBytes = await readFile(temporaryGlbOutputPath);
     if (report.outputGlb?.byteLength !== glbBytes.length || report.outputGlb?.sha256 !== sha256(glbBytes)) throw new Error("room_glb_output_digest_mismatch");
     const inspectionPath = resolve(temporaryRoot, "inspection.json");
     await execFileAsync(blenderPath, [
       "--background",
-      outputBlendPath,
+      temporaryBlendOutputPath,
       "--python",
       adapterPath,
       "--",
@@ -1662,6 +2097,7 @@ async function compileRoomArchitecture(options, source) {
       "--expected-specification-sha256",
       source.contract.specificationSha256,
       ...componentArguments,
+      ...exteriorArguments,
       "--report",
       inspectionPath,
       "--inspect-only"
@@ -1674,7 +2110,9 @@ async function compileRoomArchitecture(options, source) {
     const inspection = JSON.parse(await readFile(inspectionPath, "utf8"));
     const expectedInspectionStatus = source.fixtureOnly
       ? "stage3-synthetic-room-profiles-materials-inspection-valid"
-      : source.componentsIncluded
+      : source.exteriorIncluded
+        ? "stage3-approved-candidate-exterior-inspection-valid"
+        : source.componentsIncluded
         ? "stage3-approved-candidate-components-inspection-valid"
         : "stage3-approved-candidate-architecture-inspection-valid";
     if (inspection.status !== expectedInspectionStatus
@@ -1691,9 +2129,12 @@ async function compileRoomArchitecture(options, source) {
       || inspection.inventory?.faceCount !== report.inventory.faceCount
       || stableJson(inspection.inventory?.objects) !== stableJson(report.inventory.objects)
       || stableJson(inspection.materials) !== stableJson(report.materials)
-      || (source.componentsIncluded && stableJson(inspection.components) !== stableJson(report.components))) throw new Error("room_shell_saved_inspection_invalid");
-    const glbInspection = inspectGlb(glbBytes, source.componentsIncluded
-      ? createApprovedCandidateComponentGlbContract(report, source)
+      || (source.componentsIncluded && stableJson(inspection.components) !== stableJson(report.components))
+      || (source.exteriorIncluded && stableJson(inspection.exterior) !== stableJson(report.exterior))) throw new Error("room_shell_saved_inspection_invalid");
+    const glbInspection = inspectGlb(glbBytes, source.exteriorIncluded
+      ? createApprovedCandidateExteriorGlbContract(report, source)
+      : source.componentsIncluded
+        ? createApprovedCandidateComponentGlbContract(report, source)
       : report.inventory.objects);
     const khronosValidation = await validateGlbWithKhronos(glbBytes);
     const architectureBaseline = source.architectureBaseline
@@ -1701,9 +2142,9 @@ async function compileRoomArchitecture(options, source) {
       : null;
     const reopenInspectionSha256 = sha256(stableJson(inspection));
     if (source.componentsIncluded) {
-      const locked = source.componentGlbEvidence;
+      const locked = source.exteriorIncluded ? null : source.componentGlbEvidence;
       const issueCounts = khronosValidation.issueCounts;
-      if (report.outputGlb.sha256 !== locked.sha256
+      if (locked !== null && (report.outputGlb.sha256 !== locked.sha256
         || report.outputGlb.byteLength !== locked.byteLength
         || reopenInspectionSha256 !== locked.reopenInspectionSha256
         || report.inventory.meshCount !== locked.meshCount
@@ -1715,7 +2156,37 @@ async function compileRoomArchitecture(options, source) {
         || issueCounts.errors !== locked.khronosValidator.errors
         || issueCounts.warnings !== locked.khronosValidator.warnings
         || issueCounts.infos !== locked.khronosValidator.infos
-        || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_component_glb_evidence_mismatch");
+        || issueCounts.hints !== locked.khronosValidator.hints)) throw new Error("approved_candidate_component_glb_evidence_mismatch");
+    }
+    if (source.exteriorIncluded && source.exteriorGlbEvidence !== null) {
+      const locked = source.exteriorGlbEvidence;
+      const issueCounts = khronosValidation.issueCounts;
+      if (report.outputGlb.sha256 !== locked.sha256
+        || report.outputGlb.byteLength !== locked.byteLength
+        || report.outputBlend.byteLength !== locked.blendByteLength
+        || reopenInspectionSha256 !== locked.reopenInspectionSha256
+        || report.inventory.meshCount !== locked.meshCount
+        || report.inventory.materialCount !== locked.materialCount
+        || report.inventory.vertexCount !== locked.objectVertexCount
+        || report.inventory.faceCount !== locked.objectFaceCount
+        || glbInspection.binaryByteLength !== locked.binaryByteLength
+        || glbInspection.decodedVertexCount !== locked.decodedVertexCount
+        || glbInspection.decodedIndexCount !== locked.decodedIndexCount
+        || glbInspection.decodedTriangleCount !== locked.decodedTriangleCount
+        || glbInspection.decodedDistinctReferencedPositionCount !== locked.distinctPositionCount
+        || glbInspection.decodedNormalCount !== locked.decodedNormalCount
+        || glbInspection.minimumNormalLength !== locked.minimumNormalLength
+        || glbInspection.maximumNormalLength !== locked.maximumNormalLength
+        || glbInspection.geometryEvidence.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).length !== locked.architectureMeshCount
+        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("component.")).length !== locked.componentMeshCount
+        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("exterior.")).length !== locked.exteriorMeshCount
+        || architectureBaseline.expectedSha256 !== locked.architectureSemanticSha256
+        || khronosValidation.package !== locked.khronosValidator.package
+        || khronosValidation.version !== locked.khronosValidator.version
+        || issueCounts.errors !== locked.khronosValidator.errors
+        || issueCounts.warnings !== locked.khronosValidator.warnings
+        || issueCounts.infos !== locked.khronosValidator.infos
+        || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_exterior_glb_evidence_mismatch");
     }
 
     const commonEnvelope = {
@@ -1727,6 +2198,7 @@ async function compileRoomArchitecture(options, source) {
       khronosValidation,
       architectureBaseline,
       lockedComponentGlbEvidence: source.componentGlbEvidence ?? null,
+      ...(source.exteriorIncluded ? { lockedExteriorGlbEvidence: source.exteriorGlbEvidence } : {}),
       reopenInspection: inspection,
       reopenInspectionSha256
     };
@@ -1734,12 +2206,44 @@ async function compileRoomArchitecture(options, source) {
       ...commonEnvelope,
       candidateSource: source.candidateSource,
       canonicalHashes: source.canonicalHashes,
-      compilerSourceSha256: sourceHashes
+      compilerSourceSha256: sourceHashes,
+      ...(source.exteriorIncluded ? { semanticReports: source.semanticReports } : {})
     };
-    await writeFile(reportPath, `${stableJson(finalReport)}\n`, { mode: 0o600 });
+    Object.defineProperty(finalReport, publishedRoomOutputs, { value: publishedRecords });
+    const finalReportBytes = Buffer.from(`${stableJson(finalReport)}\n`);
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: outputBlendPath,
+      bytes: outputBytes,
+      label: "room_shell_output",
+      faultPhase: outputFaults.blend,
+      validate: async (writtenBytes) => {
+        if (writtenBytes.length !== report.outputBlend.byteLength || sha256(writtenBytes) !== report.outputBlend.sha256) throw new Error("room_shell_output_digest_mismatch");
+      }
+    }));
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: outputGlbPath,
+      bytes: glbBytes,
+      label: "room_glb_output",
+      faultPhase: outputFaults.glb,
+      validate: async (writtenBytes) => {
+        if (writtenBytes.length !== report.outputGlb.byteLength || sha256(writtenBytes) !== report.outputGlb.sha256) throw new Error("room_glb_output_digest_mismatch");
+      }
+    }));
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: reportPath,
+      bytes: finalReportBytes,
+      label: "room_shell_report",
+      faultPhase: outputFaults.report,
+      validate: async (writtenBytes) => validateMediaSurfaceReportBytes(writtenBytes, finalReport, "room_shell_report")
+    }));
+    Object.freeze(publishedRecords);
     return Object.freeze(finalReport);
   } catch (error) {
-    await Promise.all([rm(outputBlendPath, { force: true }), rm(outputGlbPath, { force: true }), rm(reportPath, { force: true })]);
+    try {
+      await removePublishedMediaSurfaceOutputs(publishedRecords);
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "room_shell_output_cleanup_failed");
+    }
     throw error;
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
@@ -1759,6 +2263,11 @@ export async function compileApprovedCandidateArchitecture(options) {
 export async function compileApprovedCandidateComponents(options) {
   if (!options || typeof options !== "object") throw new Error("approved_candidate_component_compile_options_invalid");
   return compileRoomArchitecture(options, await loadApprovedCandidateComponentSource(options));
+}
+
+export async function compileApprovedCandidateExterior(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_exterior_compile_options_invalid");
+  return compileRoomArchitecture(options, await loadApprovedCandidateExteriorSource(options));
 }
 
 function expectedMediaSurfaceProjection(source) {
@@ -1995,8 +2504,13 @@ export async function verifyApprovedCandidateMediaSurfacesReproducibility(option
 }
 
 async function verifyRoomReproducibility(options, compile, mode) {
-  const outputDirectory = await externalDirectory(options.outputDirectory, "room_reproducibility_output_directory");
-  const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "room_reproducibility_report");
+  const forbiddenRoots = mode === "exterior"
+    ? [repositoryRoot, await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository")]
+    : [repositoryRoot];
+  const outputDirectory = mode === "exterior"
+    ? await externalOutputDirectory(options.outputDirectory, "room_reproducibility_output_directory", forbiddenRoots)
+    : await externalDirectory(options.outputDirectory, "room_reproducibility_output_directory");
+  const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "room_reproducibility_report", forbiddenRoots);
   const runPaths = [
     ...[1, 2].flatMap((number) => {
       const prefix = `run-${String(number).padStart(2, "0")}`;
@@ -2005,9 +2519,12 @@ async function verifyRoomReproducibility(options, compile, mode) {
     reproducibilityReportPath
   ];
   if (new Set(runPaths).size !== runPaths.length) throw new Error("room_reproducibility_output_paths_conflict");
-  await Promise.all(runPaths.slice(0, -1).map((path) => newExternalOutput(path, path.endsWith(".blend") ? ".blend" : path.endsWith(".glb") ? ".glb" : ".json", "room_reproducibility_run_output")));
+  await Promise.all(runPaths.slice(0, -1).map((path) => newExternalOutput(path, path.endsWith(".blend") ? ".blend" : path.endsWith(".glb") ? ".glb" : ".json", "room_reproducibility_run_output", forbiddenRoots)));
+  const reportFault = roomOutputFault(options, "reproducibility-report");
+  const publishedRecords = [];
   const candidate = mode !== "synthetic";
   const components = mode === "components";
+  const exterior = mode === "exterior";
   const common = candidate ? {
     blenderPath: options.blenderPath,
     candidateRepositoryPath: options.candidateRepositoryPath,
@@ -2026,8 +2543,10 @@ async function verifyRoomReproducibility(options, compile, mode) {
         ...common,
         outputBlendPath: resolve(outputDirectory, `${prefix}.blend`),
         outputGlbPath: resolve(outputDirectory, `${prefix}.glb`),
-        reportPath: resolve(outputDirectory, `${prefix}.json`)
+        reportPath: resolve(outputDirectory, `${prefix}.json`),
+        [roomOutputFaultInjection]: options[roomOutputFaultInjection]
       }));
+      publishedRecords.push(...runs.at(-1)[publishedRoomOutputs]);
     }
     const [firstGlb, secondGlb] = await Promise.all([
       readFile(resolve(outputDirectory, "run-01.glb")),
@@ -2064,7 +2583,55 @@ async function verifyRoomReproducibility(options, compile, mode) {
       reopenInspectionIdentical: true,
       reopenInspectionSha256: runs[0].reopenInspectionSha256
     };
-    const candidateReport = components ? {
+    const exteriorCandidateReport = {
+      schemaVersion: 1,
+      status: "stage3-approved-candidate-exterior-glb-byte-identical",
+      fixtureOnly: false,
+      approvedCandidateSpecification: true,
+      candidateArchitectureCompiled: true,
+      componentsSpecified: true,
+      componentsCompiled: true,
+      exteriorSpecified: true,
+      exteriorCompiled: true,
+      exteriorGlbByteIdentical: true,
+      byteIdenticalExportsVerified: false,
+      lightingCompiled: false,
+      mediaSurfacesCompiled: false,
+      sceneBinaryAddedToRepository: false,
+      artifactBytesIncludedInRepository: false,
+      releaseArtifactsCreated: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false,
+      candidateSource: runs[0].candidateSource,
+      canonicalHashes: runs[0].canonicalHashes,
+      acceptedInputSha256: runs[0].acceptedInputSha256,
+      semanticReports: runs[0].semanticReports,
+      blender: runs[0].blender,
+      compilerSourceSha256: runs[0].compilerSourceSha256,
+      khronosValidation: runs[0].khronosValidation,
+      architectureBaseline: runs[0].architectureBaseline,
+      exporter: runs[0].outputGlb.exportSettings,
+      runs: runReports,
+      comparison,
+      boundaries: {
+        approvedCandidateSpecification: true,
+        candidateArchitectureCompiled: true,
+        componentsSpecified: true,
+        componentsCompiled: true,
+        exteriorSpecified: true,
+        exteriorCompiled: true,
+        exteriorGlbByteIdentical: true,
+        byteIdenticalExportsVerified: false,
+        lightingCompiled: false,
+        mediaSurfacesCompiled: false,
+        finalCandidateGlbVerified: false,
+        releaseArtifactsCreated: false,
+        publicationReady: false,
+        artifactBytesIncludedInRepository: false,
+        sceneBinaryAddedToRepository: false
+      }
+    };
+    const candidateReport = exterior ? exteriorCandidateReport : components ? {
       schemaVersion: 1,
       status: "stage3-approved-candidate-components-glb-byte-identical",
       fixtureOnly: false,
@@ -2152,10 +2719,21 @@ async function verifyRoomReproducibility(options, compile, mode) {
         syntheticFixtureGlbByteIdentical: true
       }
     };
-    await writeFile(reproducibilityReportPath, `${stableJson(report)}\n`, { flag: "wx", mode: 0o600 });
+    const reportBytes = Buffer.from(`${stableJson(report)}\n`);
+    publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: reproducibilityReportPath,
+      bytes: reportBytes,
+      label: "room_reproducibility_report",
+      faultPhase: reportFault,
+      validate: async (writtenBytes) => validateMediaSurfaceReportBytes(writtenBytes, report, "room_reproducibility_report")
+    }));
     return Object.freeze(report);
   } catch (error) {
-    await Promise.all(runPaths.map((path) => rm(path, { force: true })));
+    try {
+      await removePublishedMediaSurfaceOutputs(publishedRecords);
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "room_reproducibility_cleanup_failed");
+    }
     throw error;
   }
 }
@@ -2173,6 +2751,11 @@ export async function verifyApprovedCandidateArchitectureReproducibility(options
 export async function verifyApprovedCandidateComponentsReproducibility(options) {
   if (!options || typeof options !== "object") throw new Error("approved_candidate_component_reproducibility_options_invalid");
   return verifyRoomReproducibility(options, compileApprovedCandidateComponents, "components");
+}
+
+export async function verifyApprovedCandidateExteriorReproducibility(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_exterior_reproducibility_options_invalid");
+  return verifyRoomReproducibility(options, compileApprovedCandidateExterior, "exterior");
 }
 
 function parsePairs(arguments_, code) {
@@ -2209,7 +2792,7 @@ function parseCompileCli(arguments_) {
     outputGlbPath: values["--output-glb"],
     reportPath: values["--report"]
   };
-  if ([candidateArchitectureInputKind, candidateComponentInputKind].includes(inputKind)) {
+  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateExteriorInputKind].includes(inputKind)) {
     const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-blend", "--output-glb", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key)) || Object.values(common).some((value) => value === undefined)) throw new Error("room_shell_cli_arguments_invalid");
     return { inputKind, options: { ...common, candidateRepositoryPath: values["--candidate-dir"] } };
@@ -2234,9 +2817,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ? await compileApprovedCandidateArchitecture(cli.options)
       : cli.inputKind === candidateComponentInputKind
         ? await compileApprovedCandidateComponents(cli.options)
-        : cli.inputKind === candidateMediaSurfaceInputKind
-          ? await compileApprovedCandidateMediaSurfaces(cli.options)
-          : await compileSyntheticRoomShell(cli.options);
+        : cli.inputKind === candidateExteriorInputKind
+          ? await compileApprovedCandidateExterior(cli.options)
+          : cli.inputKind === candidateMediaSurfaceInputKind
+            ? await compileApprovedCandidateMediaSurfaces(cli.options)
+            : await compileSyntheticRoomShell(cli.options);
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : "room_shell_compile_failed"}\n`);

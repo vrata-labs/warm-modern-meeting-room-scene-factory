@@ -62,9 +62,33 @@ materials and deterministic beveled-box volumes, binds the north-side
 `main-window`, verifies raw source provenance and accepted-input closure, and
 fails closed on support cycles, unsupported footprints, positive-volume
 overlap, room intrusion, declared-bounds drift, missing visible vegetation, or
-unbounded middle-distance context. The four-object/three-material checked-in
-source is contract-test data only. Candidate 01 does not yet contain this
-source, so exterior specified, compiled, final GLB, release, and publication
+unbounded middle-distance context.
+
+The F4 exterior compiler is exposed through
+`loadApprovedCandidateExteriorSource`, `compileApprovedCandidateExterior`, and
+`verifyApprovedCandidateExteriorReproducibility`. Its hardened loader reads
+exactly seven Git blobs from Candidate 01 commit
+`380098d4b7cbc1d57498b059466f095ae3568929` and tree
+`671af158f4b0f213d010191f21c3cd7d4779b5e9`, then verifies the schema-v4 source
+lock hashes and counts through the component, media-surface, and exterior
+semantic validators. Exact Blender produces 19 architecture meshes, 38
+component meshes, and four root-level `exterior.<objectId>` beveled-box meshes.
+Support relationships are custom metadata, never object parenting. The GLB has
+exactly eight scalar PBR materials; each of the five interior/component
+materials retains `asset-layout-project` provenance and each of the three
+exterior materials retains `asset-exterior-constructions-project` provenance.
+Media planes remain external runtime manifest data and are not exported into
+the GLB.
+
+Two F4 runs produce byte-identical 614784-byte GLB bytes with SHA-256
+`eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92`
+and identical reopen digest
+`d54209a0bb1c473910e701625f253d62fae5f70b3794dc04a8afeb3bd00f9f89`.
+The decoded binary contains 16656 vertices, 24540 indices, 8180 triangles, and
+16656 finite unit normals. Khronos validation reports zero errors and zero
+warnings. Blend files are measured at 1421892 bytes but are not byte-identical,
+so only the exterior-scoped GLB identity claim is true. Lighting, final-candidate
+GLB, release, repository-artifact, publication, and global final byte-identity
 claims remain false.
 
 The candidate-owned component construction contract is exposed through
@@ -74,7 +98,7 @@ beveled-box family parts and two instance material overrides to an already valid
 scene contract while leaving route and spawn checks on the existing component
 envelopes. The checked-in fixture remains contract-test data only.
 
-The F3 media-surface contract and deterministic projection are exposed through
+The historical F3 media-surface baseline and deterministic projection are exposed through
 `schemas/media-surface-constructions.schema.json` and
 `parseMediaSurfaceConstructionContract`, `loadApprovedCandidateMediaSurfaceSource`,
 `compileApprovedCandidateMediaSurfaces`, and
@@ -95,10 +119,9 @@ come solely from media-surface constructions. Purpose stays logical and is not
 projected. Two runs must produce byte-identical 1022-byte manifest bytes with
 SHA-256 `352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb`.
 That exact 1022-byte, two-surface, `platform-runtime-plane`, byte-identical
-evidence is pinned separately as `mediaSurfaceProjectionEvidence` in the active
-Candidate lock.
-No exterior Blender geometry, final GLB, or lighting is compiled, and final, release,
-repository-inclusion, and publication boundaries remain false.
+evidence is pinned separately under `mediaSurfaceBaseline` in the active
+Candidate lock. The F3 API still reads its historical six-blob commit rather
+than the current F4 commit.
 
 The F1 Candidate 01 architecture baseline remains pinned separately at commit
 `df564befcd65cb51a345fa9d315e40cadef6e563`, with its four Git blobs, canonical
@@ -137,9 +160,11 @@ consumers reject duplicate JSON keys and noncanonical text encodings.
 Single-run F2 reports keep `componentGlbByteIdentical` false. Only the two-run F2
 reproducibility report sets that component-scoped result true. Single-run F3
 reports set `mediaSurfacesCompiled` true and `byteIdentical` false; only two-run
-F3 reproducibility sets `byteIdentical` true. Exterior, lighting, final candidate
-GLB verification, release creation, publication readiness, and repository
-inclusion of artifact bytes remain explicitly false.
+F3 reproducibility sets `byteIdentical` true. Single-run F4 reports keep
+`exteriorGlbByteIdentical` false; only two-run F4 reproducibility sets that
+exterior-scoped result true. Lighting, final candidate GLB verification, release
+creation, publication readiness, repository inclusion of artifact bytes, and
+the global `byteIdenticalExportsVerified` claim remain explicitly false.
 
 The neutral low-fidelity concept gate selected the functional correction of
 Concept 03 and assigned its exact validated specification to Candidate 01 without
@@ -159,10 +184,10 @@ The Candidate 01 architecture tests require a separate local checkout through
 to the exact locked Blender 4.5.12 binary to run the compile, reopen, and
 two-run byte-identity gates instead of skipping them.
 
-The same checkout must contain the exact locked F3 commit. CI checks out
-`26d3af6e2720576113431c22b9443533b919f390` outside this repository with full
-history so the current F3 source, F2 component baseline, and historical F1
-architecture baseline are all available.
+The same checkout must contain the exact locked F4 commit. CI checks out
+`380098d4b7cbc1d57498b059466f095ae3568929` outside this repository with full
+history so the current F4 source and historical F3, F2, and F1 baselines are all
+available.
 
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
@@ -178,5 +203,8 @@ mapping is recorded.
 Exterior contract tests additionally cover canonical source bytes, exact scene
 and source-ledger closure, material-role compatibility, north-window visibility,
 support topology, declared bounds, deterministic naming, and stable negative
-diagnostics. They do not claim a Candidate 01 exterior source or compiled
-exterior geometry.
+diagnostics. Approved exterior tests additionally cover the seven-blob source
+lock, exact transforms and dimensions, applied bevel topology, support metadata
+without parenting, material provenance, decoded normals and accessor bounds,
+forbidden-content absence, reopen inspection, Khronos validation, output-root
+safety, and two-run GLB byte identity.
