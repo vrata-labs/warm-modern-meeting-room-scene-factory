@@ -10,6 +10,7 @@ import {
   compileApprovedCandidateMediaSurfaces,
   loadApprovedCandidateArchitectureSource,
   loadApprovedCandidateComponentSource,
+  loadApprovedCandidateExteriorSource,
   loadApprovedCandidateMediaSurfaceSource,
   mediaSurfaceOutputFaultInjection,
   parseApprovedCandidateMediaSurfaceProjectionText,
@@ -74,10 +75,11 @@ test("Candidate 01 media-surface source reads exactly six locked Git blobs and b
   assert.ok(Object.values(source.boundaries).every((value) => value === false));
 });
 
-test("F1 and F2 evidence remains bound to historical baselines, never the F3 commit", async () => {
-  const [architecture, components] = await Promise.all([
+test("F1, F2, and F3 evidence remains bound to historical baselines, never the current F4 commit", async () => {
+  const [architecture, components, exterior] = await Promise.all([
     loadApprovedCandidateArchitectureSource({ candidateRepositoryPath }),
-    loadApprovedCandidateComponentSource({ candidateRepositoryPath })
+    loadApprovedCandidateComponentSource({ candidateRepositoryPath }),
+    loadApprovedCandidateExteriorSource({ candidateRepositoryPath })
   ]);
   assert.equal(architecture.candidateSource.commit, "df564befcd65cb51a345fa9d315e40cadef6e563");
   assert.equal(architecture.architectureBaseline.sha256, "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33");
@@ -87,6 +89,8 @@ test("F1 and F2 evidence remains bound to historical baselines, never the F3 com
   assert.equal(components.componentGlbEvidence.reopenInspectionSha256, "5a1014f9fad8f12929d43d7fae0fd8155274754dc514db6590151bbbcda5e810");
   assert.equal(components.componentGlbEvidence.architectureSemanticSha256, architecture.architectureBaseline.sha256);
   assert.notEqual(components.candidateSource.commit, candidateCommit);
+  assert.equal(exterior.candidateSource.commit, "380098d4b7cbc1d57498b059466f095ae3568929");
+  assert.notEqual(exterior.candidateSource.commit, candidateCommit);
 });
 
 test("media-surface loader rejects wrong commits and ignores worktree, replacement, and ambient Git drift", async () => {

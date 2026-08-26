@@ -14,6 +14,7 @@ EXPECTED_BLENDER_BINARY_SHA256 = "33ac108ebce3c271f5357e5c664d0488717263bcf2145c
 SYNTHETIC_INPUT_KIND = "synthetic-fixture"
 CANDIDATE_ARCHITECTURE_INPUT_KIND = "approved-candidate-architecture"
 CANDIDATE_COMPONENT_INPUT_KIND = "approved-candidate-components"
+CANDIDATE_EXTERIOR_INPUT_KIND = "approved-candidate-exterior"
 EXPECTED_SYNTHETIC_SPECIFICATION_SHA256 = "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91"
 EXPECTED_SYNTHETIC_SCENE_RAW_SHA256 = "faef3aebe7278f72bf272411abdb0080792b4459ad7ca0097cca36e59498b748"
 EXPECTED_CANDIDATE_SPECIFICATION_SHA256 = "29d76ca0feaefd4bf9cac9ebd25113c601e358c939778c4a0f43f3f94b58e0dd"
@@ -22,8 +23,13 @@ EXPECTED_COMPONENT_SPECIFICATION_SHA256 = "10106915ffabfdd4580b3866c3714f05f22be
 EXPECTED_COMPONENT_SCENE_RAW_SHA256 = "0afe14089767436df4f3d286ccacd4a1fcc46772dab071266034550bf94fcf8e"
 EXPECTED_COMPONENT_CONSTRUCTION_SHA256 = "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709"
 EXPECTED_COMPONENT_CONSTRUCTION_RAW_SHA256 = "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1"
+EXPECTED_EXTERIOR_SPECIFICATION_SHA256 = "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12"
+EXPECTED_EXTERIOR_SCENE_RAW_SHA256 = "7f6822b6298b1e2fb606cfd4db310663b7cbab74989245c61bff3f25b1f0c8b6"
+EXPECTED_EXTERIOR_CONSTRUCTION_SHA256 = "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330"
+EXPECTED_EXTERIOR_CONSTRUCTION_RAW_SHA256 = "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
 COLLECTION_NAME = "WMMR_ARCHITECTURE"
 COMPONENT_COLLECTION_NAME = "WMMR_APPROVED_CANDIDATE_COMPONENTS"
+EXTERIOR_COLLECTION_NAME = "WMMR_APPROVED_CANDIDATE_EXTERIOR"
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -534,6 +540,96 @@ def with_component_materials(architecture_plan, component_plan, scene):
     }
 
 
+def build_exterior_plan(construction):
+    materials = {material["id"]: material for material in construction["materials"]}
+    objects = []
+    for source in construction["objects"]:
+        if source["geometry"] != "beveled-box" or source["transform"]["yaw"] != 0:
+            fail(f"room_exterior_object_geometry_invalid:{source['id']}")
+        bevel = source["bevel"]
+        if bevel["segments"] != 3 or bevel["clampOverlap"] is not True:
+            fail(f"room_exterior_bevel_invalid:{source['id']}")
+        material = materials.get(source["materialId"])
+        if material is None:
+            fail(f"room_exterior_material_missing:{source['id']}")
+        position = source["transform"]["position"]
+        dimensions = source["dimensions"]
+        record = box(
+            f"exterior.{source['id']}",
+            dimensions["widthM"],
+            dimensions["heightM"],
+            dimensions["depthM"],
+            position["x"],
+            position["y"],
+            position["z"],
+        )
+        record.update({
+            "geometry": "beveled-box",
+            "objectId": source["id"],
+            "role": source["role"],
+            "worldYaw": 0.0,
+            "bevel": {
+                "widthM": rounded(bevel["widthM"]),
+                "segments": bevel["segments"],
+                "clampOverlap": bevel["clampOverlap"],
+            },
+            "materialId": source["materialId"],
+            "materialRecipeId": source["materialId"],
+            "supportObjectId": source["supportObjectId"],
+            "vertexCount": 96,
+            "edgeCount": 192,
+            "faceCount": 98,
+        })
+        objects.append(record)
+    objects.sort(key=lambda value: value["name"])
+    names = [record["name"] for record in objects]
+    used_materials = {record["materialId"] for record in objects}
+    if len(objects) != 4 or len(set(names)) != 4 or len(materials) != 3 or used_materials != set(materials):
+        fail("room_exterior_inventory_invalid")
+    return {
+        "specified": True,
+        "compiled": False,
+        "strategy": construction["strategy"],
+        "windowOpeningId": construction["windowOpeningId"],
+        "sourceRecordId": construction["sourceRecordId"],
+        "objectNamePattern": "exterior.<objectId>",
+        "objectCount": len(objects),
+        "materialCount": len(materials),
+        "boundsM": construction["boundsM"],
+        "objects": objects,
+    }
+
+
+def with_exterior_materials(component_material_plan, exterior_plan, construction):
+    exterior_recipes = [{
+        **material,
+        "sourceRecordId": construction["sourceRecordId"],
+    } for material in construction["materials"]]
+    recipes = {recipe["id"]: recipe for recipe in [*component_material_plan["recipes"], *exterior_recipes]}
+    exterior_assignments = [{
+        "objectName": record["name"],
+        "zones": [{
+            "id": f"exterior-zone:{record['name']}",
+            "surface": f"exterior:{record['role']}",
+            "recipeId": record["materialRecipeId"],
+        }],
+    } for record in exterior_plan["objects"]]
+    assignments = sorted([*component_material_plan["assignments"], *exterior_assignments], key=lambda value: value["objectName"])
+    used_recipe_ids = sorted({zone["recipeId"] for assignment in assignments for zone in assignment["zones"]})
+    if len(used_recipe_ids) != 8 or len(assignments) != 61:
+        fail("room_exterior_material_inventory_invalid")
+    return {
+        **component_material_plan,
+        "recipeCount": len(used_recipe_ids),
+        "zoneCount": sum(len(assignment["zones"]) for assignment in assignments),
+        "assignmentCount": len(assignments),
+        "exteriorAssignmentCount": len(exterior_assignments),
+        "exteriorMaterialCount": len(exterior_recipes),
+        "recipes": [recipes[identifier] for identifier in used_recipe_ids],
+        "assignments": assignments,
+    }
+
+
 def cube_geometry(dimensions):
     half_x = dimensions["widthM"] / 2
     half_y = dimensions["depthM"] / 2
@@ -952,6 +1048,96 @@ def create_component_object(bpy, record, collection, fixture_only):
     return value
 
 
+def verify_exterior_object(value, expected, allow_materials=False):
+    if value is None or value.type != "MESH":
+        fail(f"room_exterior_object_missing:{expected['name']}")
+    actual_dimensions = {
+        "widthM": float(value.dimensions.x),
+        "heightM": float(value.dimensions.z),
+        "depthM": float(value.dimensions.y),
+    }
+    actual_center = {"x": float(value.location.x), "y": float(value.location.z), "z": float(value.location.y)}
+    expected_materials = [f"material.{expected['materialRecipeId']}"] if allow_materials else []
+    support = value.get("wmmr_support_object_id") or None
+    if any(abs(actual_dimensions[key] - expected["dimensionsM"][key]) > 1e-6 for key in actual_dimensions) \
+            or any(abs(actual_center[key] - expected["centerM"][key]) > 1e-6 for key in actual_center) \
+            or len(value.data.vertices) != expected["vertexCount"] \
+            or len(value.data.edges) != expected["edgeCount"] \
+            or len(value.data.polygons) != expected["faceCount"] \
+            or len(value.modifiers) != 0 \
+            or value.parent is not None \
+            or any(abs(angle) > 1e-9 for angle in value.rotation_euler) \
+            or any(abs(scale - 1) > 1e-9 for scale in value.scale) \
+            or [slot.material.name for slot in value.material_slots] != expected_materials \
+            or value.get("wmmr_bevel_applied") is not True \
+            or value.get("wmmr_bevel_width_m") != expected["bevel"]["widthM"] \
+            or value.get("wmmr_bevel_segments") != expected["bevel"]["segments"] \
+            or value.get("wmmr_bevel_clamp_overlap") is not expected["bevel"]["clampOverlap"] \
+            or value.get("wmmr_exterior_object_id") != expected["objectId"] \
+            or value.get("wmmr_exterior_role") != expected["role"] \
+            or value.get("wmmr_exterior_material_id") != expected["materialId"] \
+            or support != expected["supportObjectId"]:
+        fail(f"room_exterior_object_invalid:{expected['name']}")
+    half_extents = (
+        expected["dimensionsM"]["widthM"] / 2,
+        expected["dimensionsM"]["depthM"] / 2,
+        expected["dimensionsM"]["heightM"] / 2,
+    )
+    local_bounds = [
+        (min(vertex.co[axis] for vertex in value.data.vertices), max(vertex.co[axis] for vertex in value.data.vertices))
+        for axis in range(3)
+    ]
+    if any(abs(minimum + half_extents[axis]) > 1e-6 or abs(maximum - half_extents[axis]) > 1e-6
+           for axis, (minimum, maximum) in enumerate(local_bounds)):
+        fail(f"room_exterior_bounds_invalid:{expected['name']}")
+    bevel_width = expected["bevel"]["widthM"]
+    inset_axes = sum(
+        any(abs(abs(vertex.co[axis]) - (half_extents[axis] - bevel_width)) <= 1e-5 for vertex in value.data.vertices)
+        for axis in range(3)
+    )
+    if inset_axes != 3 or any(polygon.area <= 1e-12 for polygon in value.data.polygons):
+        fail(f"room_exterior_bevel_topology_invalid:{expected['name']}")
+    return {
+        **expected,
+        "centerM": {key: rounded(value) for key, value in actual_center.items()},
+        "dimensionsM": {key: rounded(value) for key, value in actual_dimensions.items()},
+        "vertexCount": len(value.data.vertices),
+        "edgeCount": len(value.data.edges),
+        "faceCount": len(value.data.polygons),
+        "modifierCount": len(value.modifiers),
+        "bevelApplied": True,
+        "bevelInsetAxisCount": inset_axes,
+        "parentName": value.parent.name if value.parent is not None else None,
+        "topologySha256": component_mesh_digest(value),
+    }
+
+
+def create_exterior_object(bpy, record, collection, fixture_only):
+    value = create_mesh_object(bpy, record, collection, fixture_only)
+    value["wmmr_bevel_applied"] = False
+    value["wmmr_bevel_width_m"] = record["bevel"]["widthM"]
+    value["wmmr_bevel_segments"] = record["bevel"]["segments"]
+    value["wmmr_bevel_clamp_overlap"] = record["bevel"]["clampOverlap"]
+    value["wmmr_exterior_object_id"] = record["objectId"]
+    value["wmmr_exterior_role"] = record["role"]
+    value["wmmr_exterior_material_id"] = record["materialId"]
+    value["wmmr_support_object_id"] = record["supportObjectId"] or ""
+    modifier = value.modifiers.new(name="approved-exterior-bevel", type="BEVEL")
+    modifier.width = record["bevel"]["widthM"]
+    modifier.segments = record["bevel"]["segments"]
+    modifier.limit_method = "NONE"
+    modifier.use_clamp_overlap = record["bevel"]["clampOverlap"]
+    bpy.context.view_layer.objects.active = value
+    value.select_set(True)
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+    value.select_set(False)
+    value["wmmr_bevel_applied"] = True
+    value.data.update(calc_edges=True)
+    value.data.validate(verbose=False, clean_customdata=False)
+    verify_exterior_object(value, record)
+    return value
+
+
 def apply_opening_cuts(bpy, wall, opening_plan, collection, fixture_only):
     for cut in opening_plan["cuts"]:
         cutter = create_mesh_object(bpy, cut, collection, fixture_only)
@@ -1107,7 +1293,7 @@ def inventory_report(bpy, objects):
     }
 
 
-def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, scene_specification, specification_sha256, input_kind):
+def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, material_plan, scene_specification, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
@@ -1116,10 +1302,11 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
     version, build_hash, binary_sha256 = blender_identity(bpy)
 
     fixture_only = input_kind == SYNTHETIC_INPUT_KIND
-    components_included = input_kind == CANDIDATE_COMPONENT_INPUT_KIND
+    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
+    exterior_included = input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.name = "WMMR_SYNTHETIC_SHELL" if fixture_only else "WMMR_CANDIDATE_01_COMPONENTS" if components_included else "WMMR_CANDIDATE_01_ARCHITECTURE"
+    scene.name = "WMMR_SYNTHETIC_SHELL" if fixture_only else "WMMR_CANDIDATE_01_EXTERIOR" if exterior_included else "WMMR_CANDIDATE_01_COMPONENTS" if components_included else "WMMR_CANDIDATE_01_ARCHITECTURE"
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
     scene["wmmr_fixture_only"] = fixture_only
@@ -1130,13 +1317,18 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
         scene["wmmr_components_specified"] = components_included
         scene["wmmr_components_compiled"] = components_included
         scene["wmmr_component_glb_byte_identical"] = False
-        scene["wmmr_exterior_compiled"] = False
+        scene["wmmr_exterior_compiled"] = exterior_included
         scene["wmmr_lighting_compiled"] = False
         scene["wmmr_media_surfaces_compiled"] = False
         scene["wmmr_final_candidate_glb_verified"] = False
         scene["wmmr_publication_ready"] = False
+        if exterior_included:
+            scene["wmmr_exterior_specified"] = True
+            scene["wmmr_release_artifacts_created"] = False
+            scene["wmmr_artifact_bytes_included_in_repository"] = False
+            scene["wmmr_byte_identical_exports_verified"] = False
 
-    collection_name = COMPONENT_COLLECTION_NAME if components_included else plan["collectionName"]
+    collection_name = EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else plan["collectionName"]
     collection = bpy.data.collections.new(collection_name)
     scene.collection.children.link(collection)
     for record in plan["objects"]:
@@ -1153,6 +1345,9 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
     if components_included:
         for record in component_plan["objects"]:
             create_component_object(bpy, record, collection, fixture_only)
+    if exterior_included:
+        for record in exterior_plan["objects"]:
+            create_exterior_object(bpy, record, collection, fixture_only)
 
     bpy.context.view_layer.update()
     shell_objects = [
@@ -1165,7 +1360,7 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
     opening_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in opening_plan["objects"]]
     profile_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in profile_plan["objects"]]
     architecture_objects = sorted([*shell_objects, *opening_objects, *profile_objects], key=lambda record: record["name"])
-    expected_names = {record["name"] for record in [*architecture_objects, *component_plan["objects"]]}
+    expected_names = {record["name"] for record in [*architecture_objects, *component_plan["objects"], *exterior_plan["objects"]]}
     if set(bpy.data.objects.keys()) != expected_names or len(bpy.data.materials) != 0 or len(bpy.data.cameras) != 0 or len(bpy.data.lights) != 0:
         fail("room_opening_inventory_invalid")
     apply_material_plan(bpy, material_plan, scene_specification["room"])
@@ -1174,7 +1369,11 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
         verify_component_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
         for record in component_plan["objects"]
     ]
-    all_objects = sorted([*architecture_objects, *component_objects], key=lambda record: record["name"])
+    exterior_objects = [
+        verify_exterior_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
+        for record in exterior_plan["objects"]
+    ]
+    all_objects = sorted([*architecture_objects, *component_objects, *exterior_objects], key=lambda record: record["name"])
     return (
         bpy,
         version,
@@ -1184,6 +1383,7 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, material_plan, 
         opening_objects,
         profile_objects,
         component_objects,
+        exterior_objects,
         material_report,
         inventory_report(bpy, all_objects),
     )
@@ -1194,6 +1394,7 @@ def load_scene_specification(path, input_kind, expected_raw_sha256, expected_spe
         SYNTHETIC_INPUT_KIND: (EXPECTED_SYNTHETIC_SCENE_RAW_SHA256, EXPECTED_SYNTHETIC_SPECIFICATION_SHA256),
         CANDIDATE_ARCHITECTURE_INPUT_KIND: (EXPECTED_CANDIDATE_SCENE_RAW_SHA256, EXPECTED_CANDIDATE_SPECIFICATION_SHA256),
         CANDIDATE_COMPONENT_INPUT_KIND: (EXPECTED_COMPONENT_SCENE_RAW_SHA256, EXPECTED_COMPONENT_SPECIFICATION_SHA256),
+        CANDIDATE_EXTERIOR_INPUT_KIND: (EXPECTED_EXTERIOR_SCENE_RAW_SHA256, EXPECTED_EXTERIOR_SPECIFICATION_SHA256),
     }.get(input_kind)
     if expected is None:
         fail("room_shell_input_kind_invalid")
@@ -1227,14 +1428,31 @@ def load_component_construction(path, expected_raw_sha256, expected_sha256):
     return construction
 
 
-def inspect_current_blend(report_path, scene_specification, component_construction, specification_sha256, input_kind):
+def load_exterior_construction(path, expected_raw_sha256, expected_sha256):
+    if expected_raw_sha256 != EXPECTED_EXTERIOR_CONSTRUCTION_RAW_SHA256 \
+            or expected_sha256 != EXPECTED_EXTERIOR_CONSTRUCTION_SHA256:
+        fail("room_exterior_expected_hash_invalid")
+    raw = path.read_bytes()
+    if sha256_bytes(raw) != expected_raw_sha256:
+        fail("approved_candidate_exterior_raw_sha256_mismatch")
+    try:
+        construction = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        fail("room_exterior_json_invalid")
+    if canonical_sha256(construction) != expected_sha256:
+        fail("room_exterior_sha256_mismatch")
+    return construction
+
+
+def inspect_current_blend(report_path, scene_specification, component_construction, exterior_construction, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
         fail("blender_python_required")
     version, build_hash, binary_sha256 = blender_identity(bpy)
     fixture_only = input_kind == SYNTHETIC_INPUT_KIND
-    components_included = input_kind == CANDIDATE_COMPONENT_INPUT_KIND
+    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
+    exterior_included = input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
     plan = build_shell_plan(scene_specification)
     opening_plan = build_opening_plan(scene_specification)
     profile_plan = build_profile_plan(scene_specification, opening_plan)
@@ -1242,10 +1460,15 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
     component_plan = build_component_plan(scene_specification, component_construction) if components_included else {
         "specified": False, "compiled": False, "objects": []
     }
+    exterior_plan = build_exterior_plan(exterior_construction) if exterior_included else {
+        "specified": False, "compiled": False, "objects": []
+    }
     if components_included:
         material_plan = with_component_materials(material_plan, component_plan, scene_specification)
-    expected_names = {record["name"] for record in [*plan["objects"], *opening_plan["objects"], *profile_plan["objects"], *component_plan["objects"]]}
-    collection_name = COMPONENT_COLLECTION_NAME if components_included else COLLECTION_NAME
+    if exterior_included:
+        material_plan = with_exterior_materials(material_plan, exterior_plan, exterior_construction)
+    expected_names = {record["name"] for record in [*plan["objects"], *opening_plan["objects"], *profile_plan["objects"], *component_plan["objects"], *exterior_plan["objects"]]}
+    collection_name = EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else COLLECTION_NAME
     if set(bpy.data.objects.keys()) != expected_names \
             or len(bpy.data.meshes) != len(expected_names) \
             or len(bpy.data.materials) != material_plan["recipeCount"] \
@@ -1278,7 +1501,11 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
         verify_component_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
         for record in component_plan["objects"]
     ]
-    objects = sorted([*shell_objects, *opening_objects, *profile_objects, *component_objects], key=lambda record: record["name"])
+    exterior_objects = [
+        verify_exterior_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
+        for record in exterior_plan["objects"]
+    ]
+    objects = sorted([*shell_objects, *opening_objects, *profile_objects, *component_objects, *exterior_objects], key=lambda record: record["name"])
     if bpy.context.scene.get("wmmr_fixture_only") is not fixture_only \
             or bpy.context.scene.get("wmmr_specification_sha256") != specification_sha256:
         fail("room_shell_saved_metadata_invalid")
@@ -1288,15 +1515,21 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
             or bpy.context.scene.get("wmmr_components_specified") is not components_included
             or bpy.context.scene.get("wmmr_components_compiled") is not components_included
             or bpy.context.scene.get("wmmr_component_glb_byte_identical") is not False
-            or bpy.context.scene.get("wmmr_exterior_compiled") is not False
+            or bpy.context.scene.get("wmmr_exterior_compiled") is not exterior_included
             or bpy.context.scene.get("wmmr_lighting_compiled") is not False
             or bpy.context.scene.get("wmmr_media_surfaces_compiled") is not False
             or bpy.context.scene.get("wmmr_final_candidate_glb_verified") is not False
             or bpy.context.scene.get("wmmr_publication_ready") is not False):
         fail("room_shell_saved_metadata_invalid")
+    if exterior_included and (
+            bpy.context.scene.get("wmmr_exterior_specified") is not True
+            or bpy.context.scene.get("wmmr_release_artifacts_created") is not False
+            or bpy.context.scene.get("wmmr_artifact_bytes_included_in_repository") is not False
+            or bpy.context.scene.get("wmmr_byte_identical_exports_verified") is not False):
+        fail("room_shell_saved_metadata_invalid")
     report = {
         "schemaVersion": 1,
-        "status": "stage3-synthetic-room-profiles-materials-inspection-valid" if fixture_only else "stage3-approved-candidate-components-inspection-valid" if components_included else "stage3-approved-candidate-architecture-inspection-valid",
+        "status": "stage3-synthetic-room-profiles-materials-inspection-valid" if fixture_only else "stage3-approved-candidate-exterior-inspection-valid" if exterior_included else "stage3-approved-candidate-components-inspection-valid" if components_included else "stage3-approved-candidate-architecture-inspection-valid",
         "fixtureOnly": fixture_only,
         "specificationSha256": specification_sha256,
         "blender": {"version": version, "buildHash": build_hash, "binarySha256": binary_sha256},
@@ -1311,7 +1544,7 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
             "componentsSpecified": components_included,
             "componentsCompiled": components_included,
             "componentGlbByteIdentical": False,
-            "exteriorCompiled": False,
+            "exteriorCompiled": exterior_included,
             "lightingCompiled": False,
             "mediaSurfacesCompiled": False,
             "finalCandidateGlbVerified": False,
@@ -1320,6 +1553,15 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
         if components_included:
             report["components"] = {**component_plan, "compiled": True, "objects": component_objects}
             report["sceneBinaryAddedToRepository"] = False
+        if exterior_included:
+            report.update({
+                "exterior": {**exterior_plan, "compiled": True, "objects": exterior_objects},
+                "exteriorSpecified": True,
+                "exteriorGlbByteIdentical": False,
+                "byteIdenticalExportsVerified": False,
+                "releaseArtifactsCreated": False,
+                "artifactBytesIncludedInRepository": False,
+            })
     write_report(report_path, report)
     print(json.dumps(report, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
 
@@ -1341,13 +1583,16 @@ def write_report(path, report):
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument("--input-kind", choices=(SYNTHETIC_INPUT_KIND, CANDIDATE_ARCHITECTURE_INPUT_KIND, CANDIDATE_COMPONENT_INPUT_KIND), required=True)
+    parser.add_argument("--input-kind", choices=(SYNTHETIC_INPUT_KIND, CANDIDATE_ARCHITECTURE_INPUT_KIND, CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND), required=True)
     parser.add_argument("--scene-spec")
     parser.add_argument("--expected-raw-sha256", required=True)
     parser.add_argument("--expected-specification-sha256", required=True)
     parser.add_argument("--component-constructions")
     parser.add_argument("--expected-component-raw-sha256")
     parser.add_argument("--expected-component-sha256")
+    parser.add_argument("--exterior-constructions")
+    parser.add_argument("--expected-exterior-raw-sha256")
+    parser.add_argument("--expected-exterior-sha256")
     parser.add_argument("--report", required=True)
     parser.add_argument("--output-blend")
     parser.add_argument("--output-glb")
@@ -1370,7 +1615,8 @@ def main(argv=None):
         args.expected_raw_sha256,
         args.expected_specification_sha256,
     )
-    components_included = args.input_kind == CANDIDATE_COMPONENT_INPUT_KIND
+    components_included = args.input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
+    exterior_included = args.input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
     component_arguments = (
         args.component_constructions,
         args.expected_component_raw_sha256,
@@ -1389,14 +1635,34 @@ def main(argv=None):
             fail("room_component_arguments_invalid")
         component_construction = None
 
+    exterior_arguments = (
+        args.exterior_constructions,
+        args.expected_exterior_raw_sha256,
+        args.expected_exterior_sha256,
+    )
+    if exterior_included:
+        if any(value is None for value in exterior_arguments):
+            fail("room_exterior_arguments_missing")
+        exterior_construction = load_exterior_construction(
+            Path(args.exterior_constructions).resolve(strict=True),
+            args.expected_exterior_raw_sha256,
+            args.expected_exterior_sha256,
+        )
+    else:
+        if any(value is not None for value in exterior_arguments):
+            fail("room_exterior_arguments_invalid")
+        exterior_construction = None
+
     if args.inspect_only:
         if args.output_blend is not None or args.output_glb is not None or args.plan_only:
             fail("room_shell_inspection_arguments_invalid")
-        inspect_current_blend(report_path, scene, component_construction, args.expected_specification_sha256, args.input_kind)
+        inspect_current_blend(report_path, scene, component_construction, exterior_construction, args.expected_specification_sha256, args.input_kind)
         return
     plan = build_shell_plan(scene)
     if components_included:
         plan["collectionName"] = COMPONENT_COLLECTION_NAME
+    if exterior_included:
+        plan["collectionName"] = EXTERIOR_COLLECTION_NAME
     opening_plan = build_opening_plan(scene)
     profile_plan = build_profile_plan(scene, opening_plan)
     material_plan = build_material_plan(scene, opening_plan, profile_plan)
@@ -1405,8 +1671,15 @@ def main(argv=None):
         "compiled": False,
         "objects": [],
     }
+    exterior_plan = build_exterior_plan(exterior_construction) if exterior_included else {
+        "specified": False,
+        "compiled": False,
+        "objects": [],
+    }
     if components_included:
         material_plan = with_component_materials(material_plan, component_plan, scene)
+    if exterior_included:
+        material_plan = with_exterior_materials(material_plan, exterior_plan, exterior_construction)
 
     fixture_only = args.input_kind == SYNTHETIC_INPUT_KIND
     boundaries = {
@@ -1446,6 +1719,16 @@ def main(argv=None):
             "publicationReady": False,
             "sceneBinaryAddedToRepository": False,
         }
+    if exterior_included:
+        boundaries = {
+            **boundaries,
+            "exteriorSpecified": True,
+            "exteriorCompiled": False,
+            "exteriorGlbByteIdentical": False,
+            "byteIdenticalExportsVerified": False,
+            "releaseArtifactsCreated": False,
+            "artifactBytesIncludedInRepository": False,
+        }
     base_report = {
         "schemaVersion": 1,
         "fixtureOnly": fixture_only,
@@ -1473,13 +1756,23 @@ def main(argv=None):
         if components_included:
             base_report["components"] = component_plan
             base_report["sceneBinaryAddedToRepository"] = False
+        if exterior_included:
+            base_report.update({
+                "exterior": exterior_plan,
+                "exteriorSpecified": True,
+                "exteriorCompiled": False,
+                "exteriorGlbByteIdentical": False,
+                "byteIdenticalExportsVerified": False,
+                "releaseArtifactsCreated": False,
+                "artifactBytesIncludedInRepository": False,
+            })
 
     if args.plan_only:
         if args.output_blend is not None or args.output_glb is not None:
             fail("room_shell_plan_only_arguments_invalid")
         report = {
             **base_report,
-            "status": "stage3-synthetic-room-profiles-materials-plan-valid" if fixture_only else "stage3-approved-candidate-components-plan-valid" if components_included else "stage3-approved-candidate-architecture-plan-valid",
+            "status": "stage3-synthetic-room-profiles-materials-plan-valid" if fixture_only else "stage3-approved-candidate-exterior-plan-valid" if exterior_included else "stage3-approved-candidate-components-plan-valid" if components_included else "stage3-approved-candidate-architecture-plan-valid",
             "execution": "plan-only",
             "blender": None,
             "outputBlend": None,
@@ -1505,6 +1798,7 @@ def main(argv=None):
         opening_objects,
         profile_objects,
         component_objects,
+        exterior_objects,
         material_report,
         inventory,
     ) = apply_plan(
@@ -1512,6 +1806,7 @@ def main(argv=None):
         opening_plan,
         profile_plan,
         component_plan,
+        exterior_plan,
         material_plan,
         scene,
         args.expected_specification_sha256,
@@ -1531,7 +1826,7 @@ def main(argv=None):
     glb_bytes = glb_path.read_bytes()
     report = {
         **base_report,
-        "status": "stage3-synthetic-room-profiles-materials-compiled" if fixture_only else "stage3-approved-candidate-components-compiled" if components_included else "stage3-approved-candidate-architecture-compiled",
+        "status": "stage3-synthetic-room-profiles-materials-compiled" if fixture_only else "stage3-approved-candidate-exterior-compiled" if exterior_included else "stage3-approved-candidate-components-compiled" if components_included else "stage3-approved-candidate-architecture-compiled",
         "execution": "blender",
         "blender": {
             "version": version,
@@ -1586,6 +1881,28 @@ def main(argv=None):
                 "publicationReady": False,
                 "sceneBinaryAddedToRepository": False,
             })
+        if exterior_included:
+            report.update({
+                "exteriorSpecified": True,
+                "exteriorCompiled": True,
+                "exteriorGlbByteIdentical": False,
+                "byteIdenticalExportsVerified": False,
+                "releaseArtifactsCreated": False,
+                "artifactBytesIncludedInRepository": False,
+            })
+            report["boundaries"].update({
+                "exteriorSpecified": True,
+                "exteriorCompiled": True,
+                "exteriorGlbByteIdentical": False,
+                "byteIdenticalExportsVerified": False,
+                "lightingCompiled": False,
+                "mediaSurfacesCompiled": False,
+                "finalCandidateGlbVerified": False,
+                "releaseArtifactsCreated": False,
+                "publicationReady": False,
+                "artifactBytesIncludedInRepository": False,
+                "sceneBinaryAddedToRepository": False,
+            })
     report["shell"] = {
         **plan,
         "objectCount": len(shell_objects),
@@ -1603,6 +1920,8 @@ def main(argv=None):
     report["profiles"] = {**profile_plan, "compiled": True, "objects": profile_objects}
     if components_included:
         report["components"] = {**component_plan, "compiled": True, "objects": component_objects}
+    if exterior_included:
+        report["exterior"] = {**exterior_plan, "compiled": True, "objects": exterior_objects}
     report["materials"] = material_report
     report["inventory"] = inventory
     write_report(report_path, report)

@@ -1,27 +1,30 @@
 {
-  "schemaVersion": 2,
-  "status": "candidate-01-exact-media-surface-specification-pinned",
+  "schemaVersion": 3,
+  "status": "candidate-01-exact-exterior-specification-pinned",
   "platformValidatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
   "candidates": {
     "candidate01": {
       "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
-      "commit": "26d3af6e2720576113431c22b9443533b919f390",
-      "treeOid": "f9974b153861112cd5b53bcbdc5d5530227edbe1",
-      "sceneContractValidatorCommit": "c3157b65c739bf784d5b8654e0808a3c3a84f611",
-      "specificationSha256": "4dc23d561b3e32d0a8e1aa0c96f52a62ec57726f03e7b7b20c42c1c2a8eaf15b",
-      "assetLedgerSha256": "7ed139f492589c229d0c1473fb444bc03ec6ca8f4c113e665cfaef4a6d92479a",
+      "commit": "380098d4b7cbc1d57498b059466f095ae3568929",
+      "treeOid": "671af158f4b0f213d010191f21c3cd7d4779b5e9",
+      "sceneContractValidatorCommit": "156bbc3b3e15f8d24ee3d60ee01f6f4ac2c91de2",
+      "specificationSha256": "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12",
+      "assetLedgerSha256": "d3b01c23d371221783fd6f59e637f9fe619f1970a8683d07fef899464773b2ef",
       "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
       "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
       "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
       "mediaSurfaceConstructionSha256": "829c7ccba37c9bf73e570ad3769224895dbd2d2784fb0e9c776ad959bb6f9e8f",
       "mediaSurfaceConstructionRawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+      "exteriorConstructionSha256": "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330",
+      "exteriorConstructionRawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
       "acceptedInputSha256": [
         "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
         "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
-        "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b"
+        "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+        "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
       ],
       "counts": {
-        "assetRecordCount": 3,
+        "assetRecordCount": 4,
         "generationRecordCount": 0,
         "familyCount": 4,
         "partCount": 38,
@@ -32,18 +35,22 @@
         "resolvedMaterialCount": 4,
         "seatCount": 8,
         "surfaceCount": 2,
-        "resolvedSurfaceCount": 2
+        "resolvedSurfaceCount": 2,
+        "exteriorObjectCount": 4,
+        "exteriorResolvedObjectCount": 4,
+        "exteriorMaterialCount": 3,
+        "exteriorRoleCount": 4
       },
       "inputBlobs": {
         "source/scene-spec.json": {
-          "gitBlobOid": "ebf8b026e6f091ab5fb7df7dde47f8a88fbe3a25",
-          "rawSha256": "61e3fe967f49afe13b36d3499cd0373ac370d282ca43f6b36d825230df71a99d",
-          "byteLength": 12144
+          "gitBlobOid": "5167453280f29785eca878ea06711ee0d85d5674",
+          "rawSha256": "7f6822b6298b1e2fb606cfd4db310663b7cbab74989245c61bff3f25b1f0c8b6",
+          "byteLength": 12228
         },
         "provenance/asset-ledger.json": {
-          "gitBlobOid": "51adf4ee9a48e7e7dfcd148c4ea9f1008c8b9f29",
-          "rawSha256": "39d7c53573f7350ecfb6fa10bf7e228a39c4d51762a0d792f24f98f17cdd5bef",
-          "byteLength": 2525
+          "gitBlobOid": "4e2132262ce6c42008fe5c6e293516113b2180cb",
+          "rawSha256": "9041daf4f838781e309e9b2d90ebcbfe442bef82c9d778d58a86759b0c85e549",
+          "byteLength": 3337
         },
         "provenance/generation-ledger.json": {
           "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
@@ -64,16 +71,50 @@
           "gitBlobOid": "87faedb5845ad1eed5cda3b1fac8a0f15cea5365",
           "rawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
           "byteLength": 847
+        },
+        "source/exterior-constructions.json": {
+          "gitBlobOid": "7762f1c1bf9535b8e8f0d3f77bb5652bc365f814",
+          "rawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+          "byteLength": 3063
         }
       },
-      "mediaSurfaceProjectionEvidence": {
-        "sha256": "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
-        "byteLength": 1022,
-        "mediaSurfaceCount": 2,
-        "representation": "platform-runtime-plane",
-        "byteIdentical": true
+      "exteriorGlbEvidence": {
+        "sha256": "eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92",
+        "byteLength": 614784,
+        "blendByteLength": 1421892,
+        "observedBlendSha256": [
+          "d2c276bf49b4bf064f7e5a8b21a33a0965bd325b8ba6560d2e29fe21db3c739d",
+          "38ce418d5e5a82e51b7e6729070cc6a4cc3b1b5d403d4d34a42d34cf98ce7d9a"
+        ],
+        "blendByteIdentical": false,
+        "reopenInspectionSha256": "d54209a0bb1c473910e701625f253d62fae5f70b3794dc04a8afeb3bd00f9f89",
+        "meshCount": 61,
+        "architectureMeshCount": 19,
+        "componentMeshCount": 38,
+        "exteriorMeshCount": 4,
+        "materialCount": 8,
+        "binaryByteLength": 535728,
+        "decodedVertexCount": 16656,
+        "decodedIndexCount": 24540,
+        "decodedTriangleCount": 8180,
+        "distinctPositionCount": 4208,
+        "decodedNormalCount": 16656,
+        "minimumNormalLength": 0.9999999480476065,
+        "maximumNormalLength": 1.0000000705855472,
+        "objectVertexCount": 4208,
+        "objectFaceCount": 4250,
+        "architectureSemanticSha256": "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
+        "khronosValidator": {
+          "package": "gltf-validator",
+          "version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 61,
+          "hints": 0
+        }
       },
       "boundaries": {
+        "componentsCompiled": false,
         "mediaSurfacesCompiled": false,
         "exteriorCompiled": false,
         "lightingCompiled": false,
@@ -81,6 +122,86 @@
         "releaseArtifactsCreated": false,
         "publicationReady": false,
         "artifactBytesIncludedInRepository": false
+      },
+      "mediaSurfaceBaseline": {
+        "commit": "26d3af6e2720576113431c22b9443533b919f390",
+        "treeOid": "f9974b153861112cd5b53bcbdc5d5530227edbe1",
+        "sceneContractValidatorCommit": "c3157b65c739bf784d5b8654e0808a3c3a84f611",
+        "specificationSha256": "4dc23d561b3e32d0a8e1aa0c96f52a62ec57726f03e7b7b20c42c1c2a8eaf15b",
+        "assetLedgerSha256": "7ed139f492589c229d0c1473fb444bc03ec6ca8f4c113e665cfaef4a6d92479a",
+        "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
+        "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
+        "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+        "mediaSurfaceConstructionSha256": "829c7ccba37c9bf73e570ad3769224895dbd2d2784fb0e9c776ad959bb6f9e8f",
+        "mediaSurfaceConstructionRawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+        "acceptedInputSha256": [
+          "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+          "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+          "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b"
+        ],
+        "counts": {
+          "assetRecordCount": 3,
+          "generationRecordCount": 0,
+          "familyCount": 4,
+          "partCount": 38,
+          "overrideCount": 2,
+          "componentCount": 11,
+          "resolvedComponentCount": 11,
+          "materialCount": 5,
+          "resolvedMaterialCount": 4,
+          "seatCount": 8,
+          "surfaceCount": 2,
+          "resolvedSurfaceCount": 2
+        },
+        "inputBlobs": {
+          "source/scene-spec.json": {
+            "gitBlobOid": "ebf8b026e6f091ab5fb7df7dde47f8a88fbe3a25",
+            "rawSha256": "61e3fe967f49afe13b36d3499cd0373ac370d282ca43f6b36d825230df71a99d",
+            "byteLength": 12144
+          },
+          "provenance/asset-ledger.json": {
+            "gitBlobOid": "51adf4ee9a48e7e7dfcd148c4ea9f1008c8b9f29",
+            "rawSha256": "39d7c53573f7350ecfb6fa10bf7e228a39c4d51762a0d792f24f98f17cdd5bef",
+            "byteLength": 2525
+          },
+          "provenance/generation-ledger.json": {
+            "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
+            "rawSha256": "7928a70464b60ca12a35c5fbaefe30ba99c937dfd69e6f65e519366cdbfe891e",
+            "byteLength": 96
+          },
+          "source/concept-selection.json": {
+            "gitBlobOid": "71192d2e57ee35e4a301f61bbc50b77ebfdf4b21",
+            "rawSha256": "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+            "byteLength": 1361
+          },
+          "source/component-constructions.json": {
+            "gitBlobOid": "f728ba5e555dcbb233f418b2306b39e576e094b1",
+            "rawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+            "byteLength": 4250
+          },
+          "source/media-surface-constructions.json": {
+            "gitBlobOid": "87faedb5845ad1eed5cda3b1fac8a0f15cea5365",
+            "rawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+            "byteLength": 847
+          }
+        },
+        "mediaSurfaceProjectionEvidence": {
+          "sha256": "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
+          "byteLength": 1022,
+          "mediaSurfaceCount": 2,
+          "representation": "platform-runtime-plane",
+          "byteIdentical": true
+        },
+        "boundaries": {
+          "mediaSurfacesCompiled": false,
+          "exteriorCompiled": false,
+          "lightingCompiled": false,
+          "finalCandidateGlbVerified": false,
+          "releaseArtifactsCreated": false,
+          "publicationReady": false,
+          "artifactBytesIncludedInRepository": false
+        },
+        "release": null
       },
       "architectureBaseline": {
         "commit": "df564befcd65cb51a345fa9d315e40cadef6e563",

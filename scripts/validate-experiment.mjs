@@ -75,7 +75,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "exterior-construction-contract-fixture-validated", "stage3_status_invalid");
+assert(readiness.stage3.status === "approved-candidate-exterior-glb-byte-identical-verified", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -111,17 +111,33 @@ assert(readiness.stage3.approvedCandidateSpecificationCreated === true, "approve
 assert(readiness.stage3.approvedCandidateArchitectureCompilerImplemented === true, "approved_candidate_architecture_compiler_missing");
 assert(readiness.stage3.approvedCandidateArchitectureCompileApi === "compileApprovedCandidateArchitecture", "approved_candidate_architecture_compile_api_invalid");
 assert(readiness.stage3.approvedCandidateArchitectureReproducibilityApi === "verifyApprovedCandidateArchitectureReproducibility", "approved_candidate_architecture_reproducibility_api_invalid");
-assert(readiness.stage3.approvedCandidateGitBlobInputCount === 6, "approved_candidate_git_blob_input_count_invalid");
+assert(readiness.stage3.approvedCandidateGitBlobInputCount === 7, "approved_candidate_git_blob_input_count_invalid");
 assert(readiness.stage3.approvedCandidateGitBlobSourceLocked === true, "approved_candidate_git_blob_source_not_locked");
-assert(readiness.stage3.approvedCandidateCurrentCommit === "26d3af6e2720576113431c22b9443533b919f390", "approved_candidate_current_commit_invalid");
-assert(readiness.stage3.approvedCandidateCurrentTreeOid === "f9974b153861112cd5b53bcbdc5d5530227edbe1", "approved_candidate_current_tree_invalid");
-assert(readiness.stage3.approvedCandidateCurrentValidatorCommit === "c3157b65c739bf784d5b8654e0808a3c3a84f611", "approved_candidate_current_validator_invalid");
+assert(readiness.stage3.approvedCandidateCurrentCommit === "380098d4b7cbc1d57498b059466f095ae3568929", "approved_candidate_current_commit_invalid");
+assert(readiness.stage3.approvedCandidateCurrentTreeOid === "671af158f4b0f213d010191f21c3cd7d4779b5e9", "approved_candidate_current_tree_invalid");
+assert(readiness.stage3.approvedCandidateCurrentValidatorCommit === "156bbc3b3e15f8d24ee3d60ee01f6f4ac2c91de2", "approved_candidate_current_validator_invalid");
+assert(readiness.stage3.approvedCandidateCurrentSpecificationSha256 === "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12"
+  && readiness.stage3.approvedCandidateCurrentAssetLedgerSha256 === "d3b01c23d371221783fd6f59e637f9fe619f1970a8683d07fef899464773b2ef"
+  && readiness.stage3.approvedCandidateCurrentGenerationLedgerSha256 === "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930"
+  && readiness.stage3.approvedCandidateCurrentExteriorConstructionSha256 === "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330"
+  && readiness.stage3.approvedCandidateCurrentExteriorConstructionRawSha256 === "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+"approved_candidate_current_exterior_hashes_invalid");
 assert(readiness.stage3.approvedCandidateArchitectureBaselineCommit === "df564befcd65cb51a345fa9d315e40cadef6e563"
   && readiness.stage3.approvedCandidateArchitectureBaselineGitBlobInputCount === 4, "approved_candidate_architecture_baseline_invalid");
 assert(readiness.stage3.approvedCandidateComponentBaselineCommit === "8fec157a37bf619797f1ff200ccc32f611f94c18"
   && readiness.stage3.approvedCandidateComponentBaselineTreeOid === "2b0b3ecf36f80cad2301e325e821fd1bf48d3606"
   && readiness.stage3.approvedCandidateComponentBaselineValidatorCommit === "60617c021a8434f6687af038706b411e2e4b265c"
   && readiness.stage3.approvedCandidateComponentBaselineGitBlobInputCount === 5, "approved_candidate_component_baseline_invalid");
+assert(readiness.stage3.approvedCandidateMediaSurfaceBaselineCommit === "26d3af6e2720576113431c22b9443533b919f390"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineTreeOid === "f9974b153861112cd5b53bcbdc5d5530227edbe1"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineValidatorCommit === "c3157b65c739bf784d5b8654e0808a3c3a84f611"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineGitBlobInputCount === 6
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineSpecificationSha256 === "4dc23d561b3e32d0a8e1aa0c96f52a62ec57726f03e7b7b20c42c1c2a8eaf15b"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineAssetLedgerSha256 === "7ed139f492589c229d0c1473fb444bc03ec6ca8f4c113e665cfaef4a6d92479a"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineGenerationLedgerSha256 === "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineConstructionSha256 === "829c7ccba37c9bf73e570ad3769224895dbd2d2784fb0e9c776ad959bb6f9e8f"
+  && readiness.stage3.approvedCandidateMediaSurfaceBaselineConstructionRawSha256 === "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+"approved_candidate_media_surface_baseline_invalid");
 assert(readiness.stage3.approvedCandidateArchitectureSemanticSha256 === "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
   "approved_candidate_architecture_semantic_digest_invalid");
 assert(stableStringify(readiness.stage3.approvedCandidateCompilerSourceSha256) === stableStringify(compilerSourceSha256),
@@ -192,14 +208,57 @@ assert(readiness.stage3.exteriorConstructionSchemaPath === "schemas/exterior-con
   && readiness.stage3.exteriorConstructionValidFixturePath === "tests/fixtures/exterior-construction/exterior-constructions.valid.json"
   && readiness.stage3.exteriorConstructionValidatorApi === "parseExteriorConstructionContract"
   && readiness.stage3.exteriorConstructionContractImplemented === true
-  && readiness.stage3.exteriorConstructionContractStatus === "fixture-validated-awaiting-candidate-source"
-  && readiness.stage3.exteriorConstructionFixtureOnly === true
+  && readiness.stage3.exteriorConstructionContractStatus === "candidate-source-validated-and-compiled"
+  && readiness.stage3.exteriorConstructionFixtureOnly === false
   && readiness.stage3.exteriorConstructionObjectCount === 4
   && readiness.stage3.exteriorConstructionMaterialCount === 3
   && readiness.stage3.exteriorConstructionNegativeFixtureCount === 4, "exterior_construction_contract_claim_invalid");
-assert(readiness.stage3.approvedCandidateExteriorSpecified === false
-  && readiness.stage3.approvedCandidateExteriorCompiled === false
-  && readiness.stage3.approvedCandidateLightingCompiled === false, "approved_candidate_out_of_scope_compile_claim_invalid");
+assert(readiness.stage3.approvedCandidateExteriorSourceLoaderApi === "loadApprovedCandidateExteriorSource"
+  && readiness.stage3.approvedCandidateExteriorCompileApi === "compileApprovedCandidateExterior"
+  && readiness.stage3.approvedCandidateExteriorReproducibilityApi === "verifyApprovedCandidateExteriorReproducibility"
+  && readiness.stage3.approvedCandidateExteriorInputKind === "approved-candidate-exterior", "approved_candidate_exterior_api_invalid");
+assert(readiness.stage3.approvedCandidateExteriorSpecified === true
+  && readiness.stage3.approvedCandidateExteriorCompiled === true
+  && readiness.stage3.approvedCandidateExteriorObjectCount === 4
+  && readiness.stage3.approvedCandidateExteriorMaterialCount === 3
+  && readiness.stage3.approvedCandidateExteriorArchitectureMeshCount === 19
+  && readiness.stage3.approvedCandidateExteriorComponentMeshCount === 38
+  && readiness.stage3.approvedCandidateExteriorMeshCount === 61
+  && readiness.stage3.approvedCandidateExteriorOutputMaterialCount === 8, "approved_candidate_exterior_inventory_invalid");
+assert(readiness.stage3.approvedCandidateExteriorGlbByteIdenticalVerified === true
+  && readiness.stage3.approvedCandidateExteriorGlbSha256 === "eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92"
+  && readiness.stage3.approvedCandidateExteriorGlbByteLength === 614784
+  && readiness.stage3.approvedCandidateExteriorBlendByteLength === 1421892
+  && JSON.stringify(readiness.stage3.approvedCandidateExteriorBlendSha256) === JSON.stringify([
+    "d2c276bf49b4bf064f7e5a8b21a33a0965bd325b8ba6560d2e29fe21db3c739d",
+    "38ce418d5e5a82e51b7e6729070cc6a4cc3b1b5d403d4d34a42d34cf98ce7d9a"
+  ])
+  && readiness.stage3.approvedCandidateExteriorBlendByteIdentical === false
+  && readiness.stage3.approvedCandidateExteriorReopenInspectionSha256 === "d54209a0bb1c473910e701625f253d62fae5f70b3794dc04a8afeb3bd00f9f89", "approved_candidate_exterior_binary_evidence_invalid");
+assert(readiness.stage3.approvedCandidateExteriorBinaryByteLength === 535728
+  && readiness.stage3.approvedCandidateExteriorDecodedVertexCount === 16656
+  && readiness.stage3.approvedCandidateExteriorDecodedIndexCount === 24540
+  && readiness.stage3.approvedCandidateExteriorDecodedTriangleCount === 8180
+  && readiness.stage3.approvedCandidateExteriorDistinctPositionCount === 4208
+  && readiness.stage3.approvedCandidateExteriorDecodedNormalCount === 16656
+  && readiness.stage3.approvedCandidateExteriorMinimumNormalLength === 0.9999999480476065
+  && readiness.stage3.approvedCandidateExteriorMaximumNormalLength === 1.0000000705855472
+  && readiness.stage3.approvedCandidateExteriorObjectVertexCount === 4208
+  && readiness.stage3.approvedCandidateExteriorObjectFaceCount === 4250, "approved_candidate_exterior_geometry_evidence_invalid");
+assert(stableStringify(readiness.stage3.approvedCandidateExteriorKhronosValidation) === stableStringify({
+  package: "gltf-validator",
+  version: "2.0.0-dev.3.10",
+  errors: 0,
+  warnings: 0,
+  infos: 61,
+  hints: 0
+}), "approved_candidate_exterior_khronos_validation_invalid");
+assert(readiness.stage3.approvedCandidateExteriorModifiersApplied === true
+  && readiness.stage3.approvedCandidateExteriorRemainingModifierCount === 0
+  && readiness.stage3.approvedCandidateExteriorSupportRepresentedAsMetadata === true
+  && readiness.stage3.approvedCandidateExteriorParentedObjectCount === 0
+  && readiness.stage3.approvedCandidateExteriorMediaPlanesIncludedInGlb === false, "approved_candidate_exterior_structure_evidence_invalid");
+assert(readiness.stage3.approvedCandidateLightingCompiled === false, "approved_candidate_lighting_claim_invalid");
 assert(readiness.stage3.approvedCandidateReleaseArtifactsCreated === false
   && readiness.stage3.approvedCandidateArtifactBytesIncludedInRepository === false, "approved_candidate_media_surface_release_boundary_invalid");
 assert(readiness.stage3.blenderCompilerImplemented === false, "stage3_must_not_claim_full_candidate_blender_compiler");
@@ -812,8 +871,8 @@ assert(
 );
 
 const candidateLock = await canonicalJson("experiment/warm-modern-meeting-room/candidate-lock.json", "candidate_lock");
-assert(candidateLock.schemaVersion === 2, "invalid_candidate_lock_schema");
-assert(candidateLock.status === "candidate-01-exact-media-surface-specification-pinned", "invalid_candidate_lock_status");
+assert(candidateLock.schemaVersion === 3, "invalid_candidate_lock_schema");
+assert(candidateLock.status === "candidate-01-exact-exterior-specification-pinned", "invalid_candidate_lock_status");
 assert(candidateLock.platformValidatorCommit === readiness.platform.validatorCommit, "candidate_lock_platform_mismatch");
 for (const [id, expectedRepository] of [
   ["candidate01", readiness.repositories.candidate01.repository],
@@ -834,19 +893,22 @@ for (const [lockKey, readinessKey] of [
   ["componentConstructionSha256", "approvedCandidateCurrentComponentConstructionSha256"],
   ["componentConstructionRawSha256", "approvedCandidateCurrentComponentConstructionRawSha256"],
   ["mediaSurfaceConstructionSha256", "approvedCandidateCurrentMediaSurfaceConstructionSha256"],
-  ["mediaSurfaceConstructionRawSha256", "approvedCandidateCurrentMediaSurfaceConstructionRawSha256"]
+  ["mediaSurfaceConstructionRawSha256", "approvedCandidateCurrentMediaSurfaceConstructionRawSha256"],
+  ["exteriorConstructionSha256", "approvedCandidateCurrentExteriorConstructionSha256"],
+  ["exteriorConstructionRawSha256", "approvedCandidateCurrentExteriorConstructionRawSha256"]
 ]) assert(candidate01[lockKey] === readiness.stage3[readinessKey], `candidate_01_current_contract_mismatch:${lockKey}`);
-assert(Object.keys(candidate01.inputBlobs).length === 6
+assert(Object.keys(candidate01.inputBlobs).length === 7
   && Object.values(candidate01.inputBlobs).every((blob) => /^[0-9a-f]{40}$/.test(blob.gitBlobOid)
     && /^[0-9a-f]{64}$/.test(blob.rawSha256)
     && Number.isSafeInteger(blob.byteLength) && blob.byteLength > 0), "candidate_01_input_blob_lock_invalid");
 assert(JSON.stringify(candidate01.acceptedInputSha256) === JSON.stringify([
   "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
   "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
-  "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b"
+  "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+  "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
 ]), "candidate_01_accepted_inputs_invalid");
 assert(JSON.stringify(candidate01.counts) === JSON.stringify({
-  assetRecordCount: 3,
+  assetRecordCount: 4,
   generationRecordCount: 0,
   familyCount: 4,
   partCount: 38,
@@ -857,9 +919,50 @@ assert(JSON.stringify(candidate01.counts) === JSON.stringify({
   resolvedMaterialCount: 4,
   seatCount: 8,
   surfaceCount: 2,
-  resolvedSurfaceCount: 2
-}), "candidate_01_media_surface_counts_invalid");
-assert(stableStringify(candidate01.mediaSurfaceProjectionEvidence) === stableStringify({
+  resolvedSurfaceCount: 2,
+  exteriorObjectCount: 4,
+  exteriorResolvedObjectCount: 4,
+  exteriorMaterialCount: 3,
+  exteriorRoleCount: 4
+}), "candidate_01_exterior_counts_invalid");
+assert(candidate01.exteriorGlbEvidence.sha256 === readiness.stage3.approvedCandidateExteriorGlbSha256
+  && candidate01.exteriorGlbEvidence.byteLength === readiness.stage3.approvedCandidateExteriorGlbByteLength
+  && candidate01.exteriorGlbEvidence.blendByteLength === readiness.stage3.approvedCandidateExteriorBlendByteLength
+  && stableStringify(candidate01.exteriorGlbEvidence.observedBlendSha256) === stableStringify(readiness.stage3.approvedCandidateExteriorBlendSha256)
+  && candidate01.exteriorGlbEvidence.blendByteIdentical === readiness.stage3.approvedCandidateExteriorBlendByteIdentical
+  && candidate01.exteriorGlbEvidence.reopenInspectionSha256 === readiness.stage3.approvedCandidateExteriorReopenInspectionSha256
+  && candidate01.exteriorGlbEvidence.meshCount === readiness.stage3.approvedCandidateExteriorMeshCount
+  && candidate01.exteriorGlbEvidence.architectureMeshCount === readiness.stage3.approvedCandidateExteriorArchitectureMeshCount
+  && candidate01.exteriorGlbEvidence.componentMeshCount === readiness.stage3.approvedCandidateExteriorComponentMeshCount
+  && candidate01.exteriorGlbEvidence.exteriorMeshCount === readiness.stage3.approvedCandidateExteriorObjectCount
+  && candidate01.exteriorGlbEvidence.materialCount === readiness.stage3.approvedCandidateExteriorOutputMaterialCount
+  && candidate01.exteriorGlbEvidence.binaryByteLength === readiness.stage3.approvedCandidateExteriorBinaryByteLength
+  && candidate01.exteriorGlbEvidence.decodedVertexCount === readiness.stage3.approvedCandidateExteriorDecodedVertexCount
+  && candidate01.exteriorGlbEvidence.decodedIndexCount === readiness.stage3.approvedCandidateExteriorDecodedIndexCount
+  && candidate01.exteriorGlbEvidence.decodedTriangleCount === readiness.stage3.approvedCandidateExteriorDecodedTriangleCount
+  && candidate01.exteriorGlbEvidence.distinctPositionCount === readiness.stage3.approvedCandidateExteriorDistinctPositionCount
+  && candidate01.exteriorGlbEvidence.decodedNormalCount === readiness.stage3.approvedCandidateExteriorDecodedNormalCount
+  && candidate01.exteriorGlbEvidence.minimumNormalLength === readiness.stage3.approvedCandidateExteriorMinimumNormalLength
+  && candidate01.exteriorGlbEvidence.maximumNormalLength === readiness.stage3.approvedCandidateExteriorMaximumNormalLength
+  && candidate01.exteriorGlbEvidence.objectVertexCount === readiness.stage3.approvedCandidateExteriorObjectVertexCount
+  && candidate01.exteriorGlbEvidence.objectFaceCount === readiness.stage3.approvedCandidateExteriorObjectFaceCount
+  && candidate01.exteriorGlbEvidence.architectureSemanticSha256 === readiness.stage3.approvedCandidateArchitectureSemanticSha256
+  && stableStringify(candidate01.exteriorGlbEvidence.khronosValidator) === stableStringify(readiness.stage3.approvedCandidateExteriorKhronosValidation),
+"candidate_01_exterior_glb_evidence_invalid");
+const mediaSurfaceBaseline = candidate01.mediaSurfaceBaseline;
+assert(mediaSurfaceBaseline.commit === readiness.stage3.approvedCandidateMediaSurfaceBaselineCommit
+  && mediaSurfaceBaseline.treeOid === readiness.stage3.approvedCandidateMediaSurfaceBaselineTreeOid
+  && mediaSurfaceBaseline.sceneContractValidatorCommit === readiness.stage3.approvedCandidateMediaSurfaceBaselineValidatorCommit
+  && Object.keys(mediaSurfaceBaseline.inputBlobs).length === readiness.stage3.approvedCandidateMediaSurfaceBaselineGitBlobInputCount,
+"candidate_01_media_surface_baseline_source_invalid");
+for (const [lockKey, readinessKey] of [
+  ["specificationSha256", "approvedCandidateMediaSurfaceBaselineSpecificationSha256"],
+  ["assetLedgerSha256", "approvedCandidateMediaSurfaceBaselineAssetLedgerSha256"],
+  ["generationLedgerSha256", "approvedCandidateMediaSurfaceBaselineGenerationLedgerSha256"],
+  ["mediaSurfaceConstructionSha256", "approvedCandidateMediaSurfaceBaselineConstructionSha256"],
+  ["mediaSurfaceConstructionRawSha256", "approvedCandidateMediaSurfaceBaselineConstructionRawSha256"]
+]) assert(mediaSurfaceBaseline[lockKey] === readiness.stage3[readinessKey], `candidate_01_media_surface_baseline_contract_mismatch:${lockKey}`);
+assert(stableStringify(mediaSurfaceBaseline.mediaSurfaceProjectionEvidence) === stableStringify({
   sha256: readiness.stage3.approvedCandidateMediaSurfaceProjectionSha256,
   byteLength: readiness.stage3.approvedCandidateMediaSurfaceProjectionByteLength,
   mediaSurfaceCount: readiness.stage3.approvedCandidateMediaSurfaceCount,
@@ -867,7 +970,9 @@ assert(stableStringify(candidate01.mediaSurfaceProjectionEvidence) === stableStr
   byteIdentical: readiness.stage3.approvedCandidateMediaSurfaceProjectionByteIdenticalVerified
 }), "candidate_01_media_surface_projection_evidence_invalid");
 assert(Object.values(candidate01.boundaries).every((value) => value === false)
-  && candidate01.release === null, "candidate_01_current_boundaries_invalid");
+  && candidate01.release === null
+  && Object.values(mediaSurfaceBaseline.boundaries).every((value) => value === false)
+  && mediaSurfaceBaseline.release === null, "candidate_01_current_boundaries_invalid");
 const architectureBaseline = candidate01.architectureBaseline;
 assert(architectureBaseline.commit === readiness.candidateConceptGate.candidateMergeCommit, "candidate_01_architecture_baseline_commit_mismatch");
 for (const key of ["sceneContractValidatorCommit", "specificationSha256", "assetLedgerSha256", "generationLedgerSha256"]) {

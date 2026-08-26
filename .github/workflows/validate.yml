@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: vrata-labs/warm-modern-meeting-room-candidate-01
-          ref: 26d3af6e2720576113431c22b9443533b919f390
+          ref: 380098d4b7cbc1d57498b059466f095ae3568929
           fetch-depth: 0
           path: candidate-01
 
@@ -65,5 +65,5 @@ jobs:
           tar --extract --file "$RUNNER_TEMP/blender-4.5.12-linux-x64.tar.xz" --directory "$RUNNER_TEMP"
           printf 'BLENDER_BIN=%s\n' "$RUNNER_TEMP/blender-4.5.12-linux-x64/blender" >> "$GITHUB_ENV"
 
-      - name: Run all tests including exact-Blender Candidate 01 component gate
+      - name: Run all tests including exact-Blender Candidate 01 exterior gate
         run: pnpm test
