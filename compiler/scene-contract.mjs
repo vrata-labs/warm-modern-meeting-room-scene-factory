@@ -11,6 +11,7 @@ const validateSceneSchema = ajv.compile(JSON.parse(readFileSync(new URL("../sche
 const validateAssetLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/asset-ledger.schema.json", import.meta.url), "utf8")));
 const validateGenerationLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/generation-ledger.schema.json", import.meta.url), "utf8")));
 const validateComponentConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/component-constructions.schema.json", import.meta.url), "utf8")));
+const validateExteriorConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/exterior-constructions.schema.json", import.meta.url), "utf8")));
 const validateMediaSurfaceConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/media-surface-constructions.schema.json", import.meta.url), "utf8")));
 
 const sceneKeys = ["architecturalDetails", "assetLedgerPath", "clearance", "components", "exterior", "generationLedgerPath", "generator", "lighting", "materialRecipes", "materialZones", "mediaSurfaces", "openings", "profiles", "reviewViews", "room", "sceneId", "schemaVersion", "seats", "spawn"];
@@ -1113,4 +1114,275 @@ export function parseMediaSurfaceConstructionContract(options) {
   const construction = parseCanonicalJsonText(texts.mediaSurfaceConstructionText, "media_surface_construction");
   if (`${JSON.stringify(construction, null, 2)}\n` !== texts.mediaSurfaceConstructionText) throw new SceneContractError(["media_surface_construction_encoding_noncanonical"]);
   return validateMediaSurfaceConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.mediaSurfaceConstructionText, sceneContract.report);
+}
+
+const exteriorRoles = Object.freeze(["nearby-ground", "vegetation-container", "vegetation", "middle-distance-context"]);
+const exteriorRoleMaterialCategories = Object.freeze({
+  "nearby-ground": Object.freeze(new Set(["ground", "mineral"])),
+  "vegetation-container": Object.freeze(new Set(["metal", "mineral"])),
+  vegetation: Object.freeze(new Set(["vegetation"])),
+  "middle-distance-context": Object.freeze(new Set(["metal", "mineral"]))
+});
+const exteriorSupportRoles = Object.freeze({
+  "vegetation-container": "nearby-ground",
+  vegetation: "vegetation-container",
+  "middle-distance-context": "nearby-ground"
+});
+const exteriorTolerance = 1e-9;
+
+function exteriorObjectBounds(object) {
+  const { position } = object.transform;
+  const { widthM, heightM, depthM } = object.dimensions;
+  return Object.freeze({
+    min: Object.freeze({ x: position.x - widthM / 2, y: position.y - heightM / 2, z: position.z - depthM / 2 }),
+    max: Object.freeze({ x: position.x + widthM / 2, y: position.y + heightM / 2, z: position.z + depthM / 2 })
+  });
+}
+
+function exteriorBoundsContain(container, contained) {
+  return contained.min.x >= container.min.x - exteriorTolerance
+    && contained.min.y >= container.min.y - exteriorTolerance
+    && contained.min.z >= container.min.z - exteriorTolerance
+    && contained.max.x <= container.max.x + exteriorTolerance
+    && contained.max.y <= container.max.y + exteriorTolerance
+    && contained.max.z <= container.max.z + exteriorTolerance;
+}
+
+function exteriorHorizontalContains(container, contained) {
+  return contained.min.x >= container.min.x - exteriorTolerance
+    && contained.min.z >= container.min.z - exteriorTolerance
+    && contained.max.x <= container.max.x + exteriorTolerance
+    && contained.max.z <= container.max.z + exteriorTolerance;
+}
+
+function exteriorPositiveVolumeOverlap(left, right) {
+  return Math.min(left.max.x, right.max.x) - Math.max(left.min.x, right.min.x) > exteriorTolerance
+    && Math.min(left.max.y, right.max.y) - Math.max(left.min.y, right.min.y) > exteriorTolerance
+    && Math.min(left.max.z, right.max.z) - Math.max(left.min.z, right.min.z) > exteriorTolerance;
+}
+
+function exteriorHasVisiblePatch(targetId, targetBounds, opening, room, northOuterFaceZ, objectBounds) {
+  const windowInterval = openingWallInterval(opening, room);
+  const target = {
+    minX: Math.max(targetBounds.min.x, windowInterval.start),
+    maxX: Math.min(targetBounds.max.x, windowInterval.end),
+    minY: Math.max(targetBounds.min.y, room.floorY + opening.sillM),
+    maxY: Math.min(targetBounds.max.y, room.floorY + opening.sillM + opening.heightM)
+  };
+  if (target.maxX - target.minX < 0.1 - exteriorTolerance || target.maxY - target.minY < 0.1 - exteriorTolerance) return false;
+  const blockers = [...objectBounds.entries()]
+    .filter(([id, bounds]) => id !== targetId
+      && bounds.min.z >= northOuterFaceZ - exteriorTolerance
+      && bounds.min.z < targetBounds.min.z - exteriorTolerance)
+    .map(([, bounds]) => ({
+      minX: Math.max(bounds.min.x, target.minX),
+      maxX: Math.min(bounds.max.x, target.maxX),
+      minY: Math.max(bounds.min.y, target.minY),
+      maxY: Math.min(bounds.max.y, target.maxY)
+    }))
+    .filter((bounds) => bounds.maxX - bounds.minX > exteriorTolerance && bounds.maxY - bounds.minY > exteriorTolerance);
+  const xEdges = [...new Set([target.minX, target.maxX, ...blockers.flatMap((bounds) => [bounds.minX, bounds.maxX])])].sort((left, right) => left - right);
+  const yEdges = [...new Set([target.minY, target.maxY, ...blockers.flatMap((bounds) => [bounds.minY, bounds.maxY])])].sort((left, right) => left - right);
+  for (let minXIndex = 0; minXIndex < xEdges.length - 1; minXIndex += 1) {
+    for (let maxXIndex = minXIndex + 1; maxXIndex < xEdges.length; maxXIndex += 1) {
+      if (xEdges[maxXIndex] - xEdges[minXIndex] < 0.1 - exteriorTolerance) continue;
+      for (let minYIndex = 0; minYIndex < yEdges.length - 1; minYIndex += 1) {
+        for (let maxYIndex = minYIndex + 1; maxYIndex < yEdges.length; maxYIndex += 1) {
+          if (yEdges[maxYIndex] - yEdges[minYIndex] < 0.1 - exteriorTolerance) continue;
+          const blocked = blockers.some((bounds) => Math.min(xEdges[maxXIndex], bounds.maxX) - Math.max(xEdges[minXIndex], bounds.minX) > exteriorTolerance
+            && Math.min(yEdges[maxYIndex], bounds.maxY) - Math.max(yEdges[minYIndex], bounds.minY) > exteriorTolerance);
+          if (!blocked) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function validateExteriorConstructionContract(scene, assetLedger, construction, constructionText, sceneReport) {
+  const issues = [];
+  collectNonFinite(construction, "exteriorConstruction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  applySchemaValidation(validateExteriorConstructionSchema, construction, "exterior_construction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+
+  const constructionRawSha256 = sha256(constructionText);
+  const assets = new Map(assetLedger.records.map((record) => [record.id, record]));
+  if (construction.sceneId !== scene.sceneId) issues.push("exterior_construction_scene_id_mismatch");
+  if (construction.strategy !== scene.exterior.strategy) issues.push(`exterior_construction_strategy_mismatch:${construction.strategy}`);
+  if (construction.windowOpeningId !== scene.exterior.windowOpeningId) issues.push(`exterior_construction_window_mismatch:${construction.windowOpeningId}`);
+
+  const source = assets.get(construction.sourceRecordId);
+  if (!source) issues.push(`exterior_construction_source_unknown:${construction.sourceRecordId}`);
+  else {
+    if (source.kind === "generated-output" || source.source?.classification === "generated") issues.push(`exterior_construction_source_generated:${construction.sourceRecordId}`);
+    else if (source.kind !== "project-authored-input" || source.source?.classification !== "project-authored") issues.push(`exterior_construction_source_kind_invalid:${construction.sourceRecordId}`);
+    if (source.source?.repositoryPath !== "source/exterior-constructions.json" || source.source?.publicUrl !== null) issues.push(`exterior_construction_source_path_invalid:${construction.sourceRecordId}`);
+    else if (assetLedger.records.filter((record) => record.source?.repositoryPath === source.source.repositoryPath).length !== 1) issues.push(`exterior_construction_source_path_ambiguous:${source.source.repositoryPath}`);
+    if (source.originalSha256 !== constructionRawSha256) issues.push(`exterior_construction_source_sha256_mismatch:${construction.sourceRecordId}`);
+    if (!consumedAssetUsable(source)) issues.push(`exterior_construction_source_use_invalid:${construction.sourceRecordId}`);
+  }
+  if (!scene.generator.acceptedInputSha256.includes(constructionRawSha256)) issues.push(`exterior_construction_input_sha256_missing:${constructionRawSha256}`);
+  if (!sameStringSet(scene.exterior.sourceRecordIds, [construction.sourceRecordId])) issues.push("exterior_construction_scene_sources_mismatch");
+
+  const opening = scene.openings.find((record) => record.id === construction.windowOpeningId);
+  if (!opening || opening.kind !== "window" || opening.wall !== "north") issues.push(`exterior_construction_window_invalid:${construction.windowOpeningId}`);
+  const northOuterFaceZ = scene.room.depthM / 2 + scene.room.wallThicknessM / 2;
+  const declaredBounds = construction.boundsM;
+  if (declaredBounds.min.x >= declaredBounds.max.x
+    || declaredBounds.min.y >= declaredBounds.max.y
+    || declaredBounds.min.z >= declaredBounds.max.z) issues.push("exterior_construction_bounds_order_invalid");
+  if (declaredBounds.min.x < -scene.room.widthM / 2 - 10 - exteriorTolerance
+    || declaredBounds.max.x > scene.room.widthM / 2 + 10 + exteriorTolerance
+    || declaredBounds.min.y < scene.room.floorY - 0.5 - exteriorTolerance
+    || declaredBounds.max.y > scene.room.floorY + 10 + exteriorTolerance
+    || declaredBounds.min.z < northOuterFaceZ - exteriorTolerance
+    || declaredBounds.max.z > northOuterFaceZ + 20 + exteriorTolerance) issues.push("exterior_construction_bounds_limit_invalid");
+
+  const materials = new Map();
+  for (const material of construction.materials) {
+    if (materials.has(material.id)) issues.push(`exterior_construction_material_duplicate:${material.id}`);
+    else materials.set(material.id, material);
+  }
+  const objects = new Map();
+  const objectBounds = new Map();
+  const usedMaterials = new Set();
+  const roleCounts = new Map(exteriorRoles.map((role) => [role, 0]));
+  for (const object of construction.objects) {
+    if (objects.has(object.id)) issues.push(`exterior_construction_object_duplicate:${object.id}`);
+    else objects.set(object.id, object);
+    roleCounts.set(object.role, (roleCounts.get(object.role) ?? 0) + 1);
+    const material = materials.get(object.materialId);
+    if (!material) issues.push(`exterior_construction_material_unknown:${object.id}:${object.materialId}`);
+    else {
+      usedMaterials.add(object.materialId);
+      if (!exteriorRoleMaterialCategories[object.role]?.has(material.category)) issues.push(`exterior_construction_material_role_invalid:${object.id}:${object.materialId}`);
+    }
+    const minimumDimension = Math.min(object.dimensions.widthM, object.dimensions.heightM, object.dimensions.depthM);
+    if (object.bevel.widthM > minimumDimension / 2 + exteriorTolerance) issues.push(`exterior_construction_bevel_out_of_bounds:${object.id}`);
+    const bounds = exteriorObjectBounds(object);
+    objectBounds.set(object.id, bounds);
+    if (!exteriorBoundsContain(declaredBounds, bounds)) issues.push(`exterior_construction_object_bounds_invalid:${object.id}`);
+    if (bounds.min.z < northOuterFaceZ - exteriorTolerance) issues.push(`exterior_construction_object_inside_room:${object.id}`);
+    if (object.role === "nearby-ground" && object.supportObjectId !== null) issues.push(`exterior_construction_ground_support_invalid:${object.id}`);
+    if (object.role !== "nearby-ground" && object.supportObjectId === null) issues.push(`exterior_construction_support_missing:${object.id}`);
+  }
+  for (const role of exteriorRoles) if ((roleCounts.get(role) ?? 0) === 0) issues.push(`exterior_construction_role_missing:${role}`);
+  if ((roleCounts.get("nearby-ground") ?? 0) !== 1) issues.push(`exterior_construction_ground_count_invalid:${roleCounts.get("nearby-ground") ?? 0}`);
+  for (const materialId of materials.keys()) if (!usedMaterials.has(materialId)) issues.push(`exterior_construction_material_unused:${materialId}`);
+
+  for (const object of construction.objects) {
+    if (object.supportObjectId === null) continue;
+    const support = objects.get(object.supportObjectId);
+    if (!support) {
+      issues.push(`exterior_construction_support_unknown:${object.id}:${object.supportObjectId}`);
+      continue;
+    }
+    if (support.id === object.id) {
+      issues.push(`exterior_construction_support_self:${object.id}`);
+      continue;
+    }
+    if (support.role !== exteriorSupportRoles[object.role]) issues.push(`exterior_construction_support_role_invalid:${object.id}:${support.id}`);
+    const bounds = objectBounds.get(object.id);
+    const supportBounds = objectBounds.get(support.id);
+    if (Math.abs(bounds.min.y - supportBounds.max.y) > exteriorTolerance) issues.push(`exterior_construction_support_height_mismatch:${object.id}:${support.id}`);
+    if (!exteriorHorizontalContains(supportBounds, bounds)) issues.push(`exterior_construction_support_footprint_invalid:${object.id}:${support.id}`);
+    const visited = new Set([object.id]);
+    let current = support;
+    while (current && current.supportObjectId !== null) {
+      if (visited.has(current.id)) {
+        issues.push(`exterior_construction_support_cycle:${object.id}`);
+        break;
+      }
+      visited.add(current.id);
+      current = objects.get(current.supportObjectId);
+    }
+  }
+
+  const allBounds = [...objectBounds.values()];
+  if (allBounds.length !== 0) {
+    const union = {
+      min: {
+        x: Math.min(...allBounds.map((bounds) => bounds.min.x)),
+        y: Math.min(...allBounds.map((bounds) => bounds.min.y)),
+        z: Math.min(...allBounds.map((bounds) => bounds.min.z))
+      },
+      max: {
+        x: Math.max(...allBounds.map((bounds) => bounds.max.x)),
+        y: Math.max(...allBounds.map((bounds) => bounds.max.y)),
+        z: Math.max(...allBounds.map((bounds) => bounds.max.z))
+      }
+    };
+    for (const edge of ["min", "max"]) for (const axis of ["x", "y", "z"]) {
+      if (Math.abs(union[edge][axis] - declaredBounds[edge][axis]) > exteriorTolerance) issues.push(`exterior_construction_bounds_union_mismatch:${edge}:${axis}`);
+    }
+  }
+
+  for (let leftIndex = 0; leftIndex < construction.objects.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < construction.objects.length; rightIndex += 1) {
+      const left = construction.objects[leftIndex];
+      const right = construction.objects[rightIndex];
+      if (exteriorPositiveVolumeOverlap(objectBounds.get(left.id), objectBounds.get(right.id))) issues.push(`exterior_construction_object_overlap:${left.id}:${right.id}`);
+    }
+  }
+
+  const ground = construction.objects.find((object) => object.role === "nearby-ground");
+  if (ground && opening) {
+    const groundBounds = objectBounds.get(ground.id);
+    const windowInterval = openingWallInterval(opening, scene.room);
+    if (Math.abs(groundBounds.max.y - scene.room.floorY) > exteriorTolerance
+      || groundBounds.min.z > northOuterFaceZ + 0.05 + exteriorTolerance
+      || groundBounds.min.x > windowInterval.start + exteriorTolerance
+      || groundBounds.max.x < windowInterval.end - exteriorTolerance) issues.push(`exterior_construction_ground_window_mismatch:${ground.id}`);
+  }
+  if (opening) {
+    const visibleVegetation = construction.objects.some((object) => {
+      if (object.role !== "vegetation") return false;
+      const bounds = objectBounds.get(object.id);
+      return bounds.min.z <= northOuterFaceZ + 4 + exteriorTolerance
+        && exteriorHasVisiblePatch(object.id, bounds, opening, scene.room, northOuterFaceZ, objectBounds);
+    });
+    if (!visibleVegetation) issues.push("exterior_construction_vegetation_not_visible");
+  }
+  for (const object of construction.objects.filter((record) => record.role === "middle-distance-context")) {
+    const bounds = objectBounds.get(object.id);
+    if (bounds.min.z < northOuterFaceZ + 4 - exteriorTolerance || bounds.max.z > northOuterFaceZ + 15 + exteriorTolerance) issues.push(`exterior_construction_context_depth_invalid:${object.id}`);
+    if (opening && !exteriorHasVisiblePatch(object.id, bounds, opening, scene.room, northOuterFaceZ, objectBounds)) issues.push(`exterior_construction_context_not_visible:${object.id}`);
+  }
+
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return Object.freeze({
+    ...sceneReport,
+    status: "stage3-exterior-construction-contract-valid",
+    exteriorConstructionSha256: sha256(stableJson(construction)),
+    exteriorConstructionRawSha256: constructionRawSha256,
+    objectCount: construction.objects.length,
+    resolvedObjectCount: objects.size,
+    materialCount: materials.size,
+    roleCount: [...roleCounts.values()].filter((count) => count > 0).length,
+    strategy: construction.strategy,
+    windowOpeningId: construction.windowOpeningId,
+    objectNamePattern: "exterior.<objectId>",
+    boundsM: Object.freeze({
+      min: Object.freeze({ ...declaredBounds.min }),
+      max: Object.freeze({ ...declaredBounds.max })
+    }),
+    boundaries: Object.freeze({
+      exteriorSpecified: true,
+      exteriorCompiled: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false
+    })
+  });
+}
+
+export function parseExteriorConstructionContract(options) {
+  const texts = snapshotParserTexts(options, "exteriorConstructionText");
+  const sceneContract = parseSceneContractSnapshot(texts);
+  const construction = parseCanonicalJsonText(texts.exteriorConstructionText, "exterior_construction");
+  const structuralIssues = [];
+  collectNonFinite(construction, "exteriorConstruction", structuralIssues);
+  if (structuralIssues.length !== 0) throw new SceneContractError(structuralIssues);
+  if (`${JSON.stringify(construction, null, 2)}\n` !== texts.exteriorConstructionText) throw new SceneContractError(["exterior_construction_encoding_noncanonical"]);
+  return validateExteriorConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.exteriorConstructionText, sceneContract.report);
 }

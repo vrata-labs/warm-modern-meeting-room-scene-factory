@@ -1,0 +1,6 @@
+{
+  "target": "exteriorConstruction",
+  "path": "strategy",
+  "value": "procedural-exterior",
+  "expectedIssue": "schema_exterior_construction:strategy:const"
+}

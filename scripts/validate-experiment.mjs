@@ -75,7 +75,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "approved-candidate-media-surface-manifest-projection-reproducibility", "stage3_status_invalid");
+assert(readiness.stage3.status === "exterior-construction-contract-fixture-validated", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -188,7 +188,17 @@ assert(readiness.stage3.approvedCandidateMediaSurfaceProjectionSha256 === "352b3
   && readiness.stage3.approvedCandidateMediaSurfacePurposeIncluded === false, "approved_candidate_media_surface_projection_evidence_invalid");
 assert(readiness.stage3.approvedCandidateMediaSurfaceOutputAtomicNoClobber === true
   && readiness.stage3.approvedCandidateMediaSurfaceRepositoryRootsRejected === true, "approved_candidate_media_surface_output_safety_invalid");
-assert(readiness.stage3.approvedCandidateExteriorCompiled === false
+assert(readiness.stage3.exteriorConstructionSchemaPath === "schemas/exterior-constructions.schema.json"
+  && readiness.stage3.exteriorConstructionValidFixturePath === "tests/fixtures/exterior-construction/exterior-constructions.valid.json"
+  && readiness.stage3.exteriorConstructionValidatorApi === "parseExteriorConstructionContract"
+  && readiness.stage3.exteriorConstructionContractImplemented === true
+  && readiness.stage3.exteriorConstructionContractStatus === "fixture-validated-awaiting-candidate-source"
+  && readiness.stage3.exteriorConstructionFixtureOnly === true
+  && readiness.stage3.exteriorConstructionObjectCount === 4
+  && readiness.stage3.exteriorConstructionMaterialCount === 3
+  && readiness.stage3.exteriorConstructionNegativeFixtureCount === 4, "exterior_construction_contract_claim_invalid");
+assert(readiness.stage3.approvedCandidateExteriorSpecified === false
+  && readiness.stage3.approvedCandidateExteriorCompiled === false
   && readiness.stage3.approvedCandidateLightingCompiled === false, "approved_candidate_out_of_scope_compile_claim_invalid");
 assert(readiness.stage3.approvedCandidateReleaseArtifactsCreated === false
   && readiness.stage3.approvedCandidateArtifactBytesIncludedInRepository === false, "approved_candidate_media_surface_release_boundary_invalid");
@@ -218,7 +228,7 @@ const boundaryKeys = ["approvedCandidateSpecificationCreated", "assetRightsClear
 assert(JSON.stringify(Object.keys(conceptGate.boundaries ?? {}).sort()) === JSON.stringify(boundaryKeys)
   && conceptGate.boundaries.approvedCandidateSpecificationCreated === true
   && boundaryKeys.filter((key) => key !== "approvedCandidateSpecificationCreated").every((key) => conceptGate.boundaries[key] === false), "concept_gate_boundaries_invalid");
-assert(readiness.asOf === "2026-08-25", "readiness_date_invalid");
+assert(readiness.asOf === "2026-08-26", "readiness_date_invalid");
 assert(readiness.candidateConceptGate.status === "exact-candidate-specification-validated", "candidate_concept_gate_status_invalid");
 assert(readiness.candidateConceptGate.conceptCount === conceptGate.gate.conceptCount
   && readiness.candidateConceptGate.selectedConceptId === conceptGate.gate.selectedConceptId
@@ -918,5 +928,10 @@ assert(sceneSpecSchema.properties.seats.minItems === 8 && sceneSpecSchema.proper
 assert(sceneSpecSchema.properties.mediaSurfaces.minItems === 2 && sceneSpecSchema.properties.mediaSurfaces.maxItems === 2, "scene_spec_must_require_two_surfaces");
 const surfaceIds = sceneSpecSchema.$defs.surface.properties.surfaceId.enum;
 assert(JSON.stringify(surfaceIds) === JSON.stringify(["debug-main", "whiteboard-wall"]), "invalid_required_surfaces");
+const exteriorConstructionSchema = await json("schemas/exterior-constructions.schema.json");
+assert(exteriorConstructionSchema.properties.strategy.const === "project-authored-geometry", "exterior_construction_strategy_invalid");
+assert(exteriorConstructionSchema.$defs.object.properties.geometry.const === "beveled-box", "exterior_construction_geometry_invalid");
+assert(exteriorConstructionSchema.properties.objects.minItems === 4
+  && exteriorConstructionSchema.properties.objects.maxItems === 12, "exterior_construction_object_bounds_invalid");
 
 process.stdout.write("Experiment contracts are valid.\n");
