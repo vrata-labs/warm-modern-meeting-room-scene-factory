@@ -1,0 +1,6 @@
+{
+  "target": "lightingConstruction",
+  "path": "lights.1.sceneLightId",
+  "value": "unbound-light",
+  "expectedIssue": "lighting_construction_scene_light_order_mismatch:1:ceiling-fill:unbound-light"
+}

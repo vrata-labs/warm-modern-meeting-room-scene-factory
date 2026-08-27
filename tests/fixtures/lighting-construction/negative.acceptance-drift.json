@@ -1,0 +1,6 @@
+{
+  "target": "lightingConstruction",
+  "path": "firstViewAcceptance.criteria.averageLuminanceMinimum",
+  "value": 41,
+  "expectedIssue": "schema_lighting_construction:firstViewAcceptance:criteria:averageLuminanceMinimum:const"
+}

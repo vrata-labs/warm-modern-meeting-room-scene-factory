@@ -195,12 +195,13 @@ test("media surface may share a wall interval with an opening when vertically se
 });
 
 test("scene, ledger, and separate construction schemas expose their scoped Stage 3 contracts", async () => {
-  const [sceneSchema, assetSchema, generationSchema, componentConstructionSchema, mediaSurfaceConstructionSchema] = await Promise.all([
+  const [sceneSchema, assetSchema, generationSchema, componentConstructionSchema, mediaSurfaceConstructionSchema, lightingConstructionSchema] = await Promise.all([
     fixture("../../../schemas/scene-spec.schema.json").then(JSON.parse),
     fixture("../../../schemas/asset-ledger.schema.json").then(JSON.parse),
     fixture("../../../schemas/generation-ledger.schema.json").then(JSON.parse),
     fixture("../../../schemas/component-constructions.schema.json").then(JSON.parse),
-    fixture("../../../schemas/media-surface-constructions.schema.json").then(JSON.parse)
+    fixture("../../../schemas/media-surface-constructions.schema.json").then(JSON.parse),
+    fixture("../../../schemas/lighting-constructions.schema.json").then(JSON.parse)
   ]);
   assert.equal(sceneSchema.properties.room.properties.polygon.minItems, 4);
   assert.equal(sceneSchema.properties.openings.minItems, 2);
@@ -217,4 +218,7 @@ test("scene, ledger, and separate construction schemas expose their scoped Stage
   assert.equal(mediaSurfaceConstructionSchema.properties.surfaces.minItems, 2);
   assert.equal(mediaSurfaceConstructionSchema.properties.surfaces.maxItems, 2);
   assert.equal(mediaSurfaceConstructionSchema.$defs.debugMain.properties.representation.const, "platform-runtime-plane");
+  assert.equal(lightingConstructionSchema.additionalProperties, false);
+  assert.deepEqual(lightingConstructionSchema.$defs.light.required, ["sceneLightId", "binding", "emitter"]);
+  assert.equal(lightingConstructionSchema.properties.styleBibleSha256.const, "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656");
 });

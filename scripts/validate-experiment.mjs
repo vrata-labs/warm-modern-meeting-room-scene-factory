@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { parseCanonicalJsonText, parseSceneContract } from "../compiler/scene-contract.mjs";
+import { parseCanonicalJsonText, parseLightingConstructionContract, parseSceneContract } from "../compiler/scene-contract.mjs";
 import {
   compilerSourceAttestationPaths,
   validateCompilerSourceAttestation
@@ -75,7 +75,7 @@ assert(readiness.resolved.mainBranchProtectionEnabled === true, "main_branch_pro
 assert(readiness.resolved.platformPlanMerged === true, "platform_plan_not_merged");
 assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_green");
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
-assert(readiness.stage3.status === "approved-candidate-exterior-glb-byte-identical-verified", "stage3_status_invalid");
+assert(readiness.stage3.status === "lighting-construction-contract-fixture-validated-awaiting-candidate-source", "stage3_status_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
 assert(readiness.stage3.stableDiagnostics === true, "stage3_stable_diagnostics_missing");
@@ -213,6 +213,20 @@ assert(readiness.stage3.exteriorConstructionSchemaPath === "schemas/exterior-con
   && readiness.stage3.exteriorConstructionObjectCount === 4
   && readiness.stage3.exteriorConstructionMaterialCount === 3
   && readiness.stage3.exteriorConstructionNegativeFixtureCount === 4, "exterior_construction_contract_claim_invalid");
+assert(readiness.stage3.lightingConstructionSchemaPath === "schemas/lighting-constructions.schema.json"
+  && readiness.stage3.lightingConstructionValidFixturePath === "tests/fixtures/lighting-construction/lighting-constructions.valid.json"
+  && readiness.stage3.lightingConstructionFixtureSha256 === "afe5cfa1cbeb692f9c072438dcfe80de3675046d385778778a8a3ada21aa0b0e"
+  && readiness.stage3.lightingConstructionFixtureRawSha256 === "a6ad05ef78281eba86a3fcd60f1519872b8890e460023ced3b8676aab6ce7f40"
+  && readiness.stage3.lightingConstructionValidatorApi === "parseLightingConstructionContract"
+  && readiness.stage3.lightingConstructionContractImplemented === true
+  && readiness.stage3.lightingConstructionContractStatus === "fixture-validated-awaiting-candidate-source"
+  && readiness.stage3.lightingConstructionFixtureOnly === true
+  && readiness.stage3.lightingConstructionLightCount === 3
+  && readiness.stage3.lightingConstructionResolvedLightCount === 3
+  && readiness.stage3.lightingConstructionStyleBibleSha256 === "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656"
+  && readiness.stage3.lightingConstructionFirstViewAverageLuminanceMinimum === 40
+  && readiness.stage3.lightingConstructionFirstViewDarkPixelRatioMaximum === 0.7
+  && readiness.stage3.lightingConstructionNegativeFixtureCount === 6, "lighting_construction_contract_claim_invalid");
 assert(readiness.stage3.approvedCandidateExteriorSourceLoaderApi === "loadApprovedCandidateExteriorSource"
   && readiness.stage3.approvedCandidateExteriorCompileApi === "compileApprovedCandidateExterior"
   && readiness.stage3.approvedCandidateExteriorReproducibilityApi === "verifyApprovedCandidateExteriorReproducibility"
@@ -795,10 +809,11 @@ assert(!readiness.stageRules.probeExecutionBlockedUntil.includes("styleBibleAppr
 assert(readiness.stageRules.probeExecutionBlockedUntil.length === 0, "completed_probe_must_not_remain_blocked");
 assert(readiness.stageRules.stage3BlockedUntil.length === 0, "stage_3_must_be_unblocked_after_second_successful_probe");
 
-const [sceneFixtureText, assetLedgerFixtureText, generationLedgerFixtureText] = await Promise.all([
+const [sceneFixtureText, assetLedgerFixtureText, generationLedgerFixtureText, lightingConstructionFixtureText] = await Promise.all([
   readFile(resolve(root, readiness.stage3.validFixturePath), "utf8"),
   readFile(resolve(root, readiness.stage3.validAssetLedgerFixturePath), "utf8"),
-  readFile(resolve(root, readiness.stage3.validGenerationLedgerFixturePath), "utf8")
+  readFile(resolve(root, readiness.stage3.validGenerationLedgerFixturePath), "utf8"),
+  readFile(resolve(root, readiness.stage3.lightingConstructionValidFixturePath), "utf8")
 ]);
 const sceneContractReport = parseSceneContract({
   sceneText: sceneFixtureText,
@@ -809,6 +824,54 @@ assert(sceneContractReport.status === "stage3-scene-contract-valid", "stage3_sce
 assert(sceneContractReport.specificationSha256 === "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91", "stage3_scene_fixture_digest_mismatch");
 assert(sceneContractReport.assetLedgerSha256 === "bc8dc412b38eb85c7a46cb96a5292f806e430fcfa2956f188d39a07fcd9f6d85", "stage3_asset_fixture_digest_mismatch");
 assert(sceneContractReport.generationLedgerSha256 === "39ef74d47488966b8e9b4df9541ba039085260a2a8fb75d9add3804558491c51", "stage3_generation_fixture_digest_mismatch");
+
+const lightingSceneFixture = JSON.parse(sceneFixtureText);
+const lightingAssetLedgerFixture = JSON.parse(assetLedgerFixtureText);
+const lightingConstructionFixture = JSON.parse(lightingConstructionFixtureText);
+const lightingConstructionRawSha256 = createHash("sha256").update(lightingConstructionFixtureText).digest("hex");
+lightingSceneFixture.lighting.splice(1, 0, {
+  id: "ceiling-fill",
+  kind: "spot",
+  position: { x: 1.5, y: 2.95, z: -1 },
+  temperatureK: 2900,
+  intensityLumens: 1800,
+  intendedContribution: "warm architectural fill from the ceiling"
+});
+lightingAssetLedgerFixture.records.push({
+  id: lightingConstructionFixture.sourceRecordId,
+  kind: "project-authored-input",
+  source: { classification: "project-authored", publicUrl: null, repositoryPath: "source/lighting-constructions.json" },
+  authorProvider: "project-team",
+  license: { name: "LicenseRef-Project-Owned", reference: "provenance/licenses/project-owned.txt", commercialUse: true, redistribution: true, mlProcessing: true },
+  acquiredOn: "2026-08-26",
+  originalSha256: lightingConstructionRawSha256,
+  allowedUse: { staging: true, production: false, webRuntime: true, screenshots: true, optimization: true, redistribution: true },
+  modifications: [],
+  outputSha256: [],
+  attribution: null
+});
+lightingSceneFixture.generator.acceptedInputSha256.push(lightingConstructionRawSha256);
+const lightingConstructionReport = parseLightingConstructionContract({
+  sceneText: `${JSON.stringify(lightingSceneFixture, null, 2)}\n`,
+  assetLedgerText: `${JSON.stringify(lightingAssetLedgerFixture, null, 2)}\n`,
+  generationLedgerText: generationLedgerFixtureText,
+  lightingConstructionText: lightingConstructionFixtureText
+});
+assert(lightingConstructionReport.status === "stage3-lighting-construction-contract-valid", "stage3_lighting_construction_contract_invalid");
+assert(lightingConstructionReport.lightingConstructionSha256 === readiness.stage3.lightingConstructionFixtureSha256,
+  "stage3_lighting_fixture_canonical_digest_mismatch");
+assert(lightingConstructionReport.lightingConstructionRawSha256 === readiness.stage3.lightingConstructionFixtureRawSha256,
+  "stage3_lighting_fixture_raw_digest_mismatch");
+assert(lightingConstructionReport.lightCount === readiness.stage3.lightingConstructionLightCount
+  && lightingConstructionReport.resolvedLightCount === readiness.stage3.lightingConstructionResolvedLightCount, "stage3_lighting_fixture_count_mismatch");
+assert(lightingConstructionFixture.styleBibleSha256 === readiness.stage3.lightingConstructionStyleBibleSha256, "stage3_lighting_style_bible_mismatch");
+assert(lightingConstructionReport.firstViewAcceptance.criteria.averageLuminanceMinimum === readiness.stage3.lightingConstructionFirstViewAverageLuminanceMinimum
+  && lightingConstructionReport.firstViewAcceptance.criteria.darkPixelRatioMaximum === readiness.stage3.lightingConstructionFirstViewDarkPixelRatioMaximum, "stage3_lighting_acceptance_criteria_mismatch");
+assert(lightingConstructionReport.boundaries.lightingCompiled === false
+  && lightingConstructionReport.boundaries.firstViewRendered === false
+  && lightingConstructionReport.boundaries.firstViewAcceptanceVerified === false
+  && lightingConstructionReport.boundaries.finalCandidateGlbVerified === false
+  && lightingConstructionReport.boundaries.publicationReady === false, "stage3_lighting_boundary_invalid");
 
 const referenceLedger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
 assert(referenceLedger.schemaVersion === 1, "invalid_reference_ledger_schema");
@@ -842,6 +905,7 @@ assert(modelInputReferences.every(({ classification }) => classification === "mo
 assert(referenceLedger.records.every(({ retrieved, classification, restrictedStorageRecord }) => !retrieved || (["human-only", "model-input"].includes(classification) && restrictedStorageRecord === "recorded-out-of-band")), "retrieved_reference_storage_record_missing");
 
 const styleBible = await json("experiment/warm-modern-meeting-room/style-bible.json");
+assert(await sha256("experiment/warm-modern-meeting-room/style-bible.json") === readiness.stage3.lightingConstructionStyleBibleSha256, "style_bible_lighting_digest_mismatch");
 assert(styleBible.schemaVersion === 1, "invalid_style_bible_schema");
 assert(styleBible.status === "approved-art-direction-gate", "unexpected_style_bible_status");
 assert(styleBible.approval.status === "approved", "style_bible_approval_missing");

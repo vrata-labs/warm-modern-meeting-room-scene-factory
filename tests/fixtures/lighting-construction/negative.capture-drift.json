@@ -1,0 +1,6 @@
+{
+  "target": "lightingConstruction",
+  "path": "firstViewAcceptance.capture.samples",
+  "value": 32,
+  "expectedIssue": "schema_lighting_construction:firstViewAcceptance:capture:samples:const"
+}

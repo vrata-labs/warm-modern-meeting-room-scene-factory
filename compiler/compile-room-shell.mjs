@@ -51,9 +51,11 @@ export const compilerSourceAttestationPaths = Object.freeze([
   "schemas/component-constructions.schema.json",
   "schemas/exterior-constructions.schema.json",
   "schemas/generation-ledger.schema.json",
+  "schemas/lighting-constructions.schema.json",
   "schemas/media-surface-constructions.schema.json",
   "schemas/scene-spec.schema.json",
   "experiment/warm-modern-meeting-room/candidate-lock.json",
+  "experiment/warm-modern-meeting-room/style-bible.json",
   "package.json",
   "pnpm-lock.yaml"
 ]);

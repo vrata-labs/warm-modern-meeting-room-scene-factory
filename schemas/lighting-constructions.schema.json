@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/lighting-constructions.schema.json",
+  "title": "Warm Modern Meeting Room Candidate-Owned Lighting Constructions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sceneId", "sourceRecordId", "styleBibleSha256", "lights", "firstViewAcceptance"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "pattern": "^warm-modern-meeting-room-candidate-(01|02)$" },
+    "sourceRecordId": { "$ref": "#/$defs/id" },
+    "styleBibleSha256": { "const": "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656" },
+    "lights": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/light" },
+      "minItems": 3,
+      "maxItems": 8
+    },
+    "firstViewAcceptance": { "$ref": "#/$defs/firstViewAcceptance" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number", "minimum": -20, "maximum": 20 },
+        "y": { "type": "number", "minimum": -20, "maximum": 20 },
+        "z": { "type": "number", "minimum": -20, "maximum": 20 }
+      }
+    },
+    "openingBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "openingId"],
+      "properties": {
+        "type": { "const": "opening" },
+        "openingId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "componentBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "componentId"],
+      "properties": {
+        "type": { "const": "component" },
+        "componentId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "roomSurfaceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "surface"],
+      "properties": {
+        "type": { "const": "room-surface" },
+        "surface": { "const": "ceiling" }
+      }
+    },
+    "binding": {
+      "oneOf": [
+        { "$ref": "#/$defs/openingBinding" },
+        { "$ref": "#/$defs/componentBinding" },
+        { "$ref": "#/$defs/roomSurfaceBinding" }
+      ]
+    },
+    "directionalIntensityMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "operation", "divisor", "outputUnit"],
+      "properties": {
+        "source": { "const": "scene-intensity-lumens" },
+        "operation": { "const": "divide" },
+        "divisor": { "const": 3600 },
+        "outputUnit": { "const": "watt-per-square-meter" }
+      }
+    },
+    "spotIntensityMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "operation", "divisor", "outputUnit"],
+      "properties": {
+        "source": { "const": "scene-intensity-lumens" },
+        "operation": { "const": "divide" },
+        "divisor": { "const": 100 },
+        "outputUnit": { "const": "watt" }
+      }
+    },
+    "coordinateConversion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "blenderX", "blenderY", "blenderZ"],
+      "properties": {
+        "id": { "const": "scene-y-up-to-blender-z-up-v1" },
+        "blenderX": { "const": "scene-x" },
+        "blenderY": { "const": "scene-z" },
+        "blenderZ": { "const": "scene-y" }
+      }
+    },
+    "orientationConvention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["forwardAxis", "forwardTarget", "upAxis", "rollAxis", "rollOrder"],
+      "properties": {
+        "forwardAxis": { "const": "local-negative-z" },
+        "forwardTarget": { "const": "source-to-target" },
+        "upAxis": { "const": "local-y" },
+        "rollAxis": { "const": "local-negative-z" },
+        "rollOrder": { "const": "after-target-alignment" }
+      }
+    },
+    "angularDiameterMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputUnit", "operation", "blenderLightType", "blenderProperty", "blenderUnit"],
+      "properties": {
+        "inputUnit": { "const": "degrees" },
+        "operation": { "const": "multiply-by-pi-divide-by-180" },
+        "blenderLightType": { "const": "SUN" },
+        "blenderProperty": { "const": "angle" },
+        "blenderUnit": { "const": "radians" }
+      }
+    },
+    "spotConeMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["angleConvention", "spotSizeProperty", "spotSizeFormula", "spotBlendProperty", "spotBlendFormula"],
+      "properties": {
+        "angleConvention": { "const": "half-angles-radians" },
+        "spotSizeProperty": { "const": "spot_size" },
+        "spotSizeFormula": { "const": "two-times-outer-cone-half-angle" },
+        "spotBlendProperty": { "const": "spot_blend" },
+        "spotBlendFormula": { "const": "one-minus-inner-cone-half-angle-divided-by-outer-cone-half-angle" }
+      }
+    },
+    "spotRangeMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["useCustomDistanceProperty", "useCustomDistanceValue", "cutoffDistanceProperty", "cutoffDistanceSource"],
+      "properties": {
+        "useCustomDistanceProperty": { "const": "use_custom_distance" },
+        "useCustomDistanceValue": { "const": true },
+        "cutoffDistanceProperty": { "const": "cutoff_distance" },
+        "cutoffDistanceSource": { "const": "range-m" }
+      }
+    },
+    "spotRadiusMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blenderProperty", "source"],
+      "properties": {
+        "blenderProperty": { "const": "shadow_soft_size" },
+        "source": { "const": "radius-m" }
+      }
+    },
+    "directionalEmitter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target", "rollRadians", "intensityMapping", "coordinateConversion", "orientationConvention", "angularDiameterDegrees", "angularDiameterMapping", "colorSource", "kelvinConversion", "castShadow"],
+      "properties": {
+        "type": { "const": "directional" },
+        "target": { "$ref": "#/$defs/position" },
+        "rollRadians": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
+        "intensityMapping": { "$ref": "#/$defs/directionalIntensityMapping" },
+        "coordinateConversion": { "$ref": "#/$defs/coordinateConversion" },
+        "orientationConvention": { "$ref": "#/$defs/orientationConvention" },
+        "angularDiameterDegrees": { "type": "number", "exclusiveMinimum": 0, "maximum": 15 },
+        "angularDiameterMapping": { "$ref": "#/$defs/angularDiameterMapping" },
+        "colorSource": { "const": "scene-temperature-kelvin" },
+        "kelvinConversion": { "const": "tanner-helland-2012-clamped-srgb-to-linear-v1" },
+        "castShadow": { "const": true }
+      }
+    },
+    "spotEmitter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target", "rollRadians", "intensityMapping", "coordinateConversion", "orientationConvention", "rangeM", "rangeMapping", "innerConeHalfAngleRadians", "outerConeHalfAngleRadians", "coneMapping", "radiusM", "radiusMapping", "colorSource", "kelvinConversion", "castShadow"],
+      "properties": {
+        "type": { "const": "spot" },
+        "target": { "$ref": "#/$defs/position" },
+        "rollRadians": { "type": "number", "minimum": -3.141593, "maximum": 3.141593 },
+        "intensityMapping": { "$ref": "#/$defs/spotIntensityMapping" },
+        "coordinateConversion": { "$ref": "#/$defs/coordinateConversion" },
+        "orientationConvention": { "$ref": "#/$defs/orientationConvention" },
+        "rangeM": { "type": "number", "exclusiveMinimum": 0, "maximum": 20 },
+        "rangeMapping": { "$ref": "#/$defs/spotRangeMapping" },
+        "innerConeHalfAngleRadians": { "type": "number", "minimum": 0, "maximum": 1.5707963267948966 },
+        "outerConeHalfAngleRadians": { "type": "number", "minimum": 0.008726646259971648, "maximum": 1.5707963267948966 },
+        "coneMapping": { "$ref": "#/$defs/spotConeMapping" },
+        "radiusM": { "type": "number", "minimum": 0, "maximum": 1 },
+        "radiusMapping": { "$ref": "#/$defs/spotRadiusMapping" },
+        "colorSource": { "const": "scene-temperature-kelvin" },
+        "kelvinConversion": { "const": "tanner-helland-2012-clamped-srgb-to-linear-v1" },
+        "castShadow": { "const": true }
+      }
+    },
+    "emitter": {
+      "oneOf": [
+        { "$ref": "#/$defs/directionalEmitter" },
+        { "$ref": "#/$defs/spotEmitter" }
+      ]
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sceneLightId", "binding", "emitter"],
+      "properties": {
+        "sceneLightId": { "$ref": "#/$defs/id" },
+        "binding": { "$ref": "#/$defs/binding" },
+        "emitter": { "$ref": "#/$defs/emitter" }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthPx", "heightPx", "pixelAspectRatio"],
+      "properties": {
+        "widthPx": { "const": 960 },
+        "heightPx": { "const": 540 },
+        "pixelAspectRatio": { "const": 1 }
+      }
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["colorSrgb", "strength"],
+      "properties": {
+        "colorSrgb": { "const": "#000000" },
+        "strength": { "const": 0 }
+      }
+    },
+    "colorManagement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["displayDevice", "viewTransform", "look", "exposure", "gamma"],
+      "properties": {
+        "displayDevice": { "const": "sRGB" },
+        "viewTransform": { "const": "AgX" },
+        "look": { "const": "AgX - Medium High Contrast" },
+        "exposure": { "const": 0 },
+        "gamma": { "const": 1 }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "colorMode", "colorDepthBits"],
+      "properties": {
+        "format": { "const": "PNG" },
+        "colorMode": { "const": "RGB" },
+        "colorDepthBits": { "const": 8 }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "device", "projection", "fovAxis", "resolution", "samples", "seed", "adaptiveSampling", "denoising", "transparentBackground", "world", "colorManagement", "output"],
+      "properties": {
+        "engine": { "const": "CYCLES" },
+        "device": { "const": "CPU" },
+        "projection": { "const": "perspective" },
+        "fovAxis": { "const": "vertical" },
+        "resolution": { "$ref": "#/$defs/resolution" },
+        "samples": { "const": 64 },
+        "seed": { "const": 42 },
+        "adaptiveSampling": { "const": false },
+        "denoising": { "const": false },
+        "transparentBackground": { "const": false },
+        "world": { "$ref": "#/$defs/world" },
+        "colorManagement": { "$ref": "#/$defs/colorManagement" },
+        "output": { "$ref": "#/$defs/output" }
+      }
+    },
+    "integerArithmetic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["redWeight", "greenWeight", "blueWeight", "divisor", "weightedNumerator", "averagePass", "darkPixel", "darkRatioPass"],
+      "properties": {
+        "redWeight": { "const": 2126 },
+        "greenWeight": { "const": 7152 },
+        "blueWeight": { "const": 722 },
+        "divisor": { "const": 10000 },
+        "weightedNumerator": { "const": "2126-times-r-plus-7152-times-g-plus-722-times-b" },
+        "averagePass": { "const": "sum-weighted-numerators-gte-average-minimum-times-divisor-times-pixel-count" },
+        "darkPixel": { "const": "weighted-numerator-lt-dark-pixel-threshold-times-divisor" },
+        "darkRatioPass": { "const": "dark-count-times-10-lte-pixel-count-times-7" }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "scope", "sampleEncoding", "channelValueDomain", "linearization", "integerArithmetic", "darkPixelThreshold"],
+      "properties": {
+        "metric": { "const": "display-srgb8-rec709-luma-v1" },
+        "scope": { "const": "all-rendered-pixels" },
+        "sampleEncoding": { "const": "display-srgb8-encoded-rgb-bytes" },
+        "channelValueDomain": { "const": "integer-0-to-255" },
+        "linearization": { "const": "none" },
+        "integerArithmetic": { "$ref": "#/$defs/integerArithmetic" },
+        "darkPixelThreshold": { "const": 40 }
+      }
+    },
+    "criteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["averageLuminanceMinimum", "darkPixelRatioMaximum"],
+      "properties": {
+        "averageLuminanceMinimum": { "const": 40 },
+        "darkPixelRatioMaximum": { "const": 0.7 }
+      }
+    },
+    "firstViewAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewViewId", "capture", "measurement", "criteria"],
+      "properties": {
+        "reviewViewId": { "const": "entry" },
+        "capture": { "$ref": "#/$defs/capture" },
+        "measurement": { "$ref": "#/$defs/measurement" },
+        "criteria": { "$ref": "#/$defs/criteria" }
+      }
+    }
+  }
+}
