@@ -50,7 +50,8 @@ rights, OCI/SBOM/notices, provider snapshot, billing reconciliation, and separat
 publication signoff.
 
 The Stage 3 contract defines exact scene, asset-ledger, generation-ledger,
-component-construction, media-surface-construction, and exterior-construction schemas plus Ajv Draft
+component-construction, media-surface-construction, exterior-construction, and
+lighting-construction schemas plus Ajv Draft
 2020-12 and semantic validation in `compiler/`. The checked-in scene
 specification remains a neutral synthetic contract fixture. Its fail-closed
 compiler and reproducibility paths remain unchanged.
@@ -63,6 +64,51 @@ materials and deterministic beveled-box volumes, binds the north-side
 fails closed on support cycles, unsupported footprints, positive-volume
 overlap, room intrusion, declared-bounds drift, missing visible vegetation, or
 unbounded middle-distance context.
+
+The Candidate-owned lighting construction contract is exposed through
+`schemas/lighting-constructions.schema.json` and
+`parseLightingConstructionContract`. It binds each scene light in exact order to
+an opening, pendant component, or ceiling surface without duplicating scene
+position, temperature, luminous intensity, or contribution intent. The fixture
+covers directional window daylight, ceiling architectural fill, and a pendant
+spot, all with bounded targets and emitters. Directional output is exactly
+scene intensityLumens divided by 3600 in watt-per-square-meter; spot output is
+exactly intensityLumens divided by 100 in watt. Construction records contain
+only these schema-const mappings and cannot supply an independent energy value.
+
+Future Blender projection is fixed without changing the current adapter. Scene
+coordinates map as (x, y, z) to Blender (x, z, y), matching the existing F1-F4
+geometry projection. Each light aligns local -Z
+to the source-to-target vector with local Y as up, then applies rollRadians about
+local -Z. SUN angle is angularDiameterDegrees multiplied by pi/180. Spot cone
+inputs are half-angles: spot_size is 2 * outer, and spot_blend is
+1 - inner/outer. rangeM sets use_custom_distance=true and cutoff_distance;
+radiusM sets shadow_soft_size.
+
+Kelvin conversion is fixed as
+`tanner-helland-2012-clamped-srgb-to-linear-v1`. Let
+T = clamp(temperatureK, 1000, 40000) / 100 and use natural logarithms. For
+T <= 66: R = 255, G = 99.4708025861 * ln(T) - 161.1195681661, and B = 0 when
+T <= 19, otherwise B = 138.5177312231 * ln(T - 10) - 305.0447927307. For
+T > 66: R = 329.698727446 * (T - 60)^-0.1332047592,
+G = 288.1221695283 * (T - 60)^-0.0755148492, and B = 255. Clamp each encoded
+channel to 0..255, normalize s = channel/255, then convert to linear with
+s/12.92 when s <= 0.04045 and ((s + 0.055)/1.055)^2.4 otherwise.
+
+The shared entry-view capture and metric are fixed by this contract; only the
+average-minimum and dark-ratio criteria come from the bound style bible. The
+display-sRGB8 metric consumes encoded integer R, G, and B bytes directly with no
+linearization. For each pixel N = 2126*R + 7152*G + 722*B and divisor 10000.
+Average passes exactly when sum(N) >= averageMinimum*10000*pixelCount. A pixel
+is dark exactly when N < darkPixelThreshold*10000. The 0.7 ratio passes exactly
+when darkCount*10 <= pixelCount*7. The threshold remains 40.
+
+First-view rights closure covers every unique source used by material recipes,
+components, exterior, and lighting construction, and requires screenshots=true
+for each. Source provenance and accepted-input closure are also validated, but
+the contract remains fixture-only until an exact Candidate source record exists.
+No light has been compiled or rendered and no first-view criterion has been
+measured.
 
 The F4 exterior compiler is exposed through
 `loadApprovedCandidateExteriorSource`, `compileApprovedCandidateExterior`, and
@@ -151,8 +197,9 @@ and object material-slot evidence. Decoded normals must be finite and unit lengt
 declared accessor bounds must match decoded values, and the pinned Khronos
 `gltf-validator` gate must report zero errors and zero warnings.
 
-Compiler source attestation covers every compiler entrypoint, all six Stage 3
-schemas, the candidate lock, and the exact package manifest and pnpm lockfile.
+Compiler source attestation covers every compiler entrypoint, all seven Stage 3
+schemas, the candidate lock, the approved style bible, and the exact package
+manifest and pnpm lockfile.
 Compiler and reproducibility reports retain the complete path-to-SHA-256 map, and
 readiness validation independently recomputes it. Candidate lock and readiness
 consumers reject duplicate JSON keys and noncanonical text encodings.
@@ -208,3 +255,10 @@ lock, exact transforms and dimensions, applied bevel topology, support metadata
 without parenting, material provenance, decoded normals and accessor bounds,
 forbidden-content absence, reopen inspection, Khronos validation, output-root
 safety, and two-run GLB byte identity.
+
+Lighting contract tests cover exact scene-light order and role closure, opening,
+pendant, table-top, and ceiling bindings, deterministic intensity conversion,
+Blender projection conventions, bounded emitter geometry, encoded-byte metric
+arithmetic, the frozen first-view policy, style-bible criteria, canonical and raw
+fixture hashes, project-authored provenance, complete screenshot-rights closure,
+and six stable checked-in mutation fixtures.

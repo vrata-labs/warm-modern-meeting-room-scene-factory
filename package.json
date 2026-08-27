@@ -25,7 +25,8 @@
     "test:candidate-components": "node --test tests/approved-candidate-components.test.mjs",
     "test:candidate-media-surfaces": "node --test tests/approved-candidate-media-surfaces.test.mjs",
     "test:candidate-exterior": "node --test tests/approved-candidate-exterior.test.mjs",
-    "test:exterior-contract": "node --test tests/exterior-construction-contract.test.mjs"
+    "test:exterior-contract": "node --test tests/exterior-construction-contract.test.mjs",
+    "test:lighting-contract": "node --test tests/lighting-construction-contract.test.mjs"
   },
   "devDependencies": {
     "ajv": "8.17.1",

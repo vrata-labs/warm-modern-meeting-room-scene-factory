@@ -1,0 +1,6 @@
+{
+  "target": "lightingConstruction",
+  "path": "lights.1.sceneLightId",
+  "value": "window-daylight",
+  "expectedIssue": "lighting_construction_light_duplicate:window-daylight"
+}

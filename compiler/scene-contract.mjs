@@ -12,6 +12,7 @@ const validateAssetLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL(".
 const validateGenerationLedgerSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/generation-ledger.schema.json", import.meta.url), "utf8")));
 const validateComponentConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/component-constructions.schema.json", import.meta.url), "utf8")));
 const validateExteriorConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/exterior-constructions.schema.json", import.meta.url), "utf8")));
+const validateLightingConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/lighting-constructions.schema.json", import.meta.url), "utf8")));
 const validateMediaSurfaceConstructionSchema = ajv.compile(JSON.parse(readFileSync(new URL("../schemas/media-surface-constructions.schema.json", import.meta.url), "utf8")));
 
 const sceneKeys = ["architecturalDetails", "assetLedgerPath", "clearance", "components", "exterior", "generationLedgerPath", "generator", "lighting", "materialRecipes", "materialZones", "mediaSurfaces", "openings", "profiles", "reviewViews", "room", "sceneId", "schemaVersion", "seats", "spawn"];
@@ -191,6 +192,17 @@ function stableJson(value) {
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+const expectedLightingStyleBibleSha256 = "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656";
+const lightingStyleBibleText = readFileSync(new URL("../experiment/warm-modern-meeting-room/style-bible.json", import.meta.url), "utf8");
+const lightingStyleBible = JSON.parse(lightingStyleBibleText);
+const lightingStyleBibleSha256 = sha256(lightingStyleBibleText);
+
+function frozenJsonClone(value) {
+  if (Array.isArray(value)) return Object.freeze(value.map(frozenJsonClone));
+  if (isObject(value)) return Object.freeze(Object.fromEntries(Object.entries(value).map(([key, child]) => [key, frozenJsonClone(child)])));
+  return value;
 }
 
 function applySchemaValidation(validate, value, label, issues) {
@@ -1385,4 +1397,198 @@ export function parseExteriorConstructionContract(options) {
   if (structuralIssues.length !== 0) throw new SceneContractError(structuralIssues);
   if (`${JSON.stringify(construction, null, 2)}\n` !== texts.exteriorConstructionText) throw new SceneContractError(["exterior_construction_encoding_noncanonical"]);
   return validateExteriorConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.exteriorConstructionText, sceneContract.report);
+}
+
+function lightingOpeningPositionBound(position, opening, room) {
+  const interval = openingWallInterval(opening, room);
+  const minimumY = room.floorY + opening.sillM;
+  const maximumY = minimumY + opening.heightM;
+  if (position.y < minimumY - 1e-9 || position.y > maximumY + 1e-9) return false;
+  const wallDistance = Math.max(room.wallThicknessM, 0.15);
+  if (opening.wall === "north" || opening.wall === "south") {
+    const wallZ = opening.wall === "north" ? room.depthM / 2 : -room.depthM / 2;
+    return position.x >= interval.start - 1e-9 && position.x <= interval.end + 1e-9 && Math.abs(position.z - wallZ) <= wallDistance + 1e-9;
+  }
+  const wallX = opening.wall === "east" ? room.widthM / 2 : -room.widthM / 2;
+  return position.z >= interval.start - 1e-9 && position.z <= interval.end + 1e-9 && Math.abs(position.x - wallX) <= wallDistance + 1e-9;
+}
+
+function lightingTargetPointsInward(source, target, wall) {
+  if (wall === "north") return target.z < source.z - 1e-9;
+  if (wall === "south") return target.z > source.z + 1e-9;
+  if (wall === "east") return target.x < source.x - 1e-9;
+  return target.x > source.x + 1e-9;
+}
+
+function lightingTargetOnTableTop(target, table) {
+  const deltaX = target.x - table.transform.position.x;
+  const deltaZ = target.z - table.transform.position.z;
+  const cosine = Math.cos(table.transform.yaw);
+  const sine = Math.sin(table.transform.yaw);
+  const localX = cosine * deltaX + sine * deltaZ;
+  const localZ = -sine * deltaX + cosine * deltaZ;
+  const topY = table.transform.position.y + table.dimensions.heightM;
+  return Math.abs(localX) <= table.dimensions.widthM / 2 + 1e-9
+    && Math.abs(localZ) <= table.dimensions.depthM / 2 + 1e-9
+    && Math.abs(target.y - topY) <= 1e-9;
+}
+
+function validateLightingEmitterTarget(light, implementation, room, issues) {
+  const target = implementation.emitter.target;
+  if (!insideRoom(target, room)) issues.push(`lighting_construction_target_out_of_bounds:${light.id}`);
+  const distance = Math.hypot(
+    target.x - light.position.x,
+    target.y - light.position.y,
+    target.z - light.position.z
+  );
+  if (distance <= 1e-9) issues.push(`lighting_construction_target_equals_source:${light.id}`);
+  if (implementation.emitter.type === "spot") {
+    if (implementation.emitter.innerConeHalfAngleRadians >= implementation.emitter.outerConeHalfAngleRadians) issues.push(`lighting_construction_spot_cone_order_invalid:${light.id}`);
+    if (distance > implementation.emitter.rangeM + 1e-9) issues.push(`lighting_construction_target_out_of_range:${light.id}`);
+  }
+}
+
+function validateLightingConstructionContract(scene, assetLedger, construction, constructionText, sceneReport) {
+  const issues = [];
+  collectNonFinite(construction, "lightingConstruction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  applySchemaValidation(validateLightingConstructionSchema, construction, "lighting_construction", issues);
+  if (issues.length !== 0) throw new SceneContractError(issues);
+
+  const constructionRawSha256 = sha256(constructionText);
+  const assets = new Map(assetLedger.records.map((record) => [record.id, record]));
+  if (construction.sceneId !== scene.sceneId) issues.push("lighting_construction_scene_id_mismatch");
+
+  const source = assets.get(construction.sourceRecordId);
+  if (!source) issues.push(`lighting_construction_source_unknown:${construction.sourceRecordId}`);
+  else {
+    if (source.kind === "generated-output" || source.source?.classification === "generated") issues.push(`lighting_construction_source_generated:${construction.sourceRecordId}`);
+    else if (source.kind !== "project-authored-input" || source.source?.classification !== "project-authored") issues.push(`lighting_construction_source_kind_invalid:${construction.sourceRecordId}`);
+    if (source.source?.repositoryPath !== "source/lighting-constructions.json" || source.source?.publicUrl !== null) issues.push(`lighting_construction_source_path_invalid:${construction.sourceRecordId}`);
+    else if (assetLedger.records.filter((record) => record.source?.repositoryPath === source.source.repositoryPath).length !== 1) issues.push(`lighting_construction_source_path_ambiguous:${source.source.repositoryPath}`);
+    if (source.originalSha256 !== constructionRawSha256) issues.push(`lighting_construction_source_sha256_mismatch:${construction.sourceRecordId}`);
+    if (!consumedAssetUsable(source) || source.allowedUse?.screenshots !== true) issues.push(`lighting_construction_source_use_invalid:${construction.sourceRecordId}`);
+  }
+  if (!scene.generator.acceptedInputSha256.includes(constructionRawSha256)) issues.push(`lighting_construction_input_sha256_missing:${constructionRawSha256}`);
+
+  const firstViewSourceIds = new Set([
+    ...scene.materialRecipes.map((recipe) => recipe.sourceRecordId),
+    ...scene.components.map((component) => component.sourceRecordId),
+    ...scene.exterior.sourceRecordIds,
+    construction.sourceRecordId
+  ]);
+  for (const sourceRecordId of firstViewSourceIds) {
+    const firstViewSource = assets.get(sourceRecordId);
+    if (!firstViewSource) issues.push(`lighting_construction_first_view_source_unknown:${sourceRecordId}`);
+    else if (firstViewSource.allowedUse?.screenshots !== true) issues.push(`lighting_construction_first_view_screenshot_rights_invalid:${sourceRecordId}`);
+  }
+
+  if (construction.styleBibleSha256 !== expectedLightingStyleBibleSha256
+    || construction.styleBibleSha256 !== lightingStyleBibleSha256) issues.push("lighting_construction_style_bible_sha256_mismatch");
+  const styleLighting = lightingStyleBible.lighting;
+  if (construction.firstViewAcceptance.criteria.averageLuminanceMinimum !== styleLighting?.firstViewAverageLuminanceMinimum) issues.push("lighting_construction_average_luminance_criterion_mismatch");
+  if (construction.firstViewAcceptance.criteria.darkPixelRatioMaximum !== styleLighting?.firstViewDarkPixelRatioMaximum) issues.push("lighting_construction_dark_pixel_ratio_criterion_mismatch");
+  const firstView = scene.reviewViews.find((view) => view.id === construction.firstViewAcceptance.reviewViewId);
+  if (!firstView) issues.push(`lighting_construction_review_view_unknown:${construction.firstViewAcceptance.reviewViewId}`);
+  else if (Math.hypot(
+    firstView.target.x - firstView.position.x,
+    firstView.target.y - firstView.position.y,
+    firstView.target.z - firstView.position.z
+  ) <= 1e-9) issues.push(`lighting_construction_review_view_position_equals_target:${firstView.id}`);
+
+  const sceneLights = new Map(scene.lighting.map((light) => [light.id, light]));
+  const implementationLights = new Map();
+  const roles = new Set();
+  const resolvedIntensityOutputs = [];
+  if (construction.lights.length !== scene.lighting.length) issues.push(`lighting_construction_light_count_mismatch:${scene.lighting.length}:${construction.lights.length}`);
+  construction.lights.forEach((implementation, index) => {
+    const expectedSceneLightId = scene.lighting[index]?.id ?? "missing";
+    if (implementation.sceneLightId !== expectedSceneLightId) issues.push(`lighting_construction_scene_light_order_mismatch:${index}:${expectedSceneLightId}:${implementation.sceneLightId}`);
+    if (implementationLights.has(implementation.sceneLightId)) issues.push(`lighting_construction_light_duplicate:${implementation.sceneLightId}`);
+    else implementationLights.set(implementation.sceneLightId, implementation);
+  });
+  for (const light of scene.lighting) if (!implementationLights.has(light.id)) issues.push(`lighting_construction_scene_light_unresolved:${light.id}`);
+  for (const sceneLightId of implementationLights.keys()) if (!sceneLights.has(sceneLightId)) issues.push(`lighting_construction_scene_light_unknown:${sceneLightId}`);
+
+  const table = scene.components.find((component) => component.family === "conference-table");
+  for (const implementation of construction.lights) {
+    const light = sceneLights.get(implementation.sceneLightId);
+    if (!light) continue;
+    resolvedIntensityOutputs.push({
+      sceneLightId: light.id,
+      value: light.intensityLumens / implementation.emitter.intensityMapping.divisor,
+      unit: implementation.emitter.intensityMapping.outputUnit
+    });
+    validateLightingEmitterTarget(light, implementation, scene.room, issues);
+    if (light.kind === "daylight") {
+      roles.add("daylight");
+      if (implementation.binding.type !== "opening") issues.push(`lighting_construction_daylight_binding_invalid:${light.id}`);
+      else {
+        const opening = scene.openings.find((record) => record.id === implementation.binding.openingId);
+        if (!opening || opening.kind !== "window") issues.push(`lighting_construction_daylight_opening_invalid:${light.id}:${implementation.binding.openingId}`);
+        else {
+          if (!lightingOpeningPositionBound(light.position, opening, scene.room)) issues.push(`lighting_construction_daylight_position_unbound:${light.id}:${opening.id}`);
+          if (!lightingTargetPointsInward(light.position, implementation.emitter.target, opening.wall)) issues.push(`lighting_construction_daylight_target_not_inward:${light.id}:${opening.id}`);
+        }
+      }
+      if (implementation.emitter.type !== "directional") issues.push(`lighting_construction_daylight_emitter_invalid:${light.id}`);
+      continue;
+    }
+    if (light.kind === "pendant") {
+      roles.add("pendant");
+      if (implementation.binding.type !== "component") issues.push(`lighting_construction_pendant_binding_invalid:${light.id}`);
+      else {
+        const component = scene.components.find((record) => record.id === implementation.binding.componentId);
+        if (!component || component.family !== "pendant-luminaire") issues.push(`lighting_construction_pendant_component_family_invalid:${light.id}:${implementation.binding.componentId}`);
+        else if (["x", "y", "z"].some((axis) => Math.abs(light.position[axis] - component.transform.position[axis]) > 1e-9)) issues.push(`lighting_construction_pendant_position_unbound:${light.id}:${component.id}`);
+      }
+      if (implementation.emitter.type !== "spot") issues.push(`lighting_construction_pendant_emitter_invalid:${light.id}`);
+      if (!table || !lightingTargetOnTableTop(implementation.emitter.target, table)) issues.push(`lighting_construction_pendant_target_invalid:${light.id}`);
+      continue;
+    }
+    if (light.kind === "spot") {
+      roles.add("architectural");
+      if (implementation.binding.type !== "room-surface" || implementation.binding.surface !== "ceiling") issues.push(`lighting_construction_architectural_binding_invalid:${light.id}`);
+      if (scene.room.ceilingY - light.position.y < -1e-9 || scene.room.ceilingY - light.position.y > 0.25 + 1e-9) issues.push(`lighting_construction_architectural_position_unbound:${light.id}:ceiling`);
+      if (implementation.emitter.type !== "spot") issues.push(`lighting_construction_architectural_emitter_invalid:${light.id}`);
+      if (implementation.emitter.target.y >= light.position.y - 1e-9) issues.push(`lighting_construction_architectural_target_not_below:${light.id}`);
+      continue;
+    }
+    issues.push(`lighting_construction_scene_light_kind_unsupported:${light.id}:${light.kind}`);
+  }
+  for (const role of ["daylight", "architectural", "pendant"]) if (!roles.has(role)) issues.push(`lighting_construction_role_missing:${role}`);
+
+  const resolvedLightCount = [...implementationLights.keys()].filter((sceneLightId) => sceneLights.has(sceneLightId)).length;
+  if (issues.length !== 0) throw new SceneContractError(issues);
+  return Object.freeze({
+    ...sceneReport,
+    status: "stage3-lighting-construction-contract-valid",
+    lightingConstructionSha256: sha256(stableJson(construction)),
+    lightingConstructionRawSha256: constructionRawSha256,
+    lightCount: construction.lights.length,
+    resolvedLightCount,
+    objectNamePattern: "light.<sceneLightId>",
+    resolvedIntensityOutputs: frozenJsonClone(resolvedIntensityOutputs),
+    firstViewAcceptance: frozenJsonClone(construction.firstViewAcceptance),
+    boundaries: Object.freeze({
+      lightingSpecified: true,
+      firstViewAcceptanceSpecified: true,
+      lightingCompiled: false,
+      firstViewRendered: false,
+      firstViewAcceptanceVerified: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false
+    })
+  });
+}
+
+export function parseLightingConstructionContract(options) {
+  const texts = snapshotParserTexts(options, "lightingConstructionText");
+  const sceneContract = parseSceneContractSnapshot(texts);
+  const construction = parseCanonicalJsonText(texts.lightingConstructionText, "lighting_construction");
+  const structuralIssues = [];
+  collectNonFinite(construction, "lightingConstruction", structuralIssues);
+  if (structuralIssues.length !== 0) throw new SceneContractError(structuralIssues);
+  if (`${JSON.stringify(construction, null, 2)}\n` !== texts.lightingConstructionText) throw new SceneContractError(["lighting_construction_encoding_noncanonical"]);
+  return validateLightingConstructionContract(sceneContract.scene, sceneContract.assetLedger, construction, texts.lightingConstructionText, sceneContract.report);
 }

@@ -78,9 +78,11 @@ test("compiler source attestation covers every trusted build input and rejects o
     "schemas/component-constructions.schema.json",
     "schemas/exterior-constructions.schema.json",
     "schemas/generation-ledger.schema.json",
+    "schemas/lighting-constructions.schema.json",
     "schemas/media-surface-constructions.schema.json",
     "schemas/scene-spec.schema.json",
     "experiment/warm-modern-meeting-room/candidate-lock.json",
+    "experiment/warm-modern-meeting-room/style-bible.json",
     "package.json",
     "pnpm-lock.yaml"
   ]);
@@ -112,6 +114,7 @@ test("functional contract reserves neutral anchors and semantic views", async ()
 
 test("readiness records the approved internal GPU generation scope", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
+  assert.equal(readiness.stage3.status, "lighting-construction-contract-fixture-validated-awaiting-candidate-source");
   assert.equal(readiness.storage.status, "ready");
   assert.deepEqual(readiness.stageRules.stage1WorkBlockedUntil, []);
   assert.deepEqual(readiness.stageRules.stage1ExitBlockedUntil, []);
@@ -220,6 +223,20 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.exteriorConstructionObjectCount, 4);
   assert.equal(readiness.stage3.exteriorConstructionMaterialCount, 3);
   assert.equal(readiness.stage3.exteriorConstructionNegativeFixtureCount, 4);
+  assert.equal(readiness.stage3.lightingConstructionSchemaPath, "schemas/lighting-constructions.schema.json");
+  assert.equal(readiness.stage3.lightingConstructionValidFixturePath, "tests/fixtures/lighting-construction/lighting-constructions.valid.json");
+  assert.equal(readiness.stage3.lightingConstructionFixtureSha256, "afe5cfa1cbeb692f9c072438dcfe80de3675046d385778778a8a3ada21aa0b0e");
+  assert.equal(readiness.stage3.lightingConstructionFixtureRawSha256, "a6ad05ef78281eba86a3fcd60f1519872b8890e460023ced3b8676aab6ce7f40");
+  assert.equal(readiness.stage3.lightingConstructionValidatorApi, "parseLightingConstructionContract");
+  assert.equal(readiness.stage3.lightingConstructionContractImplemented, true);
+  assert.equal(readiness.stage3.lightingConstructionContractStatus, "fixture-validated-awaiting-candidate-source");
+  assert.equal(readiness.stage3.lightingConstructionFixtureOnly, true);
+  assert.equal(readiness.stage3.lightingConstructionLightCount, 3);
+  assert.equal(readiness.stage3.lightingConstructionResolvedLightCount, 3);
+  assert.equal(readiness.stage3.lightingConstructionStyleBibleSha256, "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656");
+  assert.equal(readiness.stage3.lightingConstructionFirstViewAverageLuminanceMinimum, 40);
+  assert.equal(readiness.stage3.lightingConstructionFirstViewDarkPixelRatioMaximum, 0.7);
+  assert.equal(readiness.stage3.lightingConstructionNegativeFixtureCount, 6);
   assert.equal(readiness.stage3.approvedCandidateExteriorSourceLoaderApi, "loadApprovedCandidateExteriorSource");
   assert.equal(readiness.stage3.approvedCandidateExteriorCompileApi, "compileApprovedCandidateExterior");
   assert.equal(readiness.stage3.approvedCandidateExteriorReproducibilityApi, "verifyApprovedCandidateExteriorReproducibility");

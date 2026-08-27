@@ -1,0 +1,6 @@
+{
+  "target": "lightingConstruction",
+  "path": "lights.2.binding.componentId",
+  "value": "conference-table",
+  "expectedIssue": "lighting_construction_pendant_component_family_invalid:table-pendant:conference-table"
+}
