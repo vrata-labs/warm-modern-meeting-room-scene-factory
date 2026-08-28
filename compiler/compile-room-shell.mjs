@@ -2899,40 +2899,46 @@ async function compileRoomArchitecture(options, source) {
     if (source.lightingIncluded && source.lightingGlbEvidence !== null) {
       const locked = source.lightingGlbEvidence;
       const issueCounts = khronosValidation.issueCounts;
-      if (report.outputGlb.sha256 !== locked.sha256
-        || report.outputGlb.byteLength !== locked.byteLength
-        || report.outputBlend.byteLength !== locked.blendByteLength
-        || firstViewInspection.sha256 !== locked.firstViewSha256
-        || firstViewInspection.byteLength !== locked.firstViewByteLength
-        || firstViewInspection.decodedRgbSha256 !== locked.firstViewDecodedRgbSha256
-        || firstViewInspection.weightedLuminanceSum !== locked.firstViewWeightedLuminanceSum
-        || firstViewInspection.pixelCount !== locked.firstViewPixelCount
-        || firstViewInspection.darkPixelCount !== locked.firstViewDarkPixelCount
-        || reopenInspectionSha256 !== locked.reopenInspectionSha256
-        || report.inventory.meshCount !== locked.meshCount
-        || glbInspection.geometryEvidence.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).length !== locked.architectureMeshCount
-        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("component.")).length !== locked.componentMeshCount
-        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("exterior.")).length !== locked.exteriorMeshCount
-        || report.inventory.lightCount !== locked.lightCount
-        || report.inventory.materialCount !== locked.materialCount
-        || glbInspection.nodeCount !== locked.nodeCount
-        || glbInspection.binaryByteLength !== locked.binaryByteLength
-        || glbInspection.decodedVertexCount !== locked.decodedVertexCount
-        || glbInspection.decodedIndexCount !== locked.decodedIndexCount
-        || glbInspection.decodedTriangleCount !== locked.decodedTriangleCount
-        || glbInspection.decodedDistinctReferencedPositionCount !== locked.distinctPositionCount
-        || glbInspection.decodedNormalCount !== locked.decodedNormalCount
-        || glbInspection.minimumNormalLength !== locked.minimumNormalLength
-        || glbInspection.maximumNormalLength !== locked.maximumNormalLength
-        || report.inventory.vertexCount !== locked.objectVertexCount
-        || report.inventory.faceCount !== locked.objectFaceCount
-        || architectureBaseline.expectedSha256 !== locked.architectureSemanticSha256
-        || khronosValidation.package !== locked.khronosValidator.package
-        || khronosValidation.version !== locked.khronosValidator.version
-        || issueCounts.errors !== locked.khronosValidator.errors
-        || issueCounts.warnings !== locked.khronosValidator.warnings
-        || issueCounts.infos !== locked.khronosValidator.infos
-        || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_lighting_glb_evidence_mismatch");
+      const lightingEvidence = {
+        sha256: [report.outputGlb.sha256, locked.sha256],
+        byteLength: [report.outputGlb.byteLength, locked.byteLength],
+        blendByteLength: [report.outputBlend.byteLength, locked.blendByteLength],
+        firstViewSha256: [firstViewInspection.sha256, locked.firstViewSha256],
+        firstViewByteLength: [firstViewInspection.byteLength, locked.firstViewByteLength],
+        firstViewDecodedRgbSha256: [firstViewInspection.decodedRgbSha256, locked.firstViewDecodedRgbSha256],
+        firstViewWeightedLuminanceSum: [firstViewInspection.weightedLuminanceSum, locked.firstViewWeightedLuminanceSum],
+        firstViewPixelCount: [firstViewInspection.pixelCount, locked.firstViewPixelCount],
+        firstViewDarkPixelCount: [firstViewInspection.darkPixelCount, locked.firstViewDarkPixelCount],
+        reopenInspectionSha256: [reopenInspectionSha256, locked.reopenInspectionSha256],
+        meshCount: [report.inventory.meshCount, locked.meshCount],
+        architectureMeshCount: [glbInspection.geometryEvidence.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).length, locked.architectureMeshCount],
+        componentMeshCount: [glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("component.")).length, locked.componentMeshCount],
+        exteriorMeshCount: [glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("exterior.")).length, locked.exteriorMeshCount],
+        lightCount: [report.inventory.lightCount, locked.lightCount],
+        materialCount: [report.inventory.materialCount, locked.materialCount],
+        nodeCount: [glbInspection.nodeCount, locked.nodeCount],
+        binaryByteLength: [glbInspection.binaryByteLength, locked.binaryByteLength],
+        decodedVertexCount: [glbInspection.decodedVertexCount, locked.decodedVertexCount],
+        decodedIndexCount: [glbInspection.decodedIndexCount, locked.decodedIndexCount],
+        decodedTriangleCount: [glbInspection.decodedTriangleCount, locked.decodedTriangleCount],
+        distinctPositionCount: [glbInspection.decodedDistinctReferencedPositionCount, locked.distinctPositionCount],
+        decodedNormalCount: [glbInspection.decodedNormalCount, locked.decodedNormalCount],
+        minimumNormalLength: [glbInspection.minimumNormalLength, locked.minimumNormalLength],
+        maximumNormalLength: [glbInspection.maximumNormalLength, locked.maximumNormalLength],
+        objectVertexCount: [report.inventory.vertexCount, locked.objectVertexCount],
+        objectFaceCount: [report.inventory.faceCount, locked.objectFaceCount],
+        architectureSemanticSha256: [architectureBaseline.expectedSha256, locked.architectureSemanticSha256],
+        khronosPackage: [khronosValidation.package, locked.khronosValidator.package],
+        khronosVersion: [khronosValidation.version, locked.khronosValidator.version],
+        khronosErrors: [issueCounts.errors, locked.khronosValidator.errors],
+        khronosWarnings: [issueCounts.warnings, locked.khronosValidator.warnings],
+        khronosInfos: [issueCounts.infos, locked.khronosValidator.infos],
+        khronosHints: [issueCounts.hints, locked.khronosValidator.hints]
+      };
+      const mismatches = Object.fromEntries(Object.entries(lightingEvidence)
+        .filter(([, [observed, expected]]) => observed !== expected)
+        .map(([field, [observed, expected]]) => [field, { observed, expected }]));
+      if (Object.keys(mismatches).length > 0) throw new Error(`approved_candidate_lighting_glb_evidence_mismatch:${stableJson(mismatches)}`);
     }
 
     const commonEnvelope = {
