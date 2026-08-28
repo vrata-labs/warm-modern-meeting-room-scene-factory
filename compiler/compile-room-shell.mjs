@@ -71,6 +71,7 @@ const candidateComponentInputKind = "approved-candidate-components";
 const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
 const candidateExteriorInputKind = "approved-candidate-exterior";
 const candidateLightingInputKind = "approved-candidate-lighting";
+const firstViewPngByteIdentityScope = "same-host-same-blender-binary-two-run";
 export const mediaSurfaceOutputFaultInjection = Symbol("mediaSurfaceOutputFaultInjection");
 const publishedMediaSurfaceOutputs = Symbol("publishedMediaSurfaceOutputs");
 export const roomOutputFaultInjection = Symbol("roomOutputFaultInjection");
@@ -428,7 +429,7 @@ export function parseCandidateLockText(text) {
     && Number.isSafeInteger(exteriorKhronosEvidence?.hints) && exteriorKhronosEvidence.hints >= 0;
   const lightingGlbEvidence = candidate?.lightingGlbEvidence;
   const lightingKhronosEvidence = lightingGlbEvidence?.khronosValidator;
-  const lightingGlbEvidenceValid = exactKeys(lightingGlbEvidence, ["architectureMeshCount", "architectureSemanticSha256", "binaryByteLength", "blendByteIdentical", "blendByteLength", "byteLength", "componentMeshCount", "decodedIndexCount", "decodedNormalCount", "decodedTriangleCount", "decodedVertexCount", "distinctPositionCount", "exteriorMeshCount", "firstViewByteLength", "firstViewDarkPixelCount", "firstViewDecodedRgbSha256", "firstViewPixelCount", "firstViewSha256", "firstViewWeightedLuminanceSum", "khronosValidator", "lightCount", "materialCount", "maximumNormalLength", "meshCount", "minimumNormalLength", "nodeCount", "objectFaceCount", "objectVertexCount", "observedBlendSha256", "reopenInspectionSha256", "sha256"])
+  const lightingGlbEvidenceValid = exactKeys(lightingGlbEvidence, ["architectureMeshCount", "architectureSemanticSha256", "binaryByteLength", "blendByteIdentical", "blendByteLength", "byteLength", "componentMeshCount", "decodedIndexCount", "decodedNormalCount", "decodedTriangleCount", "decodedVertexCount", "distinctPositionCount", "exteriorMeshCount", "firstViewByteLength", "firstViewDarkPixelCount", "firstViewDecodedRgbSha256", "firstViewPixelCount", "firstViewPngByteIdentityScope", "firstViewSha256", "firstViewWeightedLuminanceSum", "khronosValidator", "lightCount", "materialCount", "maximumNormalLength", "meshCount", "minimumNormalLength", "nodeCount", "objectFaceCount", "objectVertexCount", "observedBlendSha256", "reopenInspectionSha256", "sha256"])
     && exactKeys(lightingKhronosEvidence, khronosEvidenceKeys)
     && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.sha256 ?? "")
     && Number.isSafeInteger(lightingGlbEvidence?.byteLength) && lightingGlbEvidence.byteLength > 0
@@ -440,6 +441,7 @@ export function parseCandidateLockText(text) {
     && Number.isSafeInteger(lightingGlbEvidence?.firstViewByteLength) && lightingGlbEvidence.firstViewByteLength > 0
     && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.firstViewDecodedRgbSha256 ?? "")
     && lightingGlbEvidence?.firstViewPixelCount === 960 * 540
+    && lightingGlbEvidence?.firstViewPngByteIdentityScope === firstViewPngByteIdentityScope
     && Number.isSafeInteger(lightingGlbEvidence?.firstViewWeightedLuminanceSum) && lightingGlbEvidence.firstViewWeightedLuminanceSum >= 40 * 10000 * lightingGlbEvidence.firstViewPixelCount
     && Number.isSafeInteger(lightingGlbEvidence?.firstViewDarkPixelCount) && lightingGlbEvidence.firstViewDarkPixelCount * 10 <= lightingGlbEvidence.firstViewPixelCount * 7
     && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.reopenInspectionSha256 ?? "")
@@ -2903,12 +2905,7 @@ async function compileRoomArchitecture(options, source) {
         sha256: [report.outputGlb.sha256, locked.sha256],
         byteLength: [report.outputGlb.byteLength, locked.byteLength],
         blendByteLength: [report.outputBlend.byteLength, locked.blendByteLength],
-        firstViewSha256: [firstViewInspection.sha256, locked.firstViewSha256],
-        firstViewByteLength: [firstViewInspection.byteLength, locked.firstViewByteLength],
-        firstViewDecodedRgbSha256: [firstViewInspection.decodedRgbSha256, locked.firstViewDecodedRgbSha256],
-        firstViewWeightedLuminanceSum: [firstViewInspection.weightedLuminanceSum, locked.firstViewWeightedLuminanceSum],
         firstViewPixelCount: [firstViewInspection.pixelCount, locked.firstViewPixelCount],
-        firstViewDarkPixelCount: [firstViewInspection.darkPixelCount, locked.firstViewDarkPixelCount],
         reopenInspectionSha256: [reopenInspectionSha256, locked.reopenInspectionSha256],
         meshCount: [report.inventory.meshCount, locked.meshCount],
         architectureMeshCount: [glbInspection.geometryEvidence.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).length, locked.architectureMeshCount],
@@ -3349,6 +3346,7 @@ async function verifyRoomReproducibility(options, compile, mode) {
         || stableJson(inspections[1]) !== stableJson(runs[1].firstViewInspection)) throw new Error("room_first_view_png_not_byte_identical");
       firstViewComparison = Object.freeze({
         pngByteIdentical: true,
+        pngByteIdentityScope: firstViewPngByteIdentityScope,
         pngSha256: inspections[0].sha256,
         pngByteLength: inspections[0].byteLength,
         decodedRgbSha256: inspections[0].decodedRgbSha256,
@@ -3411,6 +3409,7 @@ async function verifyRoomReproducibility(options, compile, mode) {
       firstViewAcceptanceVerified: true,
       lightingGlbByteIdentical: true,
       firstViewPngByteIdentical: true,
+      firstViewPngByteIdentityScope,
       byteIdenticalExportsVerified: false,
       mediaSurfacesCompiled: false,
       sceneBinaryAddedToRepository: false,

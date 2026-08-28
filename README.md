@@ -254,7 +254,14 @@ F3 reproducibility sets `byteIdentical` true. Single-run F4 reports keep
 `exteriorGlbByteIdentical` false; only two-run F4 reproducibility sets that
 exterior-scoped result true. Single-run F5 reports keep both scoped identity
 claims false; only two-run F5 reproducibility sets `lightingGlbByteIdentical`
-and `firstViewPngByteIdentical` true. Final candidate GLB verification, release
+and `firstViewPngByteIdentical` true. The PNG identity scope is
+`same-host-same-blender-binary-two-run`: Cycles CPU output can differ by a few
+least-significant pixel bits across processor models even with the exact Blender
+binary and render settings. Cross-host single-run validation therefore pins the
+exact GLB, scene, compiler, Blender binary, reopen inspection, and Khronos
+evidence while requiring the rendered PNG to pass the locked luminance and dark
+pixel acceptance criteria. The recorded PNG hashes and measurements are a
+reference-host observation, not a cross-host byte-identity claim. Final candidate GLB verification, release
 creation, publication readiness, repository inclusion of artifact bytes, and the
 global `byteIdenticalExportsVerified` claim remain explicitly false.
 

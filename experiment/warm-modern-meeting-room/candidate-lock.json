@@ -101,6 +101,7 @@
         "firstViewByteLength": 1102862,
         "firstViewDecodedRgbSha256": "fc915fcb2fa2a444b292effa218114921eff15b6e4dbc39500a24112043592b7",
         "firstViewPixelCount": 518400,
+        "firstViewPngByteIdentityScope": "same-host-same-blender-binary-two-run",
         "firstViewWeightedLuminanceSum": 480506649564,
         "firstViewDarkPixelCount": 114733,
         "reopenInspectionSha256": "8d4ef5e8645ecafb76223886f0125a2aabe78a292b7f1eca4d2045643df6453f",

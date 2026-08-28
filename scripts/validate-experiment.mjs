@@ -101,8 +101,8 @@ assert(readiness.resolved.platformPlanCiGreen === true, "platform_plan_ci_not_gr
 assert(readiness.resolved.stage3ContractDiagnostics === true, "stage3_contract_diagnostics_not_resolved");
 assert(readiness.stage3.status === "approved-candidate-lighting-compiled-and-scoped-reproducibility-verified", "stage3_status_invalid");
 const stage3Keys = Object.keys(readiness.stage3).sort();
-assert(stage3Keys.length === 253
-  && createHash("sha256").update(stableStringify(stage3Keys)).digest("hex") === "2b948a27ae68d7e146acab2599fde06a250b4e7dd5a41a5f4b99d68a16b8f368",
+assert(stage3Keys.length === 254
+  && createHash("sha256").update(stableStringify(stage3Keys)).digest("hex") === "07c827a4fd4148f05f3cb9e6c80e7f6a03cc14309327117c35e3b3ff88fce753",
 "stage3_key_set_invalid");
 assert(readiness.stage3.schemaEngine === "Ajv 8.17.1 with ajv-formats 3.0.1", "stage3_schema_engine_invalid");
 assert(readiness.stage3.negativeFixtureCount === 6, "stage3_negative_fixture_count_invalid");
@@ -361,6 +361,7 @@ const readinessLightingGlbEvidence = {
   firstViewByteLength: readiness.stage3.approvedCandidateLightingFirstViewByteLength,
   firstViewDecodedRgbSha256: readiness.stage3.approvedCandidateLightingFirstViewDecodedRgbSha256,
   firstViewPixelCount: readiness.stage3.approvedCandidateLightingFirstViewPixelCount,
+  firstViewPngByteIdentityScope: readiness.stage3.approvedCandidateLightingFirstViewPngByteIdentityScope,
   firstViewWeightedLuminanceSum: readiness.stage3.approvedCandidateLightingFirstViewWeightedLuminanceSum,
   firstViewDarkPixelCount: readiness.stage3.approvedCandidateLightingFirstViewDarkPixelCount,
   reopenInspectionSha256: readiness.stage3.approvedCandidateLightingReopenInspectionSha256,
@@ -397,6 +398,7 @@ const expectedLightingGlbEvidence = {
   firstViewByteLength: 1102862,
   firstViewDecodedRgbSha256: "fc915fcb2fa2a444b292effa218114921eff15b6e4dbc39500a24112043592b7",
   firstViewPixelCount: 518400,
+  firstViewPngByteIdentityScope: "same-host-same-blender-binary-two-run",
   firstViewWeightedLuminanceSum: 480506649564,
   firstViewDarkPixelCount: 114733,
   reopenInspectionSha256: "8d4ef5e8645ecafb76223886f0125a2aabe78a292b7f1eca4d2045643df6453f",

@@ -853,7 +853,7 @@
     "approvedCandidateArchitectureSemanticSha256": "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
     "approvedCandidateCompilerSourceSha256": {
       "compiler/blender-room-shell.py": "cf31e35aadab382ff77962fe74b01e14af02d0faedb61038083f8b7d81eb60f6",
-      "compiler/compile-room-shell.mjs": "f35bcd407d758931e723dc4e8368807b372e3aa05897fdff54659faf331daf6c",
+      "compiler/compile-room-shell.mjs": "30bb97047b3b0e7e1bd6f0ecc1248219afcc4e84772072abb724470e382e2d95",
       "compiler/scene-contract.mjs": "47a63c2e83a4e250428b5e05262e96349d0720c6302fac8b6357495a06b93c36",
       "compiler/verify-room-reproducibility.mjs": "3c394723570381a8f5502d52d640fe77ca261dc5eba919aa16830902be9f4431",
       "schemas/asset-ledger.schema.json": "c506839a5ff0d3a45f7e3f4820c5c46f084ede3b5f7623942889ae8c1f2809d7",
@@ -863,7 +863,7 @@
       "schemas/lighting-constructions.schema.json": "1f79ac8a278e79ba3c018c0d409bfca6628eb12b37651ffd5181e2b9c7484049",
       "schemas/media-surface-constructions.schema.json": "7c11f448b9c29aa621ceba443dfe2324dd4fbbe9686f5af2cad7333b2682aec7",
       "schemas/scene-spec.schema.json": "0a0dae8b1038f3729aa5c5d0137224b9e4f99b489fb64fa8d938c12d7b7dffaf",
-      "experiment/warm-modern-meeting-room/candidate-lock.json": "c89eebaeab70d31dcefdf1ef78e026ed2ad56bf82d4ed1a7ef179c699d826ea6",
+      "experiment/warm-modern-meeting-room/candidate-lock.json": "ad5b8d712b5de36d8e806d26841b871b1f2e9cd675dd0fdfd46ff74dc011fb90",
       "experiment/warm-modern-meeting-room/style-bible.json": "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656",
       "package.json": "436f1f729ba0fdce2b3155b83efdd31c8469c1b9de01fb1d77cd7cf7ed778e80",
       "pnpm-lock.yaml": "8dd620d1476958745c942d551bc71d06a582262abfc09e79c2ffa8ef80382a03"
@@ -1018,6 +1018,7 @@
     "approvedCandidateLightingFirstViewByteLength": 1102862,
     "approvedCandidateLightingFirstViewDecodedRgbSha256": "fc915fcb2fa2a444b292effa218114921eff15b6e4dbc39500a24112043592b7",
     "approvedCandidateLightingFirstViewPixelCount": 518400,
+    "approvedCandidateLightingFirstViewPngByteIdentityScope": "same-host-same-blender-binary-two-run",
     "approvedCandidateLightingFirstViewWeightedLuminanceSum": 480506649564,
     "approvedCandidateLightingFirstViewDarkPixelCount": 114733,
     "approvedCandidateLightingFirstViewRendered": true,

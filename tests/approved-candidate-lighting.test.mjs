@@ -222,12 +222,7 @@ function assertLockedEvidence(report, locked) {
     sha256: report.outputGlb.sha256,
     byteLength: report.outputGlb.byteLength,
     blendByteLength: report.outputBlend.byteLength,
-    firstViewSha256: report.firstViewInspection.sha256,
-    firstViewByteLength: report.firstViewInspection.byteLength,
-    firstViewDecodedRgbSha256: report.firstViewInspection.decodedRgbSha256,
-    firstViewWeightedLuminanceSum: report.firstViewInspection.weightedLuminanceSum,
     firstViewPixelCount: report.firstViewInspection.pixelCount,
-    firstViewDarkPixelCount: report.firstViewInspection.darkPixelCount,
     reopenInspectionSha256: report.reopenInspectionSha256,
     meshCount: report.inventory.meshCount,
     lightCount: report.inventory.lightCount,
@@ -254,6 +249,8 @@ function assertLockedEvidence(report, locked) {
     }
   };
   for (const [key, value] of Object.entries(observed)) assert.deepEqual(value, locked[key], key);
+  assert.equal(locked.firstViewPngByteIdentityScope, "same-host-same-blender-binary-two-run");
+  assert.equal(report.firstViewInspection.acceptancePass, true);
 }
 
 test("Candidate 01 lighting source is pinned to one commit, one tree, and exactly eight Git blobs", async () => {
@@ -297,6 +294,7 @@ test("Candidate 01 lighting source is pinned to one commit, one tree, and exactl
   assert.equal(source.semanticReports.lighting.status, "stage3-lighting-construction-contract-valid");
   assert.equal(source.f4Baseline.commit, "380098d4b7cbc1d57498b059466f095ae3568929");
   assert.equal(source.f4Baseline.treeOid, "671af158f4b0f213d010191f21c3cd7d4779b5e9");
+  assert.equal(source.lightingGlbEvidence.firstViewPngByteIdentityScope, "same-host-same-blender-binary-two-run");
   assert.deepEqual(source.boundaries, {
     componentsCompiled: true,
     mediaSurfacesCompiled: false,
@@ -721,6 +719,8 @@ test("two exact Blender runs produce identical lighting GLB and first-view PNG b
     assert.equal(report.comparison.darkRatioPass, true);
     assert.equal(report.lightingGlbByteIdentical, true);
     assert.equal(report.firstViewPngByteIdentical, true);
+    assert.equal(report.firstViewPngByteIdentityScope, "same-host-same-blender-binary-two-run");
+    assert.equal(report.comparison.pngByteIdentityScope, "same-host-same-blender-binary-two-run");
     assert.equal(report.byteIdenticalExportsVerified, false);
     assert.equal(report.finalCandidateGlbVerified, false);
     assert.equal(report.publicationReady, false);
@@ -739,9 +739,8 @@ test("two exact Blender runs produce identical lighting GLB and first-view PNG b
     const source = await loadApprovedCandidateLightingSource({ candidateRepositoryPath });
     if (source.lightingGlbEvidence !== null) {
       assert.equal(report.comparison.glbSha256, source.lightingGlbEvidence.sha256);
-      assert.equal(report.comparison.pngSha256, source.lightingGlbEvidence.firstViewSha256);
-      assert.equal(report.comparison.decodedRgbSha256, source.lightingGlbEvidence.firstViewDecodedRgbSha256);
       assert.equal(report.comparison.reopenInspectionSha256, source.lightingGlbEvidence.reopenInspectionSha256);
+      assert.equal(source.lightingGlbEvidence.firstViewPngByteIdentityScope, report.firstViewPngByteIdentityScope);
     }
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
