@@ -4,6 +4,7 @@ import {
   verifyApprovedCandidateArchitectureReproducibility,
   verifyApprovedCandidateComponentsReproducibility,
   verifyApprovedCandidateExteriorReproducibility,
+  verifyApprovedCandidateLightingReproducibility,
   verifyApprovedCandidateMediaSurfacesReproducibility,
   verifySyntheticRoomReproducibility
 } from "./compile-room-shell.mjs";
@@ -12,6 +13,7 @@ const candidateArchitectureInputKind = "approved-candidate-architecture";
 const candidateComponentInputKind = "approved-candidate-components";
 const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
 const candidateExteriorInputKind = "approved-candidate-exterior";
+const candidateLightingInputKind = "approved-candidate-lighting";
 
 function parseCli(arguments_) {
   const values = {};
@@ -21,7 +23,7 @@ function parseCli(arguments_) {
     if (!flag?.startsWith("--") || value === undefined || values[flag] !== undefined) throw new Error("room_reproducibility_cli_arguments_invalid");
     values[flag] = value;
   }
-  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateMediaSurfaceInputKind, candidateExteriorInputKind].includes(values["--input-kind"])) {
+  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateMediaSurfaceInputKind, candidateExteriorInputKind, candidateLightingInputKind].includes(values["--input-kind"])) {
     const mediaSurfaces = values["--input-kind"] === candidateMediaSurfaceInputKind;
     const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-directory", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key))
@@ -62,6 +64,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         ? await verifyApprovedCandidateComponentsReproducibility(cli.options)
         : cli.inputKind === candidateExteriorInputKind
           ? await verifyApprovedCandidateExteriorReproducibility(cli.options)
+          : cli.inputKind === candidateLightingInputKind
+            ? await verifyApprovedCandidateLightingReproducibility(cli.options)
           : cli.inputKind === candidateMediaSurfaceInputKind
             ? await verifyApprovedCandidateMediaSurfacesReproducibility(cli.options)
             : await verifySyntheticRoomReproducibility(cli.options);
