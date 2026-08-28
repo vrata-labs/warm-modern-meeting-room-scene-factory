@@ -21,9 +21,9 @@ test("candidate lock keeps repositories independent", async () => {
   const repositories = Object.values(lock.candidates).map(({ repository }) => repository);
   assert.equal(new Set(repositories).size, 2);
   assert.ok(repositories.every((repository) => /^vrata-labs\/warm-modern-meeting-room-candidate-0[12]$/.test(repository)));
-  assert.equal(lock.status, "candidate-01-exact-exterior-specification-pinned");
-  assert.equal(lock.candidates.candidate01.commit, "380098d4b7cbc1d57498b059466f095ae3568929");
-  assert.equal(lock.candidates.candidate01.specificationSha256, "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12");
+  assert.equal(lock.status, "candidate-01-exact-lighting-compilation-pinned");
+  assert.equal(lock.candidates.candidate01.commit, "5a3a45a1e8e84867a4a4377b102025ef52f08e2e");
+  assert.equal(lock.candidates.candidate01.specificationSha256, "7867defa7627115c756ceda215e4a176473f13ec841a7b10b90e7dd17159aad2");
   assert.deepEqual(lock.candidates.candidate01.mediaSurfaceBaseline.mediaSurfaceProjectionEvidence, {
     sha256: "352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb",
     byteLength: 1022,
@@ -32,7 +32,8 @@ test("candidate lock keeps repositories independent", async () => {
     byteIdentical: true
   });
   assert.equal(lock.candidates.candidate01.mediaSurfaceBaseline.commit, "26d3af6e2720576113431c22b9443533b919f390");
-  assert.equal(lock.candidates.candidate01.exteriorGlbEvidence.sha256, "eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92");
+  assert.equal(lock.candidates.candidate01.exteriorBaseline.exteriorGlbEvidence.sha256, "eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92");
+  assert.equal(lock.candidates.candidate01.lightingGlbEvidence.sha256, "ad7c19cd408681fa20d55515ebba36fe4a62be2866d7841bacba8ca9252f45ea");
   assert.equal(lock.candidates.candidate01.componentBaseline.commit, "8fec157a37bf619797f1ff200ccc32f611f94c18");
   assert.equal(lock.candidates.candidate01.componentBaseline.componentGlbEvidence.sha256, "a6e67219590ae4bbc1e887f97f9a7c071c924943223a90ef3560bdd7b06e5c69");
   assert.equal(Object.hasOwn(lock.candidates.candidate01, "componentGlbEvidence"), false);
@@ -47,15 +48,29 @@ test("candidate lock and readiness parsing reject duplicate keys and noncanonica
   assert.equal(parseCandidateLockText(lockText).mediaSurface.commit, "26d3af6e2720576113431c22b9443533b919f390");
   assert.equal(parseCandidateLockText(lockText).component.commit, "8fec157a37bf619797f1ff200ccc32f611f94c18");
   assert.throws(
-    () => parseCandidateLockText(lockText.replace('"schemaVersion": 3,', '"schemaVersion": 3,\n  "schemaVersion": 3,')),
+    () => parseCandidateLockText(lockText.replace('"schemaVersion": 4,', '"schemaVersion": 4,\n  "schemaVersion": 4,')),
     /scene_contract_invalid:candidate_lock_duplicate_key/
   );
   assert.throws(
     () => parseCandidateLockText(lockText.replace(
-      '      "commit": "380098d4b7cbc1d57498b059466f095ae3568929",',
-      '      "commit": "380098d4b7cbc1d57498b059466f095ae3568929",\n      "commit": "380098d4b7cbc1d57498b059466f095ae3568929",'
+      '      "commit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",',
+      '      "commit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",\n      "commit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",'
     )),
     /scene_contract_invalid:candidate_lock_duplicate_key/
+  );
+  assert.throws(
+    () => parseCandidateLockText(lockText.replace(
+      '      "acceptedInputSha256": [',
+      '      "finalCandidateGlbVerified": true,\n      "acceptedInputSha256": ['
+    )),
+    /approved_candidate_lock_invalid/
+  );
+  assert.throws(
+    () => parseCandidateLockText(lockText.replace(
+      '      "exteriorBaseline": {',
+      '      "exteriorBaseline": {\n        "publicationReady": true,'
+    )),
+    /approved_candidate_lock_invalid/
   );
   for (const text of ["{\"status\":false}\r\n", "\ufeff{\"status\":false}\n", "{\"status\":false}\t\n", "{\"status\":false}"]) {
     assert.throws(() => parseCanonicalJsonText(text, "readiness"), /scene_contract_invalid:readiness_encoding_noncanonical/);
@@ -63,8 +78,8 @@ test("candidate lock and readiness parsing reject duplicate keys and noncanonica
   assert.throws(() => parseCanonicalJsonText('{"status":false,"status":false}\n', "readiness"), /scene_contract_invalid:readiness_duplicate_key/);
   const readinessText = await readFile(resolve(root, "experiment/warm-modern-meeting-room/readiness.json"), "utf8");
   assert.throws(() => parseCanonicalJsonText(readinessText.replace(
-    '    "approvedCandidateCurrentCommit": "380098d4b7cbc1d57498b059466f095ae3568929",',
-    '    "approvedCandidateCurrentCommit": "380098d4b7cbc1d57498b059466f095ae3568929",\n    "approvedCandidateCurrentCommit": "380098d4b7cbc1d57498b059466f095ae3568929",'
+    '    "approvedCandidateCurrentCommit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",',
+    '    "approvedCandidateCurrentCommit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",\n    "approvedCandidateCurrentCommit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",'
   ), "readiness"), /scene_contract_invalid:readiness_duplicate_key/);
 });
 
@@ -114,7 +129,7 @@ test("functional contract reserves neutral anchors and semantic views", async ()
 
 test("readiness records the approved internal GPU generation scope", async () => {
   const readiness = await json("experiment/warm-modern-meeting-room/readiness.json");
-  assert.equal(readiness.stage3.status, "lighting-construction-contract-fixture-validated-awaiting-candidate-source");
+  assert.equal(readiness.stage3.status, "approved-candidate-lighting-compiled-and-scoped-reproducibility-verified");
   assert.equal(readiness.storage.status, "ready");
   assert.deepEqual(readiness.stageRules.stage1WorkBlockedUntil, []);
   assert.deepEqual(readiness.stageRules.stage1ExitBlockedUntil, []);
@@ -154,7 +169,7 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.approvedCandidateArchitectureCompilerImplemented, true);
   assert.equal(readiness.stage3.approvedCandidateArchitectureCompileApi, "compileApprovedCandidateArchitecture");
   assert.equal(readiness.stage3.approvedCandidateArchitectureReproducibilityApi, "verifyApprovedCandidateArchitectureReproducibility");
-  assert.equal(readiness.stage3.approvedCandidateGitBlobInputCount, 7);
+  assert.equal(readiness.stage3.approvedCandidateGitBlobInputCount, 8);
   assert.equal(readiness.stage3.approvedCandidateGitBlobSourceLocked, true);
   assert.equal(readiness.stage3.approvedCandidateArchitectureMeshCount, 19);
   assert.equal(readiness.stage3.approvedCandidateArchitectureMaterialCount, 3);
@@ -229,8 +244,8 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.lightingConstructionFixtureRawSha256, "a6ad05ef78281eba86a3fcd60f1519872b8890e460023ced3b8676aab6ce7f40");
   assert.equal(readiness.stage3.lightingConstructionValidatorApi, "parseLightingConstructionContract");
   assert.equal(readiness.stage3.lightingConstructionContractImplemented, true);
-  assert.equal(readiness.stage3.lightingConstructionContractStatus, "fixture-validated-awaiting-candidate-source");
-  assert.equal(readiness.stage3.lightingConstructionFixtureOnly, true);
+  assert.equal(readiness.stage3.lightingConstructionContractStatus, "candidate-source-validated-and-compiled");
+  assert.equal(readiness.stage3.lightingConstructionFixtureOnly, false);
   assert.equal(readiness.stage3.lightingConstructionLightCount, 3);
   assert.equal(readiness.stage3.lightingConstructionResolvedLightCount, 3);
   assert.equal(readiness.stage3.lightingConstructionStyleBibleSha256, "d8147f9495fb8d2cb50bbccf6849cf272b30b662bffb985b6e46e3c604384656");
@@ -273,7 +288,10 @@ test("readiness records the approved internal GPU generation scope", async () =>
   assert.equal(readiness.stage3.approvedCandidateExteriorSupportRepresentedAsMetadata, true);
   assert.equal(readiness.stage3.approvedCandidateExteriorParentedObjectCount, 0);
   assert.equal(readiness.stage3.approvedCandidateExteriorMediaPlanesIncludedInGlb, false);
-  assert.equal(readiness.stage3.approvedCandidateLightingCompiled, false);
+  assert.equal(readiness.stage3.approvedCandidateLightingCompiled, true);
+  assert.equal(readiness.stage3.approvedCandidateLightingGlbByteIdenticalVerified, true);
+  assert.equal(readiness.stage3.approvedCandidateLightingFirstViewAcceptanceVerified, true);
+  assert.equal(readiness.stage3.approvedCandidateLightingFirstViewPngByteIdenticalVerified, true);
   assert.equal(readiness.stage3.approvedCandidateMediaSurfacesCompiled, true);
   assert.equal(readiness.stage3.approvedCandidateReleaseArtifactsCreated, false);
   assert.equal(readiness.stage3.approvedCandidateArtifactBytesIncludedInRepository, false);

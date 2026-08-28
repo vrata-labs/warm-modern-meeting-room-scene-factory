@@ -5,12 +5,14 @@ import { tmpdir } from "node:os";
 import { basename, dirname, extname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { inflateSync } from "node:zlib";
 import gltfValidator from "gltf-validator";
 
 import {
   parseCanonicalJsonText,
   parseComponentConstructionContract,
   parseExteriorConstructionContract,
+  parseLightingConstructionContract,
   parseMediaSurfaceConstructionContract,
   parseSceneContract
 } from "./scene-contract.mjs";
@@ -31,7 +33,8 @@ const candidatePaths = Object.freeze({
   conceptSelection: "source/concept-selection.json",
   componentConstruction: "source/component-constructions.json",
   mediaSurfaceConstruction: "source/media-surface-constructions.json",
-  exteriorConstruction: "source/exterior-constructions.json"
+  exteriorConstruction: "source/exterior-constructions.json",
+  lightingConstruction: "source/lighting-constructions.json"
 });
 const candidateArchitecturePaths = Object.freeze([
   candidatePaths.scene,
@@ -42,6 +45,7 @@ const candidateArchitecturePaths = Object.freeze([
 const candidateComponentPaths = Object.freeze([...candidateArchitecturePaths, candidatePaths.componentConstruction]);
 const candidateMediaSurfacePaths = Object.freeze([...candidateComponentPaths, candidatePaths.mediaSurfaceConstruction]);
 const candidateExteriorPaths = Object.freeze([...candidateMediaSurfacePaths, candidatePaths.exteriorConstruction]);
+const candidateLightingPaths = Object.freeze([...candidateExteriorPaths, candidatePaths.lightingConstruction]);
 export const compilerSourceAttestationPaths = Object.freeze([
   "compiler/blender-room-shell.py",
   "compiler/compile-room-shell.mjs",
@@ -60,12 +64,13 @@ export const compilerSourceAttestationPaths = Object.freeze([
   "pnpm-lock.yaml"
 ]);
 const expectedBlenderBinarySha256 = "33ac108ebce3c271f5357e5c664d0488717263bcf2145c80300edd0b12c31880";
-const blenderTimeoutMs = 300_000;
+const blenderTimeoutMs = 1_200_000;
 const syntheticInputKind = "synthetic-fixture";
 const candidateArchitectureInputKind = "approved-candidate-architecture";
 const candidateComponentInputKind = "approved-candidate-components";
 const candidateMediaSurfaceInputKind = "approved-candidate-media-surfaces";
 const candidateExteriorInputKind = "approved-candidate-exterior";
+const candidateLightingInputKind = "approved-candidate-lighting";
 export const mediaSurfaceOutputFaultInjection = Symbol("mediaSurfaceOutputFaultInjection");
 const publishedMediaSurfaceOutputs = Symbol("publishedMediaSurfaceOutputs");
 export const roomOutputFaultInjection = Symbol("roomOutputFaultInjection");
@@ -189,7 +194,7 @@ function roomOutputFault(options, artifact) {
   const value = options?.[roomOutputFaultInjection];
   if (value === undefined) return null;
   if (!exactKeys(value, ["artifact", "phase"])
-    || !["blend", "glb", "compile-report", "reproducibility-report"].includes(value.artifact)
+    || !["blend", "glb", "first-view", "compile-report", "reproducibility-report"].includes(value.artifact)
     || !["after-partial-write", "after-write", "before-link", "replace-before-link", "after-link"].includes(value.phase)) {
     throw new Error("room_output_fault_injection_invalid");
   }
@@ -352,9 +357,11 @@ async function readGitBlob(repositoryPath, commit, path) {
 export function parseCandidateLockText(text) {
   const lock = parseCanonicalJsonText(text, "candidate_lock");
   const candidate = lock?.candidates?.candidate01;
+  const candidate02 = lock?.candidates?.candidate02;
   const architectureBaseline = candidate?.architectureBaseline;
   const componentBaseline = candidate?.componentBaseline;
   const mediaSurfaceBaseline = candidate?.mediaSurfaceBaseline;
+  const exteriorBaseline = candidate?.exteriorBaseline;
   const hashFieldsValid = (value, fields) => fields.every((field) => /^[0-9a-f]{64}$/.test(value?.[field] ?? ""));
   const inputBlobsValid = (value, paths) => value && typeof value === "object"
     && Object.keys(value).sort().join(",") === [...paths].sort().join(",")
@@ -362,13 +369,17 @@ export function parseCandidateLockText(text) {
       && /^[0-9a-f]{64}$/.test(blob?.rawSha256 ?? "")
       && Number.isSafeInteger(blob?.byteLength) && blob.byteLength > 0);
   const semanticEvidenceValid = (value) => value?.schemaVersion === 1
+    && exactKeys(value, ["contract", "materialCount", "objectCount", "schemaVersion", "sha256"])
     && value?.contract === "f1-architecture-objects-materials-v1"
     && /^[0-9a-f]{64}$/.test(value?.sha256 ?? "")
     && value?.objectCount === 19
     && value?.materialCount === 3;
   const componentGlbEvidence = componentBaseline?.componentGlbEvidence;
   const khronosEvidence = componentGlbEvidence?.khronosValidator;
-  const componentGlbEvidenceValid = /^[0-9a-f]{64}$/.test(componentGlbEvidence?.sha256 ?? "")
+  const khronosEvidenceKeys = ["errors", "hints", "infos", "package", "version", "warnings"];
+  const componentGlbEvidenceValid = exactKeys(componentGlbEvidence, ["architectureSemanticSha256", "byteLength", "decodedNormalCount", "khronosValidator", "materialCount", "meshCount", "reopenInspectionSha256", "sha256"])
+    && exactKeys(khronosEvidence, khronosEvidenceKeys)
+    && /^[0-9a-f]{64}$/.test(componentGlbEvidence?.sha256 ?? "")
     && Number.isSafeInteger(componentGlbEvidence?.byteLength) && componentGlbEvidence.byteLength > 0
     && /^[0-9a-f]{64}$/.test(componentGlbEvidence?.reopenInspectionSha256 ?? "")
     && componentGlbEvidence?.meshCount === 57
@@ -381,9 +392,12 @@ export function parseCandidateLockText(text) {
     && khronosEvidence?.warnings === 0
     && Number.isSafeInteger(khronosEvidence?.infos) && khronosEvidence.infos >= 0
     && Number.isSafeInteger(khronosEvidence?.hints) && khronosEvidence.hints >= 0;
-  const exteriorGlbEvidence = candidate?.exteriorGlbEvidence;
+  const exteriorGlbEvidence = exteriorBaseline?.exteriorGlbEvidence;
   const exteriorKhronosEvidence = exteriorGlbEvidence?.khronosValidator;
-  const exteriorGlbEvidenceValid = /^[0-9a-f]{64}$/.test(exteriorGlbEvidence?.sha256 ?? "")
+  const exteriorGlbEvidenceKeys = ["architectureMeshCount", "architectureSemanticSha256", "binaryByteLength", "blendByteIdentical", "blendByteLength", "byteLength", "componentMeshCount", "decodedIndexCount", "decodedNormalCount", "decodedTriangleCount", "decodedVertexCount", "distinctPositionCount", "exteriorMeshCount", "khronosValidator", "materialCount", "maximumNormalLength", "meshCount", "minimumNormalLength", "objectFaceCount", "objectVertexCount", "observedBlendSha256", "reopenInspectionSha256", "sha256"];
+  const exteriorGlbEvidenceValid = exactKeys(exteriorGlbEvidence, exteriorGlbEvidenceKeys)
+    && exactKeys(exteriorKhronosEvidence, khronosEvidenceKeys)
+    && /^[0-9a-f]{64}$/.test(exteriorGlbEvidence?.sha256 ?? "")
     && Number.isSafeInteger(exteriorGlbEvidence?.byteLength) && exteriorGlbEvidence.byteLength > 0
     && Number.isSafeInteger(exteriorGlbEvidence?.blendByteLength) && exteriorGlbEvidence.blendByteLength > 0
     && Array.isArray(exteriorGlbEvidence?.observedBlendSha256) && exteriorGlbEvidence.observedBlendSha256.length === 2
@@ -412,6 +426,47 @@ export function parseCandidateLockText(text) {
     && exteriorKhronosEvidence?.warnings === 0
     && Number.isSafeInteger(exteriorKhronosEvidence?.infos) && exteriorKhronosEvidence.infos >= 0
     && Number.isSafeInteger(exteriorKhronosEvidence?.hints) && exteriorKhronosEvidence.hints >= 0;
+  const lightingGlbEvidence = candidate?.lightingGlbEvidence;
+  const lightingKhronosEvidence = lightingGlbEvidence?.khronosValidator;
+  const lightingGlbEvidenceValid = exactKeys(lightingGlbEvidence, ["architectureMeshCount", "architectureSemanticSha256", "binaryByteLength", "blendByteIdentical", "blendByteLength", "byteLength", "componentMeshCount", "decodedIndexCount", "decodedNormalCount", "decodedTriangleCount", "decodedVertexCount", "distinctPositionCount", "exteriorMeshCount", "firstViewByteLength", "firstViewDarkPixelCount", "firstViewDecodedRgbSha256", "firstViewPixelCount", "firstViewSha256", "firstViewWeightedLuminanceSum", "khronosValidator", "lightCount", "materialCount", "maximumNormalLength", "meshCount", "minimumNormalLength", "nodeCount", "objectFaceCount", "objectVertexCount", "observedBlendSha256", "reopenInspectionSha256", "sha256"])
+    && exactKeys(lightingKhronosEvidence, khronosEvidenceKeys)
+    && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.sha256 ?? "")
+    && Number.isSafeInteger(lightingGlbEvidence?.byteLength) && lightingGlbEvidence.byteLength > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.blendByteLength) && lightingGlbEvidence.blendByteLength > 0
+    && Array.isArray(lightingGlbEvidence?.observedBlendSha256) && lightingGlbEvidence.observedBlendSha256.length === 2
+    && lightingGlbEvidence.observedBlendSha256.every((digest) => /^[0-9a-f]{64}$/.test(digest))
+    && lightingGlbEvidence?.blendByteIdentical === false
+    && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.firstViewSha256 ?? "")
+    && Number.isSafeInteger(lightingGlbEvidence?.firstViewByteLength) && lightingGlbEvidence.firstViewByteLength > 0
+    && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.firstViewDecodedRgbSha256 ?? "")
+    && lightingGlbEvidence?.firstViewPixelCount === 960 * 540
+    && Number.isSafeInteger(lightingGlbEvidence?.firstViewWeightedLuminanceSum) && lightingGlbEvidence.firstViewWeightedLuminanceSum >= 40 * 10000 * lightingGlbEvidence.firstViewPixelCount
+    && Number.isSafeInteger(lightingGlbEvidence?.firstViewDarkPixelCount) && lightingGlbEvidence.firstViewDarkPixelCount * 10 <= lightingGlbEvidence.firstViewPixelCount * 7
+    && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.reopenInspectionSha256 ?? "")
+    && lightingGlbEvidence?.meshCount === 61
+    && lightingGlbEvidence?.architectureMeshCount === 19
+    && lightingGlbEvidence?.componentMeshCount === 38
+    && lightingGlbEvidence?.exteriorMeshCount === 4
+    && lightingGlbEvidence?.lightCount === 3
+    && lightingGlbEvidence?.materialCount === 8
+    && lightingGlbEvidence?.nodeCount === 64
+    && Number.isSafeInteger(lightingGlbEvidence?.binaryByteLength) && lightingGlbEvidence.binaryByteLength > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.decodedVertexCount) && lightingGlbEvidence.decodedVertexCount > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.decodedIndexCount) && lightingGlbEvidence.decodedIndexCount > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.decodedTriangleCount) && lightingGlbEvidence.decodedTriangleCount > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.distinctPositionCount) && lightingGlbEvidence.distinctPositionCount > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.decodedNormalCount) && lightingGlbEvidence.decodedNormalCount > 0
+    && Number.isFinite(lightingGlbEvidence?.minimumNormalLength) && Math.abs(lightingGlbEvidence.minimumNormalLength - 1) <= normalLengthTolerance
+    && Number.isFinite(lightingGlbEvidence?.maximumNormalLength) && Math.abs(lightingGlbEvidence.maximumNormalLength - 1) <= normalLengthTolerance
+    && Number.isSafeInteger(lightingGlbEvidence?.objectVertexCount) && lightingGlbEvidence.objectVertexCount > 0
+    && Number.isSafeInteger(lightingGlbEvidence?.objectFaceCount) && lightingGlbEvidence.objectFaceCount > 0
+    && /^[0-9a-f]{64}$/.test(lightingGlbEvidence?.architectureSemanticSha256 ?? "")
+    && lightingKhronosEvidence?.package === "gltf-validator"
+    && lightingKhronosEvidence?.version === expectedGltfValidatorVersion
+    && lightingKhronosEvidence?.errors === 0
+    && lightingKhronosEvidence?.warnings === 0
+    && Number.isSafeInteger(lightingKhronosEvidence?.infos) && lightingKhronosEvidence.infos >= 0
+    && Number.isSafeInteger(lightingKhronosEvidence?.hints) && lightingKhronosEvidence.hints >= 0;
   const componentCountsValid = stableJson(componentBaseline?.counts) === stableJson({
     assetRecordCount: 2,
     generationRecordCount: 0,
@@ -438,7 +493,7 @@ export function parseCandidateLockText(text) {
     surfaceCount: 2,
     resolvedSurfaceCount: 2
   });
-  const exteriorCountsValid = stableJson(candidate?.counts) === stableJson({
+  const exteriorCountsValid = stableJson(exteriorBaseline?.counts) === stableJson({
     assetRecordCount: 4,
     generationRecordCount: 0,
     familyCount: 4,
@@ -456,12 +511,39 @@ export function parseCandidateLockText(text) {
     exteriorMaterialCount: 3,
     exteriorRoleCount: 4
   });
-  const priorPhaseHashesValid = candidate?.componentConstructionSha256 === componentBaseline?.componentConstructionSha256
+  const lightingCountsValid = stableJson(candidate?.counts) === stableJson({
+    assetRecordCount: 5,
+    generationRecordCount: 0,
+    familyCount: 4,
+    partCount: 38,
+    overrideCount: 2,
+    componentCount: 11,
+    resolvedComponentCount: 11,
+    materialCount: 5,
+    resolvedMaterialCount: 4,
+    seatCount: 8,
+    surfaceCount: 2,
+    resolvedSurfaceCount: 2,
+    exteriorObjectCount: 4,
+    exteriorResolvedObjectCount: 4,
+    exteriorMaterialCount: 3,
+    exteriorRoleCount: 4,
+    lightCount: 3,
+    resolvedLightCount: 3
+  });
+  const priorPhaseHashesValid = candidate?.componentConstructionSha256 === exteriorBaseline?.componentConstructionSha256
+    && candidate?.componentConstructionRawSha256 === exteriorBaseline?.componentConstructionRawSha256
+    && candidate?.mediaSurfaceConstructionSha256 === exteriorBaseline?.mediaSurfaceConstructionSha256
+    && candidate?.mediaSurfaceConstructionRawSha256 === exteriorBaseline?.mediaSurfaceConstructionRawSha256
+    && candidate?.exteriorConstructionSha256 === exteriorBaseline?.exteriorConstructionSha256
+    && candidate?.exteriorConstructionRawSha256 === exteriorBaseline?.exteriorConstructionRawSha256
+    && stableJson(candidate?.acceptedInputSha256?.slice(0, 4)) === stableJson(exteriorBaseline?.acceptedInputSha256)
+    && exteriorBaseline?.componentConstructionSha256 === componentBaseline?.componentConstructionSha256
     && candidate?.componentConstructionRawSha256 === componentBaseline?.componentConstructionRawSha256
-    && candidate?.mediaSurfaceConstructionSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionSha256
-    && candidate?.mediaSurfaceConstructionRawSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionRawSha256
-    && stableJson(candidate?.acceptedInputSha256?.slice(0, 3)) === stableJson(mediaSurfaceBaseline?.acceptedInputSha256)
-    && stableJson(candidate?.acceptedInputSha256?.slice(0, 2)) === stableJson(componentBaseline?.acceptedInputSha256);
+    && exteriorBaseline?.mediaSurfaceConstructionSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionSha256
+    && exteriorBaseline?.mediaSurfaceConstructionRawSha256 === mediaSurfaceBaseline?.mediaSurfaceConstructionRawSha256
+    && stableJson(exteriorBaseline?.acceptedInputSha256?.slice(0, 3)) === stableJson(mediaSurfaceBaseline?.acceptedInputSha256)
+    && stableJson(exteriorBaseline?.acceptedInputSha256?.slice(0, 2)) === stableJson(componentBaseline?.acceptedInputSha256);
   const mediaSurfaceBoundariesValid = stableJson(mediaSurfaceBaseline?.boundaries) === stableJson({
     mediaSurfacesCompiled: false,
     exteriorCompiled: false,
@@ -471,11 +553,26 @@ export function parseCandidateLockText(text) {
     publicationReady: false,
     artifactBytesIncludedInRepository: false
   });
-  const exteriorBoundariesValid = stableJson(candidate?.boundaries) === stableJson({
+  const exteriorBoundariesValid = stableJson(exteriorBaseline?.boundaries) === stableJson({
     componentsCompiled: false,
     mediaSurfacesCompiled: false,
     exteriorCompiled: false,
     lightingCompiled: false,
+    finalCandidateGlbVerified: false,
+    releaseArtifactsCreated: false,
+    publicationReady: false,
+    artifactBytesIncludedInRepository: false
+  });
+  const lightingBoundariesValid = stableJson(candidate?.boundaries) === stableJson({
+    componentsCompiled: true,
+    mediaSurfacesCompiled: false,
+    exteriorCompiled: true,
+    lightingCompiled: true,
+    lightingGlbByteIdentical: true,
+    firstViewRendered: true,
+    firstViewAcceptanceVerified: true,
+    firstViewPngByteIdentical: true,
+    byteIdenticalExportsVerified: false,
     finalCandidateGlbVerified: false,
     releaseArtifactsCreated: false,
     publicationReady: false,
@@ -488,21 +585,51 @@ export function parseCandidateLockText(text) {
     representation: "platform-runtime-plane",
     byteIdentical: true
   });
-  if (lock?.schemaVersion !== 3
+  const architectureGlbEvidence = architectureBaseline?.glbEvidence;
+  const baselineShapesValid = exactKeys(architectureBaseline, ["acceptedInputSha256", "assetLedgerSha256", "commit", "generationLedgerSha256", "glbEvidence", "inputBlobs", "sceneContractValidatorCommit", "semanticEvidence", "specificationSha256"])
+    && exactKeys(architectureGlbEvidence, ["binaryByteLength", "byteLength", "decodedIndexCount", "decodedTriangleCount", "decodedVertexCount", "distinctPositionCount", "materialCount", "meshCount", "reopenInspectionSha256", "sha256"])
+    && hashFieldsValid(architectureGlbEvidence, ["reopenInspectionSha256", "sha256"])
+    && architectureGlbEvidence?.meshCount === 19
+    && architectureGlbEvidence?.materialCount === 3
+    && exactKeys(componentBaseline, ["acceptedInputSha256", "assetLedgerSha256", "commit", "componentConstructionRawSha256", "componentConstructionSha256", "componentGlbEvidence", "counts", "generationLedgerSha256", "inputBlobs", "sceneContractValidatorCommit", "specificationSha256", "treeOid"])
+    && exactKeys(mediaSurfaceBaseline, ["acceptedInputSha256", "assetLedgerSha256", "boundaries", "commit", "componentConstructionRawSha256", "componentConstructionSha256", "counts", "generationLedgerSha256", "inputBlobs", "mediaSurfaceConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceProjectionEvidence", "release", "sceneContractValidatorCommit", "specificationSha256", "treeOid"])
+    && exactKeys(mediaSurfaceBaseline?.mediaSurfaceProjectionEvidence, ["byteIdentical", "byteLength", "mediaSurfaceCount", "representation", "sha256"])
+    && exactKeys(exteriorBaseline, ["acceptedInputSha256", "assetLedgerSha256", "boundaries", "commit", "componentConstructionRawSha256", "componentConstructionSha256", "counts", "exteriorConstructionRawSha256", "exteriorConstructionSha256", "exteriorGlbEvidence", "generationLedgerSha256", "inputBlobs", "mediaSurfaceConstructionRawSha256", "mediaSurfaceConstructionSha256", "release", "sceneContractValidatorCommit", "specificationSha256", "treeOid"]);
+  if (!exactKeys(lock, ["candidates", "platformValidatorCommit", "schemaVersion", "status"])
+    || !exactKeys(lock?.candidates, ["candidate01", "candidate02"])
+    || !exactKeys(candidate, ["acceptedInputSha256", "architectureBaseline", "assetLedgerSha256", "boundaries", "commit", "componentBaseline", "componentConstructionRawSha256", "componentConstructionSha256", "counts", "exteriorBaseline", "exteriorConstructionRawSha256", "exteriorConstructionSha256", "generationLedgerSha256", "inputBlobs", "lightingConstructionRawSha256", "lightingConstructionSha256", "lightingGlbEvidence", "mediaSurfaceBaseline", "mediaSurfaceConstructionRawSha256", "mediaSurfaceConstructionSha256", "release", "repository", "sceneContractValidatorCommit", "specificationSha256", "treeOid"])
+    || !exactKeys(candidate02, ["commit", "release", "repository"])
+    || candidate02.repository !== "vrata-labs/warm-modern-meeting-room-candidate-02"
+    || !/^[0-9a-f]{40}$/.test(candidate02.commit ?? "")
+    || candidate02.release !== null
+    || lock?.schemaVersion !== 4
+    || lock?.status !== "candidate-01-exact-lighting-compilation-pinned"
     || typeof candidate?.repository !== "string"
     || !/^[0-9a-f]{40}$/.test(candidate?.commit ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.treeOid ?? "")
     || !/^[0-9a-f]{40}$/.test(candidate?.sceneContractValidatorCommit ?? "")
     || !/^[0-9a-f]{40}$/.test(lock?.platformValidatorCommit ?? "")
-    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256", "exteriorConstructionSha256", "exteriorConstructionRawSha256"])
-    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 4
+    || !hashFieldsValid(candidate, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256", "exteriorConstructionSha256", "exteriorConstructionRawSha256", "lightingConstructionSha256", "lightingConstructionRawSha256"])
+    || !Array.isArray(candidate.acceptedInputSha256) || candidate.acceptedInputSha256.length !== 5
     || candidate.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
-    || !inputBlobsValid(candidate.inputBlobs, candidateExteriorPaths)
-    || !exteriorCountsValid
+    || !inputBlobsValid(candidate.inputBlobs, candidateLightingPaths)
+    || !lightingCountsValid
     || !priorPhaseHashesValid
+    || !baselineShapesValid
+    || !lightingGlbEvidenceValid
+    || !lightingBoundariesValid
+    || candidate.release !== null
+    || !/^[0-9a-f]{40}$/.test(exteriorBaseline?.commit ?? "")
+    || !/^[0-9a-f]{40}$/.test(exteriorBaseline?.treeOid ?? "")
+    || !/^[0-9a-f]{40}$/.test(exteriorBaseline?.sceneContractValidatorCommit ?? "")
+    || !hashFieldsValid(exteriorBaseline, ["specificationSha256", "assetLedgerSha256", "generationLedgerSha256", "componentConstructionSha256", "componentConstructionRawSha256", "mediaSurfaceConstructionSha256", "mediaSurfaceConstructionRawSha256", "exteriorConstructionSha256", "exteriorConstructionRawSha256"])
+    || !Array.isArray(exteriorBaseline?.acceptedInputSha256) || exteriorBaseline.acceptedInputSha256.length !== 4
+    || exteriorBaseline.acceptedInputSha256.some((digest) => !/^[0-9a-f]{64}$/.test(digest))
+    || !inputBlobsValid(exteriorBaseline?.inputBlobs, candidateExteriorPaths)
+    || !exteriorCountsValid
     || !exteriorGlbEvidenceValid
     || !exteriorBoundariesValid
-    || candidate.release !== null
+    || exteriorBaseline?.release !== null
     || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.commit ?? "")
     || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.treeOid ?? "")
     || !/^[0-9a-f]{40}$/.test(mediaSurfaceBaseline?.sceneContractValidatorCommit ?? "")
@@ -534,9 +661,13 @@ export function parseCandidateLockText(text) {
   return Object.freeze({
     repository: candidate.repository,
     platformValidatorCommit: lock.platformValidatorCommit,
-    exterior: Object.freeze({
+    lighting: Object.freeze({
       ...candidate,
       validatorCommit: candidate.sceneContractValidatorCommit
+    }),
+    exterior: Object.freeze({
+      ...exteriorBaseline,
+      validatorCommit: exteriorBaseline.sceneContractValidatorCommit
     }),
     mediaSurface: Object.freeze({
       ...mediaSurfaceBaseline,
@@ -1015,9 +1146,12 @@ export async function loadApprovedCandidateExteriorSource(options = {}) {
     componentsIncluded: true,
     exteriorIncluded: true,
     sceneBytes: Buffer.from(sceneBlob.bytes),
+    assetLedgerBytes: Buffer.from(assetLedgerBlob.bytes),
     componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
+    mediaSurfaceConstructionBytes: Buffer.from(mediaSurfaceConstructionBlob.bytes),
     exteriorConstructionBytes: Buffer.from(exteriorConstructionBlob.bytes),
     scene,
+    assetLedger,
     componentConstruction,
     mediaSurfaceConstruction,
     exteriorConstruction,
@@ -1057,6 +1191,221 @@ export async function loadApprovedCandidateExteriorSource(options = {}) {
   });
 }
 
+export function validateApprovedCandidateLightingPhaseIsolation(current, exteriorBaselineSource) {
+  if (!current || typeof current !== "object" || !exteriorBaselineSource || typeof exteriorBaselineSource !== "object") {
+    throw new Error("approved_candidate_lighting_phase_isolation_mismatch");
+  }
+  const currentScene = structuredClone(current.scene);
+  const baselineScene = structuredClone(exteriorBaselineSource.scene);
+  for (const scene of [currentScene, baselineScene]) {
+    delete scene.lighting;
+    delete scene.generator?.commit;
+    delete scene.generator?.acceptedInputSha256;
+  }
+  const currentRecords = current.assetLedger?.records;
+  const baselineRecords = exteriorBaselineSource.assetLedger?.records;
+  const currentAccepted = current.scene?.generator?.acceptedInputSha256;
+  const baselineAccepted = exteriorBaselineSource.scene?.generator?.acceptedInputSha256;
+  const appendedRecord = currentRecords?.at(-1);
+  const bytesMatch = [
+    [current.componentConstructionBytes, exteriorBaselineSource.componentConstructionBytes],
+    [current.mediaSurfaceConstructionBytes, exteriorBaselineSource.mediaSurfaceConstructionBytes],
+    [current.exteriorConstructionBytes, exteriorBaselineSource.exteriorConstructionBytes]
+  ].every(([actual, expected]) => Buffer.isBuffer(actual) && Buffer.isBuffer(expected) && actual.equals(expected));
+  const semanticsMatch = stableJson({
+    componentConstruction: current.componentConstruction,
+    mediaSurfaceConstruction: current.mediaSurfaceConstruction,
+    exteriorConstruction: current.exteriorConstruction
+  }) === stableJson({
+    componentConstruction: exteriorBaselineSource.componentConstruction,
+    mediaSurfaceConstruction: exteriorBaselineSource.mediaSurfaceConstruction,
+    exteriorConstruction: exteriorBaselineSource.exteriorConstruction
+  });
+  if (stableJson(currentScene) !== stableJson(baselineScene)
+    || !bytesMatch
+    || !semanticsMatch
+    || !Array.isArray(currentRecords) || !Array.isArray(baselineRecords)
+    || currentRecords.length !== baselineRecords.length + 1
+    || stableJson(currentRecords.slice(0, -1)) !== stableJson(baselineRecords)
+    || appendedRecord?.id !== "asset-lighting-constructions-project"
+    || appendedRecord?.kind !== "project-authored-input"
+    || appendedRecord?.source?.classification !== "project-authored"
+    || appendedRecord?.source?.repositoryPath !== candidatePaths.lightingConstruction
+    || appendedRecord?.source?.publicUrl !== null
+    || !Array.isArray(currentAccepted) || !Array.isArray(baselineAccepted)
+    || currentAccepted.length !== baselineAccepted.length + 1
+    || stableJson(currentAccepted.slice(0, -1)) !== stableJson(baselineAccepted)
+    || currentAccepted.at(-1) !== current.rawLightingConstructionSha256
+    || appendedRecord.originalSha256 !== current.rawLightingConstructionSha256) {
+    throw new Error("approved_candidate_lighting_phase_isolation_mismatch");
+  }
+  return true;
+}
+
+export async function loadApprovedCandidateLightingSource(options = {}) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_lighting_source_options_invalid");
+  const candidateLock = await loadCandidateLock();
+  const lock = candidateLock.lighting;
+  if (options.candidateCommit !== undefined && options.candidateCommit !== lock.commit) throw new Error("approved_candidate_lighting_commit_not_locked");
+  const candidateRepositoryPath = await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository");
+  await verifyLockedCandidateCommit(candidateRepositoryPath, lock, "approved_candidate_lighting_commit_missing");
+  const exteriorBaselineSource = await loadApprovedCandidateExteriorSource({ candidateRepositoryPath });
+
+  const blobs = await Promise.all(candidateLightingPaths.map((path) => readGitBlob(candidateRepositoryPath, lock.treeOid, path)));
+  verifyLockedInputBlobs(blobs, lock.inputBlobs);
+  const blobByPath = new Map(blobs.map((blob) => [blob.path, blob]));
+  const sceneBlob = blobByPath.get(candidatePaths.scene);
+  const assetLedgerBlob = blobByPath.get(candidatePaths.assetLedger);
+  const generationLedgerBlob = blobByPath.get(candidatePaths.generationLedger);
+  const componentConstructionBlob = blobByPath.get(candidatePaths.componentConstruction);
+  const mediaSurfaceConstructionBlob = blobByPath.get(candidatePaths.mediaSurfaceConstruction);
+  const exteriorConstructionBlob = blobByPath.get(candidatePaths.exteriorConstruction);
+  const lightingConstructionBlob = blobByPath.get(candidatePaths.lightingConstruction);
+  const texts = {
+    sceneText: sceneBlob.bytes.toString("utf8"),
+    assetLedgerText: assetLedgerBlob.bytes.toString("utf8"),
+    generationLedgerText: generationLedgerBlob.bytes.toString("utf8")
+  };
+  const componentConstructionText = componentConstructionBlob.bytes.toString("utf8");
+  const mediaSurfaceConstructionText = mediaSurfaceConstructionBlob.bytes.toString("utf8");
+  const exteriorConstructionText = exteriorConstructionBlob.bytes.toString("utf8");
+  const lightingConstructionText = lightingConstructionBlob.bytes.toString("utf8");
+  const componentContract = parseComponentConstructionContract({ ...texts, componentConstructionText });
+  const mediaSurfaceContract = parseMediaSurfaceConstructionContract({ ...texts, mediaSurfaceConstructionText });
+  const exteriorContract = parseExteriorConstructionContract({ ...texts, exteriorConstructionText });
+  const lightingContract = parseLightingConstructionContract({ ...texts, lightingConstructionText });
+  const contracts = [componentContract, mediaSurfaceContract, exteriorContract, lightingContract];
+  const counts = lock.counts;
+  if (contracts.some((contract) => contract.specificationSha256 !== lock.specificationSha256
+    || contract.assetLedgerSha256 !== lock.assetLedgerSha256
+    || contract.generationLedgerSha256 !== lock.generationLedgerSha256
+    || contract.assetRecordCount !== counts.assetRecordCount
+    || contract.generationRecordCount !== counts.generationRecordCount
+    || contract.componentCount !== counts.componentCount
+    || contract.seatCount !== counts.seatCount)
+    || componentContract.componentConstructionSha256 !== lock.componentConstructionSha256
+    || componentContract.componentConstructionRawSha256 !== lock.componentConstructionRawSha256
+    || componentContract.familyCount !== counts.familyCount
+    || componentContract.partCount !== counts.partCount
+    || componentContract.overrideCount !== counts.overrideCount
+    || componentContract.resolvedComponentCount !== counts.resolvedComponentCount
+    || componentContract.resolvedMaterialCount !== counts.resolvedMaterialCount
+    || mediaSurfaceContract.mediaSurfaceConstructionSha256 !== lock.mediaSurfaceConstructionSha256
+    || mediaSurfaceContract.mediaSurfaceConstructionRawSha256 !== lock.mediaSurfaceConstructionRawSha256
+    || mediaSurfaceContract.surfaceCount !== counts.surfaceCount
+    || mediaSurfaceContract.resolvedSurfaceCount !== counts.resolvedSurfaceCount
+    || exteriorContract.exteriorConstructionSha256 !== lock.exteriorConstructionSha256
+    || exteriorContract.exteriorConstructionRawSha256 !== lock.exteriorConstructionRawSha256
+    || exteriorContract.objectCount !== counts.exteriorObjectCount
+    || exteriorContract.resolvedObjectCount !== counts.exteriorResolvedObjectCount
+    || exteriorContract.materialCount !== counts.exteriorMaterialCount
+    || exteriorContract.roleCount !== counts.exteriorRoleCount
+    || lightingContract.lightingConstructionSha256 !== lock.lightingConstructionSha256
+    || lightingContract.lightingConstructionRawSha256 !== lock.lightingConstructionRawSha256
+    || lightingContract.lightCount !== counts.lightCount
+    || lightingContract.resolvedLightCount !== counts.resolvedLightCount) {
+    throw new Error("approved_candidate_lighting_contract_lock_mismatch");
+  }
+
+  const scene = JSON.parse(texts.sceneText);
+  const assetLedger = JSON.parse(texts.assetLedgerText);
+  const componentConstruction = JSON.parse(componentConstructionText);
+  const mediaSurfaceConstruction = JSON.parse(mediaSurfaceConstructionText);
+  const exteriorConstruction = JSON.parse(exteriorConstructionText);
+  const lightingConstruction = JSON.parse(lightingConstructionText);
+  const acceptedPaths = [candidatePaths.conceptSelection, candidatePaths.componentConstruction, candidatePaths.mediaSurfaceConstruction, candidatePaths.exteriorConstruction, candidatePaths.lightingConstruction];
+  const acceptedBlobs = acceptedPaths.map((path) => blobByPath.get(path));
+  const provenanceRecords = acceptedPaths.map((path) => assetLedger.records.filter((record) => record?.source?.repositoryPath === path));
+  const current = {
+    scene,
+    assetLedger,
+    componentConstruction,
+    mediaSurfaceConstruction,
+    exteriorConstruction,
+    componentConstructionBytes: componentConstructionBlob.bytes,
+    mediaSurfaceConstructionBytes: mediaSurfaceConstructionBlob.bytes,
+    exteriorConstructionBytes: exteriorConstructionBlob.bytes,
+    rawLightingConstructionSha256: lightingConstructionBlob.rawSha256
+  };
+  validateApprovedCandidateLightingPhaseIsolation(current, exteriorBaselineSource);
+  if (scene.generator?.commit !== lock.validatorCommit
+    || scene.materialRecipes.length !== counts.materialCount
+    || provenanceRecords.some((records) => records.length !== 1)
+    || provenanceRecords.some((records, index) => records[0].originalSha256 !== acceptedBlobs[index].rawSha256)
+    || stableJson(scene.generator.acceptedInputSha256) !== stableJson(lock.acceptedInputSha256)
+    || scene.generator.acceptedInputSha256.some((digest, index) => digest !== acceptedBlobs[index].rawSha256)
+    || lightingContract.boundaries?.lightingSpecified !== true
+    || lightingContract.boundaries?.firstViewAcceptanceSpecified !== true
+    || lightingContract.boundaries?.lightingCompiled !== false
+    || lightingContract.boundaries?.firstViewRendered !== false
+    || lightingContract.boundaries?.firstViewAcceptanceVerified !== false
+    || contracts.some((contract) => contract.boundaries?.finalCandidateGlbVerified !== false || contract.boundaries?.publicationReady !== false)
+    || lock.release !== null) throw new Error("approved_candidate_lighting_provenance_mismatch");
+
+  const inputBlobs = Object.freeze(Object.fromEntries(blobs.map((blob) => [blob.path, Object.freeze({
+    gitBlobOid: blob.gitBlobOid,
+    rawSha256: blob.rawSha256,
+    byteLength: blob.byteLength
+  })])));
+  return Object.freeze({
+    inputKind: candidateLightingInputKind,
+    fixtureOnly: false,
+    componentsIncluded: true,
+    exteriorIncluded: true,
+    lightingIncluded: true,
+    sceneBytes: Buffer.from(sceneBlob.bytes),
+    assetLedgerBytes: Buffer.from(assetLedgerBlob.bytes),
+    componentConstructionBytes: Buffer.from(componentConstructionBlob.bytes),
+    mediaSurfaceConstructionBytes: Buffer.from(mediaSurfaceConstructionBlob.bytes),
+    exteriorConstructionBytes: Buffer.from(exteriorConstructionBlob.bytes),
+    lightingConstructionBytes: Buffer.from(lightingConstructionBlob.bytes),
+    scene,
+    assetLedger,
+    componentConstruction,
+    mediaSurfaceConstruction,
+    exteriorConstruction,
+    lightingConstruction,
+    contract: lightingContract,
+    componentContract,
+    mediaSurfaceContract,
+    exteriorContract,
+    lightingContract,
+    semanticReports: Object.freeze({ component: componentContract, mediaSurfaces: mediaSurfaceContract, exterior: exteriorContract, lighting: lightingContract }),
+    acceptedInputSha256: Object.freeze([...scene.generator.acceptedInputSha256]),
+    rawSceneSha256: sceneBlob.rawSha256,
+    rawComponentConstructionSha256: componentConstructionBlob.rawSha256,
+    rawExteriorConstructionSha256: exteriorConstructionBlob.rawSha256,
+    rawLightingConstructionSha256: lightingConstructionBlob.rawSha256,
+    architectureBaseline: Object.freeze({ ...candidateLock.architecture.semanticEvidence }),
+    exteriorGlbEvidence: Object.freeze(structuredClone(candidateLock.exterior.exteriorGlbEvidence)),
+    lightingGlbEvidence: lock.lightingGlbEvidence === null ? null : Object.freeze(structuredClone(lock.lightingGlbEvidence)),
+    f4Baseline: Object.freeze(structuredClone(candidateLock.exterior)),
+    candidateSource: Object.freeze({
+      repository: candidateLock.repository,
+      commit: lock.commit,
+      treeOid: lock.treeOid,
+      validatorCommit: lock.validatorCommit,
+      platformValidatorCommit: candidateLock.platformValidatorCommit,
+      inputBlobs
+    }),
+    canonicalHashes: Object.freeze({
+      specificationSha256: lightingContract.specificationSha256,
+      assetLedgerSha256: lightingContract.assetLedgerSha256,
+      generationLedgerSha256: lightingContract.generationLedgerSha256,
+      componentConstructionSha256: componentContract.componentConstructionSha256,
+      componentConstructionRawSha256: componentContract.componentConstructionRawSha256,
+      mediaSurfaceConstructionSha256: mediaSurfaceContract.mediaSurfaceConstructionSha256,
+      mediaSurfaceConstructionRawSha256: mediaSurfaceContract.mediaSurfaceConstructionRawSha256,
+      exteriorConstructionSha256: exteriorContract.exteriorConstructionSha256,
+      exteriorConstructionRawSha256: exteriorContract.exteriorConstructionRawSha256,
+      lightingConstructionSha256: lightingContract.lightingConstructionSha256,
+      lightingConstructionRawSha256: lightingContract.lightingConstructionRawSha256
+    }),
+    counts: Object.freeze({ ...counts }),
+    boundaries: Object.freeze({ ...lock.boundaries })
+  });
+}
+
 async function loadSyntheticSource(options) {
   const [sceneBytes, assetLedgerBytes, generationLedgerBytes] = await Promise.all([
     readFixture(options.scenePath, fixturePaths.scene, "room_shell_scene"),
@@ -1087,7 +1436,9 @@ export function validateCompilerReport(report, source, binarySha256) {
   const wall = report.shell?.objects?.find(({ name }) => name === "shell.walls");
   const expectedStatus = source.fixtureOnly
     ? "stage3-synthetic-room-profiles-materials-compiled"
-    : source.exteriorIncluded
+    : source.lightingIncluded
+      ? "stage3-approved-candidate-lighting-compiled"
+      : source.exteriorIncluded
       ? "stage3-approved-candidate-exterior-compiled"
       : source.componentsIncluded
       ? "stage3-approved-candidate-components-compiled"
@@ -1095,6 +1446,7 @@ export function validateCompilerReport(report, source, binarySha256) {
   const expectedMaterialRecipeCount = source.exteriorIncluded ? 8 : source.componentsIncluded ? 5 : 3;
   const expectedMaterialZoneCount = source.exteriorIncluded ? 64 : source.componentsIncluded ? 60 : 22;
   const expectedInventoryCount = source.exteriorIncluded ? 61 : source.componentsIncluded ? 57 : 19;
+  const expectedObjectCount = source.lightingIncluded ? 65 : expectedInventoryCount;
   const commonInvalid = report?.status !== expectedStatus
     || report.fixtureOnly !== source.fixtureOnly
     || report.sceneId !== source.contract.sceneId
@@ -1131,13 +1483,18 @@ export function validateCompilerReport(report, source, binarySha256) {
     || report.outputGlb?.exportSettings?.exportAttributes !== true
     || report.outputGlb?.exportSettings?.exportExtras !== true
     || report.outputGlb?.exportSettings?.exportCameras !== false
-    || report.outputGlb?.exportSettings?.exportLights !== false
+    || report.outputGlb?.exportSettings?.exportLights !== Boolean(source.lightingIncluded)
+    || (source.lightingIncluded
+      ? report.outputGlb?.exportSettings?.exportImportConvertLightingMode !== "SPEC"
+      : Object.hasOwn(report.outputGlb?.exportSettings ?? {}, "exportImportConvertLightingMode"))
     || report.outputGlb?.exportSettings?.exportYup !== true
-    || report.inventory?.objectCount !== expectedInventoryCount
+    || report.inventory?.objectCount !== expectedObjectCount
     || report.inventory?.meshCount !== expectedInventoryCount
     || report.inventory?.materialCount !== expectedMaterialRecipeCount
     || report.inventory?.imageCount !== 0
     || report.inventory?.textureCount !== 0
+    || report.inventory?.cameraCount !== (source.lightingIncluded ? 1 : 0)
+    || report.inventory?.lightCount !== (source.lightingIncluded ? 3 : 0)
     || report.boundaries?.openingsCompiled !== true
     || report.boundaries?.materialsCompiled !== true
     || report.boundaries?.componentsCompiled !== source.componentsIncluded
@@ -1159,13 +1516,13 @@ export function validateCompilerReport(report, source, binarySha256) {
     || report.componentsCompiled !== true
     || report.componentGlbByteIdentical !== false
     || report.exteriorCompiled !== source.exteriorIncluded
-    || report.lightingCompiled !== false
+    || report.lightingCompiled !== Boolean(source.lightingIncluded)
     || report.mediaSurfacesCompiled !== false
     || report.sceneBinaryAddedToRepository !== false
     || report.boundaries?.componentsSpecified !== true
     || report.boundaries?.componentGlbByteIdentical !== false
     || report.boundaries?.exteriorCompiled !== source.exteriorIncluded
-    || report.boundaries?.lightingCompiled !== false
+    || report.boundaries?.lightingCompiled !== Boolean(source.lightingIncluded)
     || report.boundaries?.mediaSurfacesCompiled !== false);
   const exteriorInvalid = source.exteriorIncluded && (report.exterior?.specified !== true
     || report.exterior?.compiled !== true
@@ -1190,6 +1547,36 @@ export function validateCompilerReport(report, source, binarySha256) {
     || report.boundaries?.byteIdenticalExportsVerified !== false
     || report.boundaries?.releaseArtifactsCreated !== false
     || report.boundaries?.artifactBytesIncludedInRepository !== false);
+  const lightingInvalid = source.lightingIncluded && (report.lighting?.specified !== true
+    || report.lighting?.compiled !== true
+    || report.lighting?.sourceRecordId !== "asset-lighting-constructions-project"
+    || report.lighting?.objectNamePattern !== "light.<sceneLightId>"
+    || report.lighting?.lightCount !== 3
+    || report.lighting?.lights?.length !== 3
+    || report.lightingSpecified !== true
+    || report.lightingCompiled !== true
+    || report.lightingGlbByteIdentical !== false
+    || report.firstView?.specified !== true
+    || report.firstView?.rendered !== true
+    || report.firstView?.acceptanceVerified !== true
+    || report.firstView?.camera?.name !== "camera.review.entry"
+    || report.firstView?.renderSettings?.output?.filepath !== "//first-view.png"
+    || report.firstView?.acceptance?.acceptancePass !== true
+    || report.firstViewRendered !== true
+    || report.firstViewAcceptanceVerified !== true
+    || report.firstViewPngByteIdentical !== false
+    || report.outputFirstView?.acceptancePass !== true
+    || report.boundaries?.lightingSpecified !== true
+    || report.boundaries?.lightingCompiled !== true
+    || report.boundaries?.lightingGlbByteIdentical !== false
+    || report.boundaries?.firstViewRendered !== true
+    || report.boundaries?.firstViewAcceptanceVerified !== true
+    || report.boundaries?.firstViewPngByteIdentical !== false
+    || report.byteIdenticalExportsVerified !== false
+    || report.finalCandidateGlbVerified !== false
+    || report.releaseArtifactsCreated !== false
+    || report.artifactBytesIncludedInRepository !== false
+    || report.publicationReady !== false);
   const boundaryInvalid = source.fixtureOnly
     ? report.boundaries?.approvedCandidateSpecification !== false || report.boundaries?.byteIdenticalExportsVerified !== false
     : report.approvedCandidateSpecification !== true
@@ -1202,7 +1589,7 @@ export function validateCompilerReport(report, source, binarySha256) {
       || report.boundaries?.finalCandidateGlbVerified !== false
       || report.boundaries?.publicationReady !== false;
   if (!source.componentsIncluded && !source.fixtureOnly && report.boundaries?.byteIdenticalExportsVerified !== false) throw new Error("room_shell_report_invalid");
-  if (commonInvalid || componentInvalid || exteriorInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
+  if (commonInvalid || componentInvalid || exteriorInvalid || lightingInvalid || boundaryInvalid) throw new Error("room_shell_report_invalid");
 }
 
 function exactKeys(value, expected) {
@@ -1234,6 +1621,139 @@ function srgbColorFactor(hex) {
 
 function approximatelyEqual(actual, expected, tolerance = 1e-6) {
   return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+}
+
+const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const pngCrcTable = Object.freeze(Array.from({ length: 256 }, (_, value) => {
+  let crc = value;
+  for (let bit = 0; bit < 8; bit += 1) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  return crc >>> 0;
+}));
+
+function pngCrc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) crc = pngCrcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function paethPredictor(left, above, upperLeft) {
+  const prediction = left + above - upperLeft;
+  const leftDistance = Math.abs(prediction - left);
+  const aboveDistance = Math.abs(prediction - above);
+  const upperLeftDistance = Math.abs(prediction - upperLeft);
+  return leftDistance <= aboveDistance && leftDistance <= upperLeftDistance ? left : aboveDistance <= upperLeftDistance ? above : upperLeft;
+}
+
+export function measureFirstViewRgb(rgb, width, height, criteria = {}) {
+  const averageLuminanceMinimum = criteria.averageLuminanceMinimum ?? 40;
+  const darkPixelThreshold = criteria.darkPixelThreshold ?? 40;
+  const darkPixelRatioMaximum = criteria.darkPixelRatioMaximum ?? 0.7;
+  if (!Buffer.isBuffer(rgb) || !Number.isSafeInteger(width) || width <= 0 || !Number.isSafeInteger(height) || height <= 0
+    || rgb.length !== width * height * 3 || averageLuminanceMinimum !== 40 || darkPixelThreshold !== 40 || darkPixelRatioMaximum !== 0.7) {
+    throw new Error("first_view_rgb_measurement_invalid");
+  }
+  let weightedLuminanceSum = 0;
+  let darkPixelCount = 0;
+  for (let offset = 0; offset < rgb.length; offset += 3) {
+    const numerator = 2126 * rgb[offset] + 7152 * rgb[offset + 1] + 722 * rgb[offset + 2];
+    weightedLuminanceSum += numerator;
+    if (numerator < darkPixelThreshold * 10000) darkPixelCount += 1;
+  }
+  const pixelCount = width * height;
+  const averagePass = weightedLuminanceSum >= averageLuminanceMinimum * 10000 * pixelCount;
+  const darkRatioPass = darkPixelCount * 10 <= pixelCount * 7;
+  return Object.freeze({
+    decodedRgbSha256: sha256(rgb),
+    pixelCount,
+    weightedLuminanceSum,
+    darkPixelCount,
+    averageLuminanceMinimum,
+    averagePass,
+    darkPixelThreshold,
+    darkPixelRatioMaximum,
+    darkRatioPass,
+    acceptancePass: averagePass && darkRatioPass
+  });
+}
+
+export function inspectFirstViewPng(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 45 || !bytes.subarray(0, 8).equals(pngSignature)) throw new Error("first_view_png_signature_invalid");
+  let offset = 8;
+  const chunks = [];
+  const idat = [];
+  let sawIdat = false;
+  let idatEnded = false;
+  while (offset < bytes.length) {
+    if (offset + 12 > bytes.length) throw new Error("first_view_png_chunk_invalid");
+    const length = bytes.readUInt32BE(offset);
+    const typeBytes = bytes.subarray(offset + 4, offset + 8);
+    const type = typeBytes.toString("ascii");
+    const end = offset + 12 + length;
+    if (end > bytes.length || !/^[A-Za-z]{4}$/.test(type)) throw new Error("first_view_png_chunk_invalid");
+    const data = bytes.subarray(offset + 8, offset + 8 + length);
+    if (pngCrc32(Buffer.concat([typeBytes, data])) !== bytes.readUInt32BE(offset + 8 + length)) throw new Error("first_view_png_crc_invalid");
+    if (!["IHDR", "IDAT", "IEND"].includes(type)) throw new Error(`first_view_png_metadata_forbidden:${type}`);
+    if (type === "IDAT") {
+      if (idatEnded) throw new Error("first_view_png_chunk_order_invalid");
+      sawIdat = true;
+      idat.push(data);
+    } else if (sawIdat) {
+      idatEnded = true;
+    }
+    chunks.push({ type, data });
+    offset = end;
+    if (type === "IEND") break;
+  }
+  if (offset !== bytes.length || chunks[0]?.type !== "IHDR" || chunks.at(-1)?.type !== "IEND"
+    || chunks.filter(({ type }) => type === "IHDR").length !== 1
+    || chunks.filter(({ type }) => type === "IEND").length !== 1
+    || idat.length === 0 || chunks.at(-1).data.length !== 0) throw new Error("first_view_png_chunk_order_invalid");
+  const ihdr = chunks[0].data;
+  if (ihdr.length !== 13 || ihdr.readUInt32BE(0) !== 960 || ihdr.readUInt32BE(4) !== 540
+    || ihdr[8] !== 8 || ihdr[9] !== 2 || ihdr[10] !== 0 || ihdr[11] !== 0 || ihdr[12] !== 0) throw new Error("first_view_png_ihdr_invalid");
+  let filtered;
+  try {
+    const compressed = Buffer.concat(idat);
+    const inflated = inflateSync(compressed, { info: true, maxOutputLength: 540 * (960 * 3 + 1) });
+    if (inflated.engine.bytesWritten !== compressed.length) throw new Error("trailing_deflate_bytes");
+    filtered = inflated.buffer;
+  } catch {
+    throw new Error("first_view_png_deflate_invalid");
+  }
+  const width = 960;
+  const height = 540;
+  const stride = width * 3;
+  if (filtered.length !== height * (stride + 1)) throw new Error("first_view_png_scanline_invalid");
+  const decoded = Buffer.allocUnsafe(width * height * 3);
+  for (let row = 0; row < height; row += 1) {
+    const sourceOffset = row * (stride + 1);
+    const filter = filtered[sourceOffset];
+    if (filter > 4) throw new Error("first_view_png_filter_invalid");
+    for (let column = 0; column < stride; column += 1) {
+      const target = row * stride + column;
+      const left = column >= 3 ? decoded[target - 3] : 0;
+      const above = row > 0 ? decoded[target - stride] : 0;
+      const upperLeft = row > 0 && column >= 3 ? decoded[target - stride - 3] : 0;
+      const predictor = filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? above : filter === 3
+        ? Math.floor((left + above) / 2) : paethPredictor(left, above, upperLeft);
+      decoded[target] = (filtered[sourceOffset + 1 + column] + predictor) & 0xff;
+    }
+  }
+  const measurement = measureFirstViewRgb(decoded, width, height);
+  if (!measurement.acceptancePass) {
+    const error = new Error("first_view_png_acceptance_failed");
+    error.measurement = measurement;
+    throw error;
+  }
+  return Object.freeze({
+    status: "first-view-png-acceptance-valid",
+    sha256: sha256(bytes),
+    byteLength: bytes.length,
+    ...measurement,
+    widthPx: width,
+    heightPx: height,
+    chunkTypes: Object.freeze(chunks.map(({ type }) => type))
+  });
 }
 
 function normalizeExpectedRecords(records, mode) {
@@ -1295,14 +1815,17 @@ function normalizeExpectedGlbContract(value) {
     status: "architecture-only-glb-inspection-valid",
     componentMode: false,
     exteriorMode: false,
+    lightingMode: false,
     records: normalizeExpectedRecords(value, "architecture"),
     materials: expectedArchitectureMaterials,
     allowedMaterialSourceIds: allowedArchitectureMaterialSourceIds,
     requiredMaterialSourceCount: 1,
-    materialSourceIds: null
+    materialSourceIds: null,
+    lights: Object.freeze([])
   });
-  const componentMode = value?.status === "approved-candidate-components-glb-inspection-valid";
-  const exteriorMode = value?.status === "approved-candidate-exterior-glb-inspection-valid";
+  const lightingMode = value?.status === "approved-candidate-lighting-glb-inspection-valid";
+  const exteriorMode = value?.status === "approved-candidate-exterior-glb-inspection-valid" || lightingMode;
+  const componentMode = value?.status === "approved-candidate-components-glb-inspection-valid" || exteriorMode;
   const allowedMaterialSourceIds = new Set(value?.allowedMaterialSourceIds);
   const materialNames = Object.keys(value?.materials ?? {});
   const exteriorContractValid = exteriorMode
@@ -1322,16 +1845,20 @@ function normalizeExpectedGlbContract(value) {
     && exactStringSet(value?.allowedMaterialSourceIds, ["asset-layout-project"])
     && value?.requiredMaterialSourceCount === 1
     && value?.materialSourceIds === undefined;
-  if (!componentContractValid && !exteriorContractValid) throw new Error("room_glb_expected_contract_invalid");
+  const lightingContractValid = !lightingMode || (Array.isArray(value?.lights) && value.lights.length === 3
+    && value.lights.every((light) => typeof light?.name === "string" && typeof light?.type === "string"));
+  if ((!componentContractValid && !exteriorContractValid) || !lightingContractValid) throw new Error("room_glb_expected_contract_invalid");
   return Object.freeze({
     status: value.status,
     componentMode,
     exteriorMode,
+    lightingMode,
     records: normalizeExpectedRecords(value.records, exteriorMode ? "exterior" : "components"),
     materials: value.materials,
     allowedMaterialSourceIds,
     requiredMaterialSourceCount: value.requiredMaterialSourceCount,
-    materialSourceIds: value.materialSourceIds ?? null
+    materialSourceIds: value.materialSourceIds ?? null,
+    lights: value.lights ?? Object.freeze([])
   });
 }
 
@@ -1368,8 +1895,24 @@ export function inspectGlb(bytes, expectedContract) {
   if (offset !== bytes.length || document?.asset?.version !== "2.0" || binaryChunkCount !== 1
     || chunkTypes.length !== 2 || chunkTypes[0] !== 0x4e4f534a || chunkTypes[1] !== 0x004e4942) throw new Error("room_glb_document_invalid");
   const prohibitedTopLevel = ["animations", "cameras", "images", "lights", "samplers", "skins", "textures"];
-  if (prohibitedTopLevel.some((key) => Object.hasOwn(document, key))
-    || Object.hasOwn(document, "extensionsUsed")
+  if (prohibitedTopLevel.some((key) => Object.hasOwn(document, key))) throw new Error("room_glb_prohibited_content");
+  let punctualLights = [];
+  if (normalizedContract.lightingMode) {
+    const extensionName = "KHR_lights_punctual";
+    if (stableJson(document.extensionsUsed) !== stableJson([extensionName])
+      || stableJson(document.extensionsRequired) !== stableJson([extensionName])
+      || !exactKeys(document.extensions, [extensionName])
+      || !exactKeys(document.extensions[extensionName], ["lights"])
+      || !Array.isArray(document.extensions[extensionName].lights)
+      || document.extensions[extensionName].lights.length !== 3) throw new Error("room_glb_lighting_extension_invalid");
+    punctualLights = document.extensions[extensionName].lights;
+    const stripped = structuredClone(document);
+    delete stripped.extensions;
+    delete stripped.extensionsUsed;
+    delete stripped.extensionsRequired;
+    for (const node of stripped.nodes ?? []) if (normalizedContract.lights.some(({ name }) => name === node.name)) delete node.extensions;
+    if (containsExtensionRecord(stripped)) throw new Error("room_glb_prohibited_content");
+  } else if (Object.hasOwn(document, "extensionsUsed")
     || Object.hasOwn(document, "extensionsRequired")
     || containsExtensionRecord(document)) throw new Error("room_glb_prohibited_content");
 
@@ -1403,13 +1946,15 @@ export function inspectGlb(bytes, expectedContract) {
   const meshes = document.meshes;
   const materials = document.materials;
   const accessors = document.accessors;
+  const expectedLightNodeNames = normalizedContract.lights.map(({ name }) => name);
+  const expectedAllNodeNames = [...expectedNodeNames, ...expectedLightNodeNames];
   const nodeNames = nodes?.map(({ name }) => name).sort();
   const meshNames = meshes?.map(({ name }) => name).sort();
   const materialNames = materials?.map(({ name }) => name).sort();
-  if (nodes?.length !== expectedNodeNames.length
+  if (nodes?.length !== expectedAllNodeNames.length
     || meshes?.length !== expectedNodeNames.length
     || materials?.length !== Object.keys(expectedMaterials).length
-    || !exactStringSet(nodeNames, expectedNodeNames)
+    || !exactStringSet(nodeNames, expectedAllNodeNames)
     || !exactStringSet(meshNames, expectedNodeNames.map((name) => `mesh.${name}`))
     || !exactStringSet(materialNames, Object.keys(expectedMaterials))) throw new Error("room_glb_inventory_invalid");
 
@@ -1437,7 +1982,11 @@ export function inspectGlb(bytes, expectedContract) {
   if (reachable.size !== nodes.length || incomingReferences.some((count) => count !== 1)) throw new Error("room_glb_scene_invalid");
 
   const meshReferences = Array(meshes.length).fill(0);
-  for (const node of nodes) {
+  const meshNodes = nodes.filter((node) => Number.isInteger(node.mesh));
+  const lightNodes = nodes.filter((node) => expectedLightNodeNames.includes(node.name));
+  if (meshNodes.length !== expectedNodeNames.length || lightNodes.length !== expectedLightNodeNames.length
+    || nodes.some((node) => !meshNodes.includes(node) && !lightNodes.includes(node))) throw new Error("room_glb_mesh_binding_invalid");
+  for (const node of meshNodes) {
     if (!Number.isInteger(node.mesh) || node.mesh < 0 || node.mesh >= meshes.length || Object.hasOwn(node, "camera") || Object.hasOwn(node, "skin")) {
       throw new Error("room_glb_mesh_binding_invalid");
     }
@@ -1445,6 +1994,61 @@ export function inspectGlb(bytes, expectedContract) {
     if (meshes[node.mesh].name !== `mesh.${node.name}`) throw new Error("room_glb_mesh_binding_invalid");
   }
   if (meshReferences.some((count) => count !== 1)) throw new Error("room_glb_mesh_binding_invalid");
+
+  const lightEvidence = [];
+  if (normalizedContract.lightingMode) {
+    const referencedLights = new Set();
+    for (const expected of normalizedContract.lights) {
+      const node = nodes.find(({ name }) => name === expected.name);
+      const extension = node?.extensions?.KHR_lights_punctual;
+      if (!node || !exactKeys(node, ["extensions", "extras", "name", "rotation", "translation"])
+        || !exactKeys(node.extensions, ["KHR_lights_punctual"])
+        || !exactKeys(extension, ["light"])
+        || !Number.isInteger(extension.light) || extension.light < 0 || extension.light >= punctualLights.length
+        || referencedLights.has(extension.light)
+        || stableJson(node.extras) !== stableJson(expected.extras)
+        || !Array.isArray(node.translation) || node.translation.length !== 3
+        || node.translation.some((value, axis) => !approximatelyEqual(value, expected.translation[axis], geometryTolerance))
+        || !Array.isArray(node.rotation) || node.rotation.length !== 4 || !node.rotation.every(Number.isFinite)) {
+        throw new Error("room_glb_light_node_invalid");
+      }
+      const rotationLength = Math.hypot(...node.rotation);
+      const expectedRotationLength = Math.hypot(...expected.rotation);
+      const rotationDot = node.rotation.reduce((sum, value, index) => sum + value / rotationLength * expected.rotation[index] / expectedRotationLength, 0);
+      if (!approximatelyEqual(Math.abs(rotationDot), 1, geometryTolerance)) throw new Error("room_glb_light_node_invalid");
+      referencedLights.add(extension.light);
+      const light = punctualLights[extension.light];
+      const expectedKeys = expected.type === "directional"
+        ? ["color", "intensity", "name", "type"]
+        : ["color", "intensity", "name", "range", "spot", "type"];
+      if (!exactKeys(light, expectedKeys)
+        || light.name !== expected.name || light.type !== expected.type
+        || !Array.isArray(light.color) || light.color.length !== 3
+        || light.color.some((value, index) => !approximatelyEqual(value, expected.color[index], geometryTolerance))
+        || !approximatelyEqual(light.intensity, expected.intensity, 1e-4)) throw new Error("room_glb_light_invalid");
+      if (expected.type === "spot" && (!approximatelyEqual(light.range, expected.range, geometryTolerance)
+        || !exactKeys(light.spot, ["innerConeAngle", "outerConeAngle"])
+        || !approximatelyEqual(light.spot.innerConeAngle, expected.innerConeAngle, geometryTolerance)
+        || !approximatelyEqual(light.spot.outerConeAngle, expected.outerConeAngle, geometryTolerance))) throw new Error("room_glb_light_invalid");
+      lightEvidence.push({
+        nodeName: node.name,
+        lightIndex: extension.light,
+        type: light.type,
+        color: [...light.color],
+        intensity: light.intensity,
+        ...(light.type === "spot" ? {
+          range: light.range,
+          innerConeAngle: light.spot.innerConeAngle,
+          outerConeAngle: light.spot.outerConeAngle
+        } : {}),
+        translation: [...node.translation],
+        rotation: [...node.rotation],
+        extras: { ...node.extras }
+      });
+    }
+    if (referencedLights.size !== punctualLights.length) throw new Error("room_glb_light_invalid");
+    lightEvidence.sort((left, right) => left.lightIndex - right.lightIndex);
+  }
 
   if (!Array.isArray(accessors) || accessors.length === 0) throw new Error("room_glb_accessor_invalid");
   const occupiedAccessorRanges = [];
@@ -1524,7 +2128,7 @@ export function inspectGlb(bytes, expectedContract) {
     decodedAccessors.set(index, values);
     return { layout, values };
   };
-  for (const node of nodes) {
+  for (const node of meshNodes) {
     const mesh = meshes[node.mesh];
     if (!exactKeys(mesh, ["name", "primitives"]) || !Array.isArray(mesh.primitives) || mesh.primitives.length !== 1) throw new Error("room_glb_mesh_invalid");
     const primitive = mesh.primitives[0];
@@ -1680,7 +2284,7 @@ export function inspectGlb(bytes, expectedContract) {
     cameraCount: document.cameras?.length ?? 0,
     imageCount: document.images?.length ?? 0,
     textureCount: document.textures?.length ?? 0,
-    lightCount: 0,
+    lightCount: punctualLights.length,
     animationCount: 0,
     skinCount: 0,
     binaryChunkCount,
@@ -1699,12 +2303,15 @@ export function inspectGlb(bytes, expectedContract) {
     decodedNormalCount,
     minimumNormalLength,
     maximumNormalLength,
-    extensionCount: 0,
+    extensionCount: normalizedContract.lightingMode ? 4 : 0,
+    extensionsUsed: Object.freeze([...(document.extensionsUsed ?? [])]),
+    extensionsRequired: Object.freeze([...(document.extensionsRequired ?? [])]),
     nodeNames: Object.freeze([...nodeNames]),
     meshNames: Object.freeze([...meshNames]),
     materialNames: Object.freeze([...materialNames]),
     materialEvidence: Object.freeze(materialEvidence),
-    geometryEvidence: Object.freeze(geometryEvidence)
+    geometryEvidence: Object.freeze(geometryEvidence),
+    lightEvidence: Object.freeze(lightEvidence)
   });
 }
 
@@ -2001,6 +2608,75 @@ export function createApprovedCandidateExteriorGlbContract(report, source) {
   });
 }
 
+function tannerHellandLinearColor(temperatureKelvin) {
+  const temperature = Math.min(40000, Math.max(1000, temperatureKelvin)) / 100;
+  const encoded = temperature <= 66
+    ? [
+        255,
+        99.4708025861 * Math.log(temperature) - 161.1195681661,
+        temperature <= 19 ? 0 : 138.5177312231 * Math.log(temperature - 10) - 305.0447927307
+      ]
+    : [
+        329.698727446 * ((temperature - 60) ** -0.1332047592),
+        288.1221695283 * ((temperature - 60) ** -0.0755148492),
+        255
+      ];
+  return encoded.map((channel) => {
+    const srgb = Math.min(255, Math.max(0, channel)) / 255;
+    return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+  });
+}
+
+export function createApprovedCandidateLightingGlbContract(report, source) {
+  const exteriorContract = createApprovedCandidateExteriorGlbContract(report, source);
+  const reportLights = new Map(report.lighting?.lights?.map((light) => [light.sceneLightId, light]));
+  const implementationById = new Map(source.lightingConstruction.lights.map((light) => [light.sceneLightId, light]));
+  const lights = source.scene.lighting.map((sceneLight) => {
+    const implementation = implementationById.get(sceneLight.id);
+    const compiled = reportLights.get(sceneLight.id);
+    if (!implementation || !compiled?.rotationQuaternion) throw new Error("approved_candidate_lighting_report_evidence_invalid");
+    const directional = implementation.emitter.type === "directional";
+    const energy = sceneLight.intensityLumens / implementation.emitter.intensityMapping.divisor;
+    const rotation = compiled.rotationQuaternion;
+    const halfSqrtTwo = Math.SQRT1_2;
+    const expected = {
+      name: `light.${sceneLight.id}`,
+      type: directional ? "directional" : "spot",
+      color: tannerHellandLinearColor(sceneLight.temperatureK),
+      intensity: directional ? energy * 683 : energy / (4 * Math.PI) * 683,
+      translation: [sceneLight.position.x, sceneLight.position.y, -sceneLight.position.z],
+      rotation: [
+        halfSqrtTwo * (rotation.x - rotation.w),
+        halfSqrtTwo * (rotation.z + rotation.y),
+        halfSqrtTwo * (rotation.z - rotation.y),
+        halfSqrtTwo * (rotation.w + rotation.x)
+      ],
+      extras: {
+        wmmr_cast_shadow: implementation.emitter.castShadow,
+        wmmr_intensity_lumens: sceneLight.intensityLumens,
+        wmmr_light_kind: sceneLight.kind,
+        wmmr_roll_radians: implementation.emitter.rollRadians,
+        wmmr_scene_light_id: sceneLight.id,
+        wmmr_target_x: implementation.emitter.target.x,
+        wmmr_target_y: implementation.emitter.target.y,
+        wmmr_target_z: implementation.emitter.target.z,
+        wmmr_temperature_kelvin: sceneLight.temperatureK
+      }
+    };
+    if (!directional) {
+      expected.range = implementation.emitter.rangeM;
+      expected.innerConeAngle = implementation.emitter.innerConeHalfAngleRadians;
+      expected.outerConeAngle = implementation.emitter.outerConeHalfAngleRadians;
+    }
+    return Object.freeze(expected);
+  });
+  return Object.freeze({
+    ...exteriorContract,
+    status: "approved-candidate-lighting-glb-inspection-valid",
+    lights: Object.freeze(lights)
+  });
+}
+
 async function compileRoomArchitecture(options, source) {
   const sourceHashes = source.fixtureOnly ? null : await compilerSourceSha256();
   const blenderPath = await exactRegularFile(options.blenderPath, "room_shell_blender");
@@ -2012,11 +2688,17 @@ async function compileRoomArchitecture(options, source) {
     : [repositoryRoot];
   const outputBlendPath = await newExternalOutput(options.outputBlendPath, ".blend", "room_shell_output", forbiddenRoots);
   const outputGlbPath = await newExternalOutput(options.outputGlbPath, ".glb", "room_glb_output", forbiddenRoots);
+  const outputFirstViewPath = source.lightingIncluded
+    ? await newExternalOutput(options.firstViewOutputPath, ".png", "room_first_view_output", forbiddenRoots)
+    : null;
+  if (!source.lightingIncluded && options.firstViewOutputPath !== undefined) throw new Error("room_first_view_output_invalid");
   const reportPath = await newExternalOutput(options.reportPath, ".json", "room_shell_report", forbiddenRoots);
-  if (new Set([outputBlendPath, outputGlbPath, reportPath]).size !== 3) throw new Error("room_shell_output_paths_conflict");
+  const outputPaths = [outputBlendPath, outputGlbPath, ...(outputFirstViewPath ? [outputFirstViewPath] : []), reportPath];
+  if (new Set(outputPaths).size !== outputPaths.length) throw new Error("room_shell_output_paths_conflict");
   const outputFaults = {
     blend: roomOutputFault(options, "blend"),
     glb: roomOutputFault(options, "glb"),
+    firstView: roomOutputFault(options, "first-view"),
     report: roomOutputFault(options, "compile-report")
   };
   const publishedRecords = [];
@@ -2025,8 +2707,10 @@ async function compileRoomArchitecture(options, source) {
   const temporaryScenePath = resolve(temporaryRoot, "scene-spec.json");
   const temporaryComponentPath = resolve(temporaryRoot, "component-constructions.json");
   const temporaryExteriorPath = resolve(temporaryRoot, "exterior-constructions.json");
+  const temporaryLightingPath = resolve(temporaryRoot, "lighting-constructions.json");
   const temporaryBlendOutputPath = resolve(temporaryRoot, "output.blend");
   const temporaryGlbOutputPath = resolve(temporaryRoot, "output.glb");
+  const temporaryFirstViewOutputPath = resolve(temporaryRoot, "first-view.png");
   const temporaryAdapterReportPath = resolve(temporaryRoot, "compile-report.json");
   const componentArguments = source.componentsIncluded ? [
     "--component-constructions",
@@ -2044,11 +2728,20 @@ async function compileRoomArchitecture(options, source) {
     "--expected-exterior-sha256",
     source.exteriorContract.exteriorConstructionSha256
   ] : [];
+  const lightingArguments = source.lightingIncluded ? [
+    "--lighting-constructions",
+    temporaryLightingPath,
+    "--expected-lighting-raw-sha256",
+    source.rawLightingConstructionSha256,
+    "--expected-lighting-sha256",
+    source.lightingContract.lightingConstructionSha256
+  ] : [];
 
   try {
     await writeFile(temporaryScenePath, source.sceneBytes, { flag: "wx", mode: 0o600 });
     if (source.componentsIncluded) await writeFile(temporaryComponentPath, source.componentConstructionBytes, { flag: "wx", mode: 0o600 });
     if (source.exteriorIncluded) await writeFile(temporaryExteriorPath, source.exteriorConstructionBytes, { flag: "wx", mode: 0o600 });
+    if (source.lightingIncluded) await writeFile(temporaryLightingPath, source.lightingConstructionBytes, { flag: "wx", mode: 0o600 });
     await execFileAsync(blenderPath, [
       "--background",
       "--factory-startup",
@@ -2065,12 +2758,14 @@ async function compileRoomArchitecture(options, source) {
       source.contract.specificationSha256,
       ...componentArguments,
       ...exteriorArguments,
+      ...lightingArguments,
       "--report",
       temporaryAdapterReportPath,
       "--output-blend",
       temporaryBlendOutputPath,
       "--output-glb",
-      temporaryGlbOutputPath
+      temporaryGlbOutputPath,
+      ...(source.lightingIncluded ? ["--output-first-view", temporaryFirstViewOutputPath] : [])
     ], {
       cwd: temporaryRoot,
       encoding: "utf8",
@@ -2083,6 +2778,9 @@ async function compileRoomArchitecture(options, source) {
     if (report.outputBlend?.byteLength !== outputBytes.length || report.outputBlend?.sha256 !== sha256(outputBytes)) throw new Error("room_shell_output_digest_mismatch");
     const glbBytes = await readFile(temporaryGlbOutputPath);
     if (report.outputGlb?.byteLength !== glbBytes.length || report.outputGlb?.sha256 !== sha256(glbBytes)) throw new Error("room_glb_output_digest_mismatch");
+    const firstViewBytes = source.lightingIncluded ? await readFile(temporaryFirstViewOutputPath) : null;
+    const firstViewInspection = source.lightingIncluded ? inspectFirstViewPng(firstViewBytes) : null;
+    if (source.lightingIncluded && stableJson(firstViewInspection) !== stableJson(report.outputFirstView)) throw new Error("room_first_view_output_evidence_mismatch");
     const inspectionPath = resolve(temporaryRoot, "inspection.json");
     await execFileAsync(blenderPath, [
       "--background",
@@ -2100,6 +2798,7 @@ async function compileRoomArchitecture(options, source) {
       source.contract.specificationSha256,
       ...componentArguments,
       ...exteriorArguments,
+      ...lightingArguments,
       "--report",
       inspectionPath,
       "--inspect-only"
@@ -2112,7 +2811,9 @@ async function compileRoomArchitecture(options, source) {
     const inspection = JSON.parse(await readFile(inspectionPath, "utf8"));
     const expectedInspectionStatus = source.fixtureOnly
       ? "stage3-synthetic-room-profiles-materials-inspection-valid"
-      : source.exteriorIncluded
+      : source.lightingIncluded
+        ? "stage3-approved-candidate-lighting-inspection-valid"
+        : source.exteriorIncluded
         ? "stage3-approved-candidate-exterior-inspection-valid"
         : source.componentsIncluded
         ? "stage3-approved-candidate-components-inspection-valid"
@@ -2125,15 +2826,20 @@ async function compileRoomArchitecture(options, source) {
       || inspection.inventory?.materialCount !== report.inventory.materialCount
       || inspection.inventory?.imageCount !== 0
       || inspection.inventory?.textureCount !== 0
-      || inspection.inventory?.cameraCount !== 0
-      || inspection.inventory?.lightCount !== 0
+      || inspection.inventory?.cameraCount !== (source.lightingIncluded ? 1 : 0)
+      || inspection.inventory?.lightCount !== (source.lightingIncluded ? 3 : 0)
       || inspection.inventory?.vertexCount !== report.inventory.vertexCount
       || inspection.inventory?.faceCount !== report.inventory.faceCount
       || stableJson(inspection.inventory?.objects) !== stableJson(report.inventory.objects)
       || stableJson(inspection.materials) !== stableJson(report.materials)
       || (source.componentsIncluded && stableJson(inspection.components) !== stableJson(report.components))
-      || (source.exteriorIncluded && stableJson(inspection.exterior) !== stableJson(report.exterior))) throw new Error("room_shell_saved_inspection_invalid");
-    const glbInspection = inspectGlb(glbBytes, source.exteriorIncluded
+      || (source.exteriorIncluded && stableJson(inspection.exterior) !== stableJson(report.exterior))
+      || (source.lightingIncluded && stableJson(inspection.lighting) !== stableJson(report.lighting))
+      || (source.lightingIncluded && stableJson(inspection.firstView?.camera) !== stableJson(report.firstView?.camera))
+      || (source.lightingIncluded && stableJson(inspection.firstView?.renderSettings) !== stableJson(report.firstView?.renderSettings))) throw new Error("room_shell_saved_inspection_invalid");
+    const glbInspection = inspectGlb(glbBytes, source.lightingIncluded
+      ? createApprovedCandidateLightingGlbContract(report, source)
+      : source.exteriorIncluded
       ? createApprovedCandidateExteriorGlbContract(report, source)
       : source.componentsIncluded
         ? createApprovedCandidateComponentGlbContract(report, source)
@@ -2160,7 +2866,7 @@ async function compileRoomArchitecture(options, source) {
         || issueCounts.infos !== locked.khronosValidator.infos
         || issueCounts.hints !== locked.khronosValidator.hints)) throw new Error("approved_candidate_component_glb_evidence_mismatch");
     }
-    if (source.exteriorIncluded && source.exteriorGlbEvidence !== null) {
+    if (source.exteriorIncluded && !source.lightingIncluded && source.exteriorGlbEvidence !== null) {
       const locked = source.exteriorGlbEvidence;
       const issueCounts = khronosValidation.issueCounts;
       if (report.outputGlb.sha256 !== locked.sha256
@@ -2190,6 +2896,44 @@ async function compileRoomArchitecture(options, source) {
         || issueCounts.infos !== locked.khronosValidator.infos
         || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_exterior_glb_evidence_mismatch");
     }
+    if (source.lightingIncluded && source.lightingGlbEvidence !== null) {
+      const locked = source.lightingGlbEvidence;
+      const issueCounts = khronosValidation.issueCounts;
+      if (report.outputGlb.sha256 !== locked.sha256
+        || report.outputGlb.byteLength !== locked.byteLength
+        || report.outputBlend.byteLength !== locked.blendByteLength
+        || firstViewInspection.sha256 !== locked.firstViewSha256
+        || firstViewInspection.byteLength !== locked.firstViewByteLength
+        || firstViewInspection.decodedRgbSha256 !== locked.firstViewDecodedRgbSha256
+        || firstViewInspection.weightedLuminanceSum !== locked.firstViewWeightedLuminanceSum
+        || firstViewInspection.pixelCount !== locked.firstViewPixelCount
+        || firstViewInspection.darkPixelCount !== locked.firstViewDarkPixelCount
+        || reopenInspectionSha256 !== locked.reopenInspectionSha256
+        || report.inventory.meshCount !== locked.meshCount
+        || glbInspection.geometryEvidence.filter(({ name }) => expectedArchitectureNodeNames.includes(name)).length !== locked.architectureMeshCount
+        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("component.")).length !== locked.componentMeshCount
+        || glbInspection.geometryEvidence.filter(({ name }) => name.startsWith("exterior.")).length !== locked.exteriorMeshCount
+        || report.inventory.lightCount !== locked.lightCount
+        || report.inventory.materialCount !== locked.materialCount
+        || glbInspection.nodeCount !== locked.nodeCount
+        || glbInspection.binaryByteLength !== locked.binaryByteLength
+        || glbInspection.decodedVertexCount !== locked.decodedVertexCount
+        || glbInspection.decodedIndexCount !== locked.decodedIndexCount
+        || glbInspection.decodedTriangleCount !== locked.decodedTriangleCount
+        || glbInspection.decodedDistinctReferencedPositionCount !== locked.distinctPositionCount
+        || glbInspection.decodedNormalCount !== locked.decodedNormalCount
+        || glbInspection.minimumNormalLength !== locked.minimumNormalLength
+        || glbInspection.maximumNormalLength !== locked.maximumNormalLength
+        || report.inventory.vertexCount !== locked.objectVertexCount
+        || report.inventory.faceCount !== locked.objectFaceCount
+        || architectureBaseline.expectedSha256 !== locked.architectureSemanticSha256
+        || khronosValidation.package !== locked.khronosValidator.package
+        || khronosValidation.version !== locked.khronosValidator.version
+        || issueCounts.errors !== locked.khronosValidator.errors
+        || issueCounts.warnings !== locked.khronosValidator.warnings
+        || issueCounts.infos !== locked.khronosValidator.infos
+        || issueCounts.hints !== locked.khronosValidator.hints) throw new Error("approved_candidate_lighting_glb_evidence_mismatch");
+    }
 
     const commonEnvelope = {
       ...report,
@@ -2201,6 +2945,11 @@ async function compileRoomArchitecture(options, source) {
       architectureBaseline,
       lockedComponentGlbEvidence: source.componentGlbEvidence ?? null,
       ...(source.exteriorIncluded ? { lockedExteriorGlbEvidence: source.exteriorGlbEvidence } : {}),
+      ...(source.lightingIncluded ? {
+        firstViewInspection,
+        lockedLightingGlbEvidence: source.lightingGlbEvidence,
+        f4Baseline: source.f4Baseline
+      } : {}),
       reopenInspection: inspection,
       reopenInspectionSha256
     };
@@ -2229,6 +2978,15 @@ async function compileRoomArchitecture(options, source) {
       faultPhase: outputFaults.glb,
       validate: async (writtenBytes) => {
         if (writtenBytes.length !== report.outputGlb.byteLength || sha256(writtenBytes) !== report.outputGlb.sha256) throw new Error("room_glb_output_digest_mismatch");
+      }
+    }));
+    if (source.lightingIncluded) publishedRecords.push(await publishMediaSurfaceOutputAtomically({
+      finalPath: outputFirstViewPath,
+      bytes: firstViewBytes,
+      label: "room_first_view_output",
+      faultPhase: outputFaults.firstView,
+      validate: async (writtenBytes) => {
+        if (stableJson(inspectFirstViewPng(writtenBytes)) !== stableJson(firstViewInspection)) throw new Error("room_first_view_output_evidence_mismatch");
       }
     }));
     publishedRecords.push(await publishMediaSurfaceOutputAtomically({
@@ -2270,6 +3028,11 @@ export async function compileApprovedCandidateComponents(options) {
 export async function compileApprovedCandidateExterior(options) {
   if (!options || typeof options !== "object") throw new Error("approved_candidate_exterior_compile_options_invalid");
   return compileRoomArchitecture(options, await loadApprovedCandidateExteriorSource(options));
+}
+
+export async function compileApprovedCandidateLighting(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_lighting_compile_options_invalid");
+  return compileRoomArchitecture(options, await loadApprovedCandidateLightingSource(options));
 }
 
 function expectedMediaSurfaceProjection(source) {
@@ -2506,27 +3269,38 @@ export async function verifyApprovedCandidateMediaSurfacesReproducibility(option
 }
 
 async function verifyRoomReproducibility(options, compile, mode) {
-  const forbiddenRoots = mode === "exterior"
+  const forbiddenRoots = mode === "exterior" || mode === "lighting"
     ? [repositoryRoot, await externalDirectory(options.candidateRepositoryPath ?? process.env.CANDIDATE_01_DIR, "approved_candidate_repository")]
     : [repositoryRoot];
-  const outputDirectory = mode === "exterior"
+  const outputDirectory = mode === "exterior" || mode === "lighting"
     ? await externalOutputDirectory(options.outputDirectory, "room_reproducibility_output_directory", forbiddenRoots)
     : await externalDirectory(options.outputDirectory, "room_reproducibility_output_directory");
   const reproducibilityReportPath = await newExternalOutput(options.reportPath, ".json", "room_reproducibility_report", forbiddenRoots);
   const runPaths = [
     ...[1, 2].flatMap((number) => {
       const prefix = `run-${String(number).padStart(2, "0")}`;
-      return [resolve(outputDirectory, `${prefix}.blend`), resolve(outputDirectory, `${prefix}.glb`), resolve(outputDirectory, `${prefix}.json`)];
+      return [
+        resolve(outputDirectory, `${prefix}.blend`),
+        resolve(outputDirectory, `${prefix}.glb`),
+        ...(mode === "lighting" ? [resolve(outputDirectory, `${prefix}.first-view.png`)] : []),
+        resolve(outputDirectory, `${prefix}.json`)
+      ];
     }),
     reproducibilityReportPath
   ];
   if (new Set(runPaths).size !== runPaths.length) throw new Error("room_reproducibility_output_paths_conflict");
-  await Promise.all(runPaths.slice(0, -1).map((path) => newExternalOutput(path, path.endsWith(".blend") ? ".blend" : path.endsWith(".glb") ? ".glb" : ".json", "room_reproducibility_run_output", forbiddenRoots)));
+  await Promise.all(runPaths.slice(0, -1).map((path) => newExternalOutput(
+    path,
+    path.endsWith(".blend") ? ".blend" : path.endsWith(".glb") ? ".glb" : path.endsWith(".png") ? ".png" : ".json",
+    "room_reproducibility_run_output",
+    forbiddenRoots
+  )));
   const reportFault = roomOutputFault(options, "reproducibility-report");
   const publishedRecords = [];
   const candidate = mode !== "synthetic";
   const components = mode === "components";
   const exterior = mode === "exterior";
+  const lighting = mode === "lighting";
   const common = candidate ? {
     blenderPath: options.blenderPath,
     candidateRepositoryPath: options.candidateRepositoryPath,
@@ -2545,6 +3319,7 @@ async function verifyRoomReproducibility(options, compile, mode) {
         ...common,
         outputBlendPath: resolve(outputDirectory, `${prefix}.blend`),
         outputGlbPath: resolve(outputDirectory, `${prefix}.glb`),
+        ...(lighting ? { firstViewOutputPath: resolve(outputDirectory, `${prefix}.first-view.png`) } : {}),
         reportPath: resolve(outputDirectory, `${prefix}.json`),
         [roomOutputFaultInjection]: options[roomOutputFaultInjection]
       }));
@@ -2555,12 +3330,39 @@ async function verifyRoomReproducibility(options, compile, mode) {
       readFile(resolve(outputDirectory, "run-02.glb"))
     ]);
     if (!firstGlb.equals(secondGlb) || runs[0].outputGlb.sha256 !== runs[1].outputGlb.sha256) throw new Error("room_glb_not_byte_identical");
+    let firstViewComparison = null;
+    if (lighting) {
+      const [firstPng, secondPng] = await Promise.all([
+        readFile(resolve(outputDirectory, "run-01.first-view.png")),
+        readFile(resolve(outputDirectory, "run-02.first-view.png"))
+      ]);
+      const inspections = [inspectFirstViewPng(firstPng), inspectFirstViewPng(secondPng)];
+      if (!firstPng.equals(secondPng)
+        || stableJson(inspections[0]) !== stableJson(inspections[1])
+        || stableJson(inspections[0]) !== stableJson(runs[0].firstViewInspection)
+        || stableJson(inspections[1]) !== stableJson(runs[1].firstViewInspection)) throw new Error("room_first_view_png_not_byte_identical");
+      firstViewComparison = Object.freeze({
+        pngByteIdentical: true,
+        pngSha256: inspections[0].sha256,
+        pngByteLength: inspections[0].byteLength,
+        decodedRgbSha256: inspections[0].decodedRgbSha256,
+        pixelCount: inspections[0].pixelCount,
+        weightedLuminanceSum: inspections[0].weightedLuminanceSum,
+        darkPixelCount: inspections[0].darkPixelCount,
+        averagePass: inspections[0].averagePass,
+        darkRatioPass: inspections[0].darkRatioPass
+      });
+    }
     if (runs.some((run) => run.reopenInspectionSha256 !== sha256(stableJson(run.reopenInspection)))
       || runs[0].reopenInspectionSha256 !== runs[1].reopenInspectionSha256) throw new Error("room_reopen_inspection_not_identical");
     if (candidate && (stableJson(runs[0].candidateSource) !== stableJson(runs[1].candidateSource)
+      || stableJson(runs[0].canonicalHashes) !== stableJson(runs[1].canonicalHashes)
+      || stableJson(runs[0].acceptedInputSha256) !== stableJson(runs[1].acceptedInputSha256)
       || stableJson(runs[0].compilerSourceSha256) !== stableJson(runs[1].compilerSourceSha256)
       || stableJson(runs[0].khronosValidation) !== stableJson(runs[1].khronosValidation)
-      || stableJson(runs[0].architectureBaseline) !== stableJson(runs[1].architectureBaseline))) {
+      || stableJson(runs[0].architectureBaseline) !== stableJson(runs[1].architectureBaseline)
+      || (lighting && stableJson(runs[0].semanticReports) !== stableJson(runs[1].semanticReports))
+      || (lighting && stableJson(runs[0].f4Baseline) !== stableJson(runs[1].f4Baseline)))) {
       throw new Error("approved_candidate_source_changed_between_runs");
     }
 
@@ -2568,6 +3370,7 @@ async function verifyRoomReproducibility(options, compile, mode) {
       run: index + 1,
       blend: run.outputBlend,
       glb: run.outputGlb,
+      ...(lighting ? { firstView: run.firstViewInspection } : {}),
       inventory: run.glbInspection,
       khronosValidation: run.khronosValidation,
       architectureBaseline: run.architectureBaseline,
@@ -2583,7 +3386,65 @@ async function verifyRoomReproducibility(options, compile, mode) {
       glbByteLength: runs[0].outputGlb.byteLength,
       blendByteIdentical: runs[0].outputBlend.sha256 === runs[1].outputBlend.sha256,
       reopenInspectionIdentical: true,
-      reopenInspectionSha256: runs[0].reopenInspectionSha256
+      reopenInspectionSha256: runs[0].reopenInspectionSha256,
+      ...(firstViewComparison ?? {})
+    };
+    const lightingCandidateReport = {
+      schemaVersion: 1,
+      status: "stage3-approved-candidate-lighting-glb-and-first-view-byte-identical",
+      fixtureOnly: false,
+      approvedCandidateSpecification: true,
+      candidateArchitectureCompiled: true,
+      componentsSpecified: true,
+      componentsCompiled: true,
+      exteriorSpecified: true,
+      exteriorCompiled: true,
+      lightingSpecified: true,
+      lightingCompiled: true,
+      firstViewRendered: true,
+      firstViewAcceptanceVerified: true,
+      lightingGlbByteIdentical: true,
+      firstViewPngByteIdentical: true,
+      byteIdenticalExportsVerified: false,
+      mediaSurfacesCompiled: false,
+      sceneBinaryAddedToRepository: false,
+      artifactBytesIncludedInRepository: false,
+      releaseArtifactsCreated: false,
+      finalCandidateGlbVerified: false,
+      publicationReady: false,
+      candidateSource: runs[0].candidateSource,
+      canonicalHashes: runs[0].canonicalHashes,
+      acceptedInputSha256: runs[0].acceptedInputSha256,
+      semanticReports: runs[0].semanticReports,
+      blender: runs[0].blender,
+      compilerSourceSha256: runs[0].compilerSourceSha256,
+      khronosValidation: runs[0].khronosValidation,
+      architectureBaseline: runs[0].architectureBaseline,
+      f4Baseline: runs[0].f4Baseline,
+      exporter: runs[0].outputGlb.exportSettings,
+      runs: runReports,
+      comparison,
+      boundaries: {
+        approvedCandidateSpecification: true,
+        candidateArchitectureCompiled: true,
+        componentsSpecified: true,
+        componentsCompiled: true,
+        exteriorSpecified: true,
+        exteriorCompiled: true,
+        lightingSpecified: true,
+        lightingCompiled: true,
+        firstViewRendered: true,
+        firstViewAcceptanceVerified: true,
+        lightingGlbByteIdentical: true,
+        firstViewPngByteIdentical: true,
+        byteIdenticalExportsVerified: false,
+        mediaSurfacesCompiled: false,
+        finalCandidateGlbVerified: false,
+        releaseArtifactsCreated: false,
+        publicationReady: false,
+        artifactBytesIncludedInRepository: false,
+        sceneBinaryAddedToRepository: false
+      }
     };
     const exteriorCandidateReport = {
       schemaVersion: 1,
@@ -2633,7 +3494,7 @@ async function verifyRoomReproducibility(options, compile, mode) {
         sceneBinaryAddedToRepository: false
       }
     };
-    const candidateReport = exterior ? exteriorCandidateReport : components ? {
+    const candidateReport = lighting ? lightingCandidateReport : exterior ? exteriorCandidateReport : components ? {
       schemaVersion: 1,
       status: "stage3-approved-candidate-components-glb-byte-identical",
       fixtureOnly: false,
@@ -2760,6 +3621,11 @@ export async function verifyApprovedCandidateExteriorReproducibility(options) {
   return verifyRoomReproducibility(options, compileApprovedCandidateExterior, "exterior");
 }
 
+export async function verifyApprovedCandidateLightingReproducibility(options) {
+  if (!options || typeof options !== "object") throw new Error("approved_candidate_lighting_reproducibility_options_invalid");
+  return verifyRoomReproducibility(options, compileApprovedCandidateLighting, "lighting");
+}
+
 function parsePairs(arguments_, code) {
   const values = {};
   for (let index = 0; index < arguments_.length; index += 2) {
@@ -2794,10 +3660,16 @@ function parseCompileCli(arguments_) {
     outputGlbPath: values["--output-glb"],
     reportPath: values["--report"]
   };
-  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateExteriorInputKind].includes(inputKind)) {
-    const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-blend", "--output-glb", "--report"]);
+  if ([candidateArchitectureInputKind, candidateComponentInputKind, candidateExteriorInputKind, candidateLightingInputKind].includes(inputKind)) {
+    const lighting = inputKind === candidateLightingInputKind;
+    const allowed = new Set(["--blender", "--candidate-dir", "--input-kind", "--output-blend", "--output-glb", "--output-first-view", "--report"]);
     if (Object.keys(values).some((key) => !allowed.has(key)) || Object.values(common).some((value) => value === undefined)) throw new Error("room_shell_cli_arguments_invalid");
-    return { inputKind, options: { ...common, candidateRepositoryPath: values["--candidate-dir"] } };
+    if (lighting !== (values["--output-first-view"] !== undefined)) throw new Error("room_shell_cli_arguments_invalid");
+    return { inputKind, options: {
+      ...common,
+      candidateRepositoryPath: values["--candidate-dir"],
+      ...(lighting ? { firstViewOutputPath: values["--output-first-view"] } : {})
+    } };
   }
   const expected = ["--asset-ledger", "--blender", "--generation-ledger", "--output-blend", "--output-glb", "--report", "--scene-spec"];
   if (inputKind !== syntheticInputKind || values["--input-kind"] !== undefined || Object.keys(values).sort().join(",") !== expected.join(",")) throw new Error("room_shell_cli_arguments_invalid");
@@ -2821,6 +3693,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         ? await compileApprovedCandidateComponents(cli.options)
         : cli.inputKind === candidateExteriorInputKind
           ? await compileApprovedCandidateExterior(cli.options)
+          : cli.inputKind === candidateLightingInputKind
+            ? await compileApprovedCandidateLighting(cli.options)
           : cli.inputKind === candidateMediaSurfaceInputKind
             ? await compileApprovedCandidateMediaSurfaces(cli.options)
             : await compileSyntheticRoomShell(cli.options);

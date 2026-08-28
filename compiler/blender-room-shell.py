@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import binascii
 import hashlib
 import json
 import math
+import struct
 import sys
+import zlib
 from pathlib import Path
 
 
@@ -15,6 +18,7 @@ SYNTHETIC_INPUT_KIND = "synthetic-fixture"
 CANDIDATE_ARCHITECTURE_INPUT_KIND = "approved-candidate-architecture"
 CANDIDATE_COMPONENT_INPUT_KIND = "approved-candidate-components"
 CANDIDATE_EXTERIOR_INPUT_KIND = "approved-candidate-exterior"
+CANDIDATE_LIGHTING_INPUT_KIND = "approved-candidate-lighting"
 EXPECTED_SYNTHETIC_SPECIFICATION_SHA256 = "7835eb45004e91f29daf6ee6e6c4b7cb34ad081f4a90f234f38732f4daf92a91"
 EXPECTED_SYNTHETIC_SCENE_RAW_SHA256 = "faef3aebe7278f72bf272411abdb0080792b4459ad7ca0097cca36e59498b748"
 EXPECTED_CANDIDATE_SPECIFICATION_SHA256 = "29d76ca0feaefd4bf9cac9ebd25113c601e358c939778c4a0f43f3f94b58e0dd"
@@ -27,9 +31,14 @@ EXPECTED_EXTERIOR_SPECIFICATION_SHA256 = "d26cad260909d50082c07b13a86dd3ea8af4b6
 EXPECTED_EXTERIOR_SCENE_RAW_SHA256 = "7f6822b6298b1e2fb606cfd4db310663b7cbab74989245c61bff3f25b1f0c8b6"
 EXPECTED_EXTERIOR_CONSTRUCTION_SHA256 = "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330"
 EXPECTED_EXTERIOR_CONSTRUCTION_RAW_SHA256 = "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
+EXPECTED_LIGHTING_SPECIFICATION_SHA256 = "7867defa7627115c756ceda215e4a176473f13ec841a7b10b90e7dd17159aad2"
+EXPECTED_LIGHTING_SCENE_RAW_SHA256 = "6cb67a644e251e3a0c9e0372c5b2ca1b93593cbab5ca11aad8712e9f94289a8a"
+EXPECTED_LIGHTING_CONSTRUCTION_SHA256 = "a7debec463c57f30a7016addff5fb722dd301dc9d810275920c64df78a8277d7"
+EXPECTED_LIGHTING_CONSTRUCTION_RAW_SHA256 = "ecb7c8da21191c2a9f893c0975de3bf2b8187cf6cd8a711bb3bb2b71f3610cad"
 COLLECTION_NAME = "WMMR_ARCHITECTURE"
 COMPONENT_COLLECTION_NAME = "WMMR_APPROVED_CANDIDATE_COMPONENTS"
 EXTERIOR_COLLECTION_NAME = "WMMR_APPROVED_CANDIDATE_EXTERIOR"
+LIGHTING_COLLECTION_NAME = "WMMR_APPROVED_CANDIDATE_LIGHTING"
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -630,6 +639,150 @@ def with_exterior_materials(component_material_plan, exterior_plan, construction
     }
 
 
+def scene_to_blender_point(value):
+    return {
+        "x": rounded(value["x"]),
+        "y": rounded(value["z"]),
+        "z": rounded(value["y"]),
+    }
+
+
+def srgb_encoded_to_linear(channel):
+    value = channel / 255.0
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def tanner_helland_color(temperature_kelvin):
+    temperature = min(40000.0, max(1000.0, float(temperature_kelvin))) / 100.0
+    if temperature <= 66.0:
+        red = 255.0
+        green = 99.4708025861 * math.log(temperature) - 161.1195681661
+        blue = 0.0 if temperature <= 19.0 else 138.5177312231 * math.log(temperature - 10.0) - 305.0447927307
+    else:
+        red = 329.698727446 * ((temperature - 60.0) ** -0.1332047592)
+        green = 288.1221695283 * ((temperature - 60.0) ** -0.0755148492)
+        blue = 255.0
+    encoded = [min(255.0, max(0.0, value)) for value in (red, green, blue)]
+    linear = [srgb_encoded_to_linear(value) for value in encoded]
+    return {
+        "encodedSrgb": [rounded(value) for value in encoded],
+        "linearSrgb": [rounded(value) for value in linear],
+    }
+
+
+def build_lighting_plan(scene, construction):
+    scene_lights = {light["id"]: light for light in scene["lighting"]}
+    lights = []
+    for implementation in construction["lights"]:
+        identifier = implementation["sceneLightId"]
+        source = scene_lights.get(identifier)
+        if source is None:
+            fail(f"room_lighting_scene_light_missing:{identifier}")
+        emitter = implementation["emitter"]
+        directional = emitter["type"] == "directional"
+        if emitter["type"] not in ("directional", "spot"):
+            fail(f"room_lighting_emitter_invalid:{identifier}")
+        energy = source["intensityLumens"] / emitter["intensityMapping"]["divisor"]
+        color = tanner_helland_color(source["temperatureK"])
+        record = {
+            "name": f"light.{identifier}",
+            "sceneLightId": identifier,
+            "sceneKind": source["kind"],
+            "blenderType": "SUN" if directional else "SPOT",
+            "scenePositionM": {key: rounded(value) for key, value in source["position"].items()},
+            "blenderLocationM": scene_to_blender_point(source["position"]),
+            "sceneTargetM": {key: rounded(value) for key, value in emitter["target"].items()},
+            "blenderTargetM": scene_to_blender_point(emitter["target"]),
+            "rollRadians": rounded(emitter["rollRadians"]),
+            "temperatureK": source["temperatureK"],
+            "intensityLumens": source["intensityLumens"],
+            "energy": rounded(energy),
+            "energyUnit": emitter["intensityMapping"]["outputUnit"],
+            "encodedColorSrgb": color["encodedSrgb"],
+            "linearColor": color["linearSrgb"],
+            "exposure": 0.0,
+            "normalize": True,
+            "useNodes": False,
+            "useTemperature": False,
+            "useShadow": emitter["castShadow"],
+        }
+        if directional:
+            record["angleRadians"] = rounded(emitter["angularDiameterDegrees"] * math.pi / 180.0)
+        else:
+            record.update({
+                "rangeM": rounded(emitter["rangeM"]),
+                "useCustomDistance": True,
+                "cutoffDistanceM": rounded(emitter["rangeM"]),
+                "innerConeHalfAngleRadians": rounded(emitter["innerConeHalfAngleRadians"]),
+                "outerConeHalfAngleRadians": rounded(emitter["outerConeHalfAngleRadians"]),
+                "spotSizeRadians": rounded(2.0 * emitter["outerConeHalfAngleRadians"]),
+                "spotBlend": rounded(1.0 - emitter["innerConeHalfAngleRadians"] / emitter["outerConeHalfAngleRadians"]),
+                "shadowSoftSizeM": rounded(emitter["radiusM"]),
+            })
+        lights.append(record)
+    if len(lights) != 3 or len({light["name"] for light in lights}) != 3:
+        fail("room_lighting_inventory_invalid")
+    return {
+        "specified": True,
+        "compiled": False,
+        "sourceRecordId": construction["sourceRecordId"],
+        "objectNamePattern": "light.<sceneLightId>",
+        "lightCount": len(lights),
+        "lights": lights,
+    }
+
+
+def build_first_view_plan(scene, construction):
+    acceptance = construction["firstViewAcceptance"]
+    review = next((value for value in scene["reviewViews"] if value["id"] == acceptance["reviewViewId"]), None)
+    if review is None:
+        fail("room_first_view_review_missing")
+    capture = acceptance["capture"]
+    return {
+        "specified": True,
+        "rendered": False,
+        "acceptanceVerified": False,
+        "reviewViewId": review["id"],
+        "camera": {
+            "name": f"camera.review.{review['id']}",
+            "projection": "perspective",
+            "fovAxis": "vertical",
+            "verticalFovDegrees": rounded(review["fovDegrees"]),
+            "verticalFovRadians": rounded(review["fovDegrees"] * math.pi / 180.0),
+            "scenePositionM": {key: rounded(value) for key, value in review["position"].items()},
+            "blenderLocationM": scene_to_blender_point(review["position"]),
+            "sceneTargetM": {key: rounded(value) for key, value in review["target"].items()},
+            "blenderTargetM": scene_to_blender_point(review["target"]),
+            "rollRadians": 0.0,
+        },
+        "capture": {
+            **capture,
+            "deterministic": {
+                "frame": 1,
+                "threadsMode": "FIXED",
+                "threads": 1,
+                "featureSet": "SUPPORTED",
+                "animatedSeed": False,
+                "guiding": False,
+                "samplingPattern": "AUTOMATIC",
+                "sampleSubset": False,
+                "sampleOffset": 0,
+                "persistentData": False,
+                "border": False,
+                "cropToBorder": False,
+                "ditherIntensity": 0.0,
+                "pngCompression": 15,
+                "curveMapping": False,
+                "whiteBalance": False,
+                "stampFlags": False,
+                "renderFilepathAfterCapture": "//first-view.png",
+            },
+        },
+        "measurement": acceptance["measurement"],
+        "criteria": acceptance["criteria"],
+    }
+
+
 def cube_geometry(dimensions):
     half_x = dimensions["widthM"] / 2
     half_y = dimensions["depthM"] / 2
@@ -1138,6 +1291,442 @@ def create_exterior_object(bpy, record, collection, fixture_only):
     return value
 
 
+def target_quaternion(source, target, roll_radians):
+    from mathutils import Quaternion, Vector
+
+    direction = Vector((target["x"], target["y"], target["z"])) - Vector((source["x"], source["y"], source["z"]))
+    if direction.length <= 1e-9:
+        fail("room_oriented_object_target_invalid")
+    rotation = direction.normalized().to_track_quat("-Z", "Y")
+    if abs(roll_radians) > 0:
+        rotation = rotation @ Quaternion((0.0, 0.0, -1.0), roll_radians)
+    return rotation.normalized()
+
+
+def light_extras(record):
+    return {
+        "wmmr_cast_shadow": record["useShadow"],
+        "wmmr_intensity_lumens": record["intensityLumens"],
+        "wmmr_light_kind": record["sceneKind"],
+        "wmmr_roll_radians": record["rollRadians"],
+        "wmmr_scene_light_id": record["sceneLightId"],
+        "wmmr_target_x": record["sceneTargetM"]["x"],
+        "wmmr_target_y": record["sceneTargetM"]["y"],
+        "wmmr_target_z": record["sceneTargetM"]["z"],
+        "wmmr_temperature_kelvin": record["temperatureK"],
+    }
+
+
+def create_lights_and_camera(bpy, lighting_plan, first_view_plan, collection):
+    for record in lighting_plan["lights"]:
+        data = bpy.data.lights.new(record["name"], record["blenderType"])
+        data.energy = record["energy"]
+        data.exposure = 0.0
+        data.normalize = True
+        data.use_nodes = False
+        data.use_temperature = False
+        data.use_shadow = record["useShadow"]
+        data.color = tuple(record["linearColor"])
+        if record["blenderType"] == "SUN":
+            data.angle = record["angleRadians"]
+        else:
+            data.use_custom_distance = True
+            data.cutoff_distance = record["cutoffDistanceM"]
+            data.spot_size = record["spotSizeRadians"]
+            data.spot_blend = record["spotBlend"]
+            data.shadow_soft_size = record["shadowSoftSizeM"]
+        value = bpy.data.objects.new(record["name"], data)
+        location = record["blenderLocationM"]
+        value.location = (location["x"], location["y"], location["z"])
+        value.rotation_mode = "QUATERNION"
+        value.rotation_quaternion = target_quaternion(location, record["blenderTargetM"], record["rollRadians"])
+        for key, expected in light_extras(record).items():
+            value[key] = expected
+        collection.objects.link(value)
+
+    camera_plan = first_view_plan["camera"]
+    camera_data = bpy.data.cameras.new(camera_plan["name"])
+    camera_data.type = "PERSP"
+    camera_data.sensor_fit = "VERTICAL"
+    camera_data.angle_y = camera_plan["verticalFovRadians"]
+    camera = bpy.data.objects.new(camera_plan["name"], camera_data)
+    location = camera_plan["blenderLocationM"]
+    camera.location = (location["x"], location["y"], location["z"])
+    camera.rotation_mode = "QUATERNION"
+    camera.rotation_quaternion = target_quaternion(location, camera_plan["blenderTargetM"], camera_plan["rollRadians"])
+    camera["wmmr_review_view_id"] = first_view_plan["reviewViewId"]
+    collection.objects.link(camera)
+    bpy.context.scene.camera = camera
+
+
+def quaternion_report(value):
+    return {
+        "w": rounded(value.w),
+        "x": rounded(value.x),
+        "y": rounded(value.y),
+        "z": rounded(value.z),
+    }
+
+
+def verify_lights_and_camera(bpy, lighting_plan, first_view_plan):
+    reports = []
+    expected_names = {record["name"] for record in lighting_plan["lights"]}
+    if set(bpy.data.lights.keys()) != expected_names:
+        fail("room_lighting_saved_inventory_invalid")
+    for record in lighting_plan["lights"]:
+        value = bpy.data.objects.get(record["name"])
+        data = bpy.data.lights.get(record["name"])
+        expected_rotation = target_quaternion(record["blenderLocationM"], record["blenderTargetM"], record["rollRadians"])
+        actual_extras = {key: value.get(key) for key in light_extras(record)} if value is not None else {}
+        common_invalid = value is None or value.type != "LIGHT" or value.data != data or value.parent is not None \
+            or value.rotation_mode != "QUATERNION" \
+            or any(abs(float(value.location[index]) - record["blenderLocationM"][axis]) > 1e-6 for index, axis in enumerate(("x", "y", "z"))) \
+            or abs(value.rotation_quaternion.rotation_difference(expected_rotation).angle) > 1e-6 \
+            or actual_extras != light_extras(record) \
+            or data is None or data.type != record["blenderType"] \
+            or abs(data.energy - record["energy"]) > 1e-6 \
+            or abs(data.exposure) > 1e-9 \
+            or data.normalize is not True or data.use_nodes is not False \
+            or data.use_temperature is not False or data.use_shadow is not record["useShadow"] \
+            or any(abs(actual - expected) > 1e-6 for actual, expected in zip(data.color, record["linearColor"]))
+        if common_invalid:
+            fail(f"room_light_invalid:{record['name']}")
+        if record["blenderType"] == "SUN":
+            if abs(data.angle - record["angleRadians"]) > 1e-6:
+                fail(f"room_light_invalid:{record['name']}")
+        elif data.use_custom_distance is not True \
+                or abs(data.cutoff_distance - record["cutoffDistanceM"]) > 1e-6 \
+                or abs(data.spot_size - record["spotSizeRadians"]) > 1e-6 \
+                or abs(data.spot_blend - record["spotBlend"]) > 1e-6 \
+                or abs(data.shadow_soft_size - record["shadowSoftSizeM"]) > 1e-6:
+            fail(f"room_light_invalid:{record['name']}")
+        report = {
+            **record,
+            "energy": rounded(data.energy),
+            "linearColor": [rounded(channel) for channel in data.color],
+            "rotationQuaternion": quaternion_report(value.rotation_quaternion),
+            "extras": actual_extras,
+        }
+        if record["blenderType"] == "SUN":
+            report["angleRadians"] = rounded(data.angle)
+        else:
+            report.update({
+                "cutoffDistanceM": rounded(data.cutoff_distance),
+                "spotSizeRadians": rounded(data.spot_size),
+                "spotBlend": rounded(data.spot_blend),
+                "shadowSoftSizeM": rounded(data.shadow_soft_size),
+                "cyclesCutoffDistanceAffectsRender": False,
+                "glbRangeValidatedSeparately": True,
+            })
+        reports.append(report)
+
+    camera_plan = first_view_plan["camera"]
+    camera = bpy.data.objects.get(camera_plan["name"])
+    data = bpy.data.cameras.get(camera_plan["name"])
+    expected_rotation = target_quaternion(camera_plan["blenderLocationM"], camera_plan["blenderTargetM"], camera_plan["rollRadians"])
+    if len(bpy.data.cameras) != 1 or camera is None or camera.type != "CAMERA" or camera.data != data or camera.parent is not None \
+            or camera.rotation_mode != "QUATERNION" \
+            or bpy.context.scene.camera != camera or data.type != "PERSP" or data.sensor_fit != "VERTICAL" \
+            or abs(data.angle_y - camera_plan["verticalFovRadians"]) > 1e-6 \
+            or any(abs(float(camera.location[index]) - camera_plan["blenderLocationM"][axis]) > 1e-6 for index, axis in enumerate(("x", "y", "z"))) \
+            or abs(camera.rotation_quaternion.rotation_difference(expected_rotation).angle) > 1e-6 \
+            or camera.get("wmmr_review_view_id") != first_view_plan["reviewViewId"]:
+        fail("room_first_view_camera_invalid")
+    return {
+        "lighting": {**lighting_plan, "compiled": True, "lights": reports},
+        "camera": {
+            **camera_plan,
+            "verticalFovRadians": rounded(data.angle_y),
+            "lensMm": rounded(data.lens),
+            "rotationQuaternion": quaternion_report(camera.rotation_quaternion),
+        },
+    }
+
+
+STAMP_FLAGS = (
+    "use_stamp", "use_stamp_camera", "use_stamp_date", "use_stamp_filename", "use_stamp_frame",
+    "use_stamp_frame_range", "use_stamp_hostname", "use_stamp_labels", "use_stamp_lens", "use_stamp_marker",
+    "use_stamp_memory", "use_stamp_note", "use_stamp_render_time", "use_stamp_scene", "use_stamp_sequencer_strip",
+    "use_stamp_time",
+)
+
+
+def configure_first_view_render(bpy, first_view_plan, output_path):
+    scene = bpy.context.scene
+    capture = first_view_plan["capture"]
+    render = scene.render
+    cycles = scene.cycles
+    scene.frame_set(1)
+    render.engine = "CYCLES"
+    cycles.device = "CPU"
+    cycles.feature_set = "SUPPORTED"
+    cycles.samples = capture["samples"]
+    cycles.seed = capture["seed"]
+    cycles.use_adaptive_sampling = False
+    cycles.use_denoising = False
+    cycles.use_animated_seed = False
+    cycles.use_guiding = False
+    cycles.sampling_pattern = "AUTOMATIC"
+    cycles.use_sample_subset = False
+    cycles.sample_offset = 0
+    render.threads_mode = "FIXED"
+    render.threads = 1
+    render.resolution_x = capture["resolution"]["widthPx"]
+    render.resolution_y = capture["resolution"]["heightPx"]
+    render.resolution_percentage = 100
+    render.pixel_aspect_x = capture["resolution"]["pixelAspectRatio"]
+    render.pixel_aspect_y = capture["resolution"]["pixelAspectRatio"]
+    render.film_transparent = False
+    render.use_persistent_data = False
+    render.use_border = False
+    render.use_crop_to_border = False
+    render.use_sequencer = False
+    render.dither_intensity = 0.0
+    render.filepath = str(output_path)
+    render.use_file_extension = True
+    render.image_settings.file_format = "PNG"
+    render.image_settings.color_mode = "RGB"
+    render.image_settings.color_depth = "8"
+    render.image_settings.compression = 15
+    scene.display_settings.display_device = "sRGB"
+    scene.view_settings.view_transform = "AgX"
+    scene.view_settings.look = "AgX - Medium High Contrast"
+    scene.view_settings.exposure = 0.0
+    scene.view_settings.gamma = 1.0
+    scene.view_settings.use_curve_mapping = False
+    scene.view_settings.use_white_balance = False
+    for attribute in STAMP_FLAGS:
+        setattr(render, attribute, False)
+    world = bpy.data.worlds.get("world.first-view.black") or bpy.data.worlds.new("world.first-view.black")
+    world.use_nodes = True
+    background = world.node_tree.nodes.get("Background")
+    if background is None:
+        fail("room_first_view_world_invalid")
+    background.inputs["Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    background.inputs["Strength"].default_value = 0.0
+    scene.world = world
+
+
+def render_settings_report(bpy):
+    scene = bpy.context.scene
+    render = scene.render
+    cycles = scene.cycles
+    world = scene.world
+    background = world.node_tree.nodes.get("Background") if world is not None and world.use_nodes else None
+    report = {
+        "frame": scene.frame_current,
+        "engine": render.engine,
+        "device": cycles.device,
+        "featureSet": cycles.feature_set,
+        "samples": cycles.samples,
+        "seed": cycles.seed,
+        "adaptiveSampling": cycles.use_adaptive_sampling,
+        "denoising": cycles.use_denoising,
+        "animatedSeed": cycles.use_animated_seed,
+        "guiding": cycles.use_guiding,
+        "samplingPattern": cycles.sampling_pattern,
+        "sampleSubset": cycles.use_sample_subset,
+        "sampleOffset": cycles.sample_offset,
+        "threadsMode": render.threads_mode,
+        "threads": render.threads,
+        "resolution": {
+            "widthPx": render.resolution_x,
+            "heightPx": render.resolution_y,
+            "percentage": render.resolution_percentage,
+            "pixelAspectX": rounded(render.pixel_aspect_x),
+            "pixelAspectY": rounded(render.pixel_aspect_y),
+        },
+        "transparentBackground": render.film_transparent,
+        "persistentData": render.use_persistent_data,
+        "border": render.use_border,
+        "cropToBorder": render.use_crop_to_border,
+        "sequencer": render.use_sequencer,
+        "ditherIntensity": rounded(render.dither_intensity),
+        "output": {
+            "format": render.image_settings.file_format,
+            "colorMode": render.image_settings.color_mode,
+            "colorDepthBits": int(render.image_settings.color_depth),
+            "pngCompression": render.image_settings.compression,
+            "filepath": render.filepath,
+        },
+        "colorManagement": {
+            "displayDevice": scene.display_settings.display_device,
+            "viewTransform": scene.view_settings.view_transform,
+            "look": scene.view_settings.look,
+            "exposure": rounded(scene.view_settings.exposure),
+            "gamma": rounded(scene.view_settings.gamma),
+            "curveMapping": scene.view_settings.use_curve_mapping,
+            "whiteBalance": scene.view_settings.use_white_balance,
+        },
+        "world": {
+            "name": world.name if world is not None else None,
+            "useNodes": world.use_nodes if world is not None else None,
+            "colorLinear": [rounded(value) for value in background.inputs["Color"].default_value] if background is not None else None,
+            "strength": rounded(background.inputs["Strength"].default_value) if background is not None else None,
+        },
+        "stampFlags": {attribute: getattr(render, attribute) for attribute in STAMP_FLAGS},
+    }
+    expected = {
+        "frame": 1, "engine": "CYCLES", "device": "CPU", "featureSet": "SUPPORTED", "samples": 64,
+        "seed": 42, "adaptiveSampling": False, "denoising": False, "animatedSeed": False, "guiding": False,
+        "samplingPattern": "AUTOMATIC", "sampleSubset": False, "sampleOffset": 0, "threadsMode": "FIXED",
+        "threads": 1, "transparentBackground": False, "persistentData": False, "border": False,
+        "cropToBorder": False, "sequencer": False, "ditherIntensity": 0.0,
+    }
+    if any(report[key] != value for key, value in expected.items()) \
+            or report["resolution"] != {"widthPx": 960, "heightPx": 540, "percentage": 100, "pixelAspectX": 1.0, "pixelAspectY": 1.0} \
+            or report["output"] != {"format": "PNG", "colorMode": "RGB", "colorDepthBits": 8, "pngCompression": 15, "filepath": "//first-view.png"} \
+            or report["colorManagement"] != {"displayDevice": "sRGB", "viewTransform": "AgX", "look": "AgX - Medium High Contrast", "exposure": 0.0, "gamma": 1.0, "curveMapping": False, "whiteBalance": False} \
+            or report["world"] != {"name": "world.first-view.black", "useNodes": True, "colorLinear": [0.0, 0.0, 0.0, 1.0], "strength": 0.0} \
+            or any(report["stampFlags"].values()):
+        fail("room_first_view_render_settings_invalid")
+    return report
+
+
+def paeth_predictor(left, above, upper_left):
+    prediction = left + above - upper_left
+    left_distance = abs(prediction - left)
+    above_distance = abs(prediction - above)
+    upper_left_distance = abs(prediction - upper_left)
+    return left if left_distance <= above_distance and left_distance <= upper_left_distance else above if above_distance <= upper_left_distance else upper_left
+
+
+def inspect_first_view_png(path, first_view_plan):
+    raw = path.read_bytes()
+    if raw[:8] != b"\x89PNG\r\n\x1a\n":
+        fail("room_first_view_png_signature_invalid")
+    offset = 8
+    chunks = []
+    idat = []
+    while offset < len(raw):
+        if offset + 12 > len(raw):
+            fail("room_first_view_png_chunk_invalid")
+        length = struct.unpack(">I", raw[offset:offset + 4])[0]
+        chunk_type = raw[offset + 4:offset + 8]
+        end = offset + 12 + length
+        if end > len(raw):
+            fail("room_first_view_png_chunk_invalid")
+        data = raw[offset + 8:offset + 8 + length]
+        expected_crc = struct.unpack(">I", raw[offset + 8 + length:end])[0]
+        if binascii.crc32(chunk_type + data) & 0xffffffff != expected_crc:
+            fail("room_first_view_png_crc_invalid")
+        name = chunk_type.decode("ascii", errors="strict")
+        if name not in ("IHDR", "IDAT", "IEND"):
+            fail(f"room_first_view_png_metadata_forbidden:{name}")
+        chunks.append((name, data))
+        if name == "IDAT":
+            idat.append(data)
+        offset = end
+        if name == "IEND":
+            break
+    if offset != len(raw) or not chunks or chunks[0][0] != "IHDR" or chunks[-1][0] != "IEND" \
+            or sum(name == "IHDR" for name, _ in chunks) != 1 or sum(name == "IEND" for name, _ in chunks) != 1 \
+            or not idat or chunks[-1][1] != b"" or any(name == "IDAT" for name, _ in chunks[1 + len(idat): -1]):
+        fail("room_first_view_png_chunk_order_invalid")
+    ihdr = chunks[0][1]
+    if len(ihdr) != 13:
+        fail("room_first_view_png_ihdr_invalid")
+    width, height, bit_depth, color_type, compression, filtering, interlace = struct.unpack(">IIBBBBB", ihdr)
+    if (width, height, bit_depth, color_type, compression, filtering, interlace) != (960, 540, 8, 2, 0, 0, 0):
+        fail("room_first_view_png_ihdr_invalid")
+    stride = width * 3
+    expected_filtered_length = height * (stride + 1)
+    try:
+        decompressor = zlib.decompressobj()
+        filtered = decompressor.decompress(b"".join(idat), expected_filtered_length + 1)
+    except zlib.error:
+        fail("room_first_view_png_deflate_invalid")
+    if not decompressor.eof or decompressor.unused_data or decompressor.unconsumed_tail:
+        fail("room_first_view_png_deflate_invalid")
+    if len(filtered) != expected_filtered_length:
+        fail("room_first_view_png_scanline_invalid")
+    decoded = bytearray(height * stride)
+    for row in range(height):
+        source_offset = row * (stride + 1)
+        filter_type = filtered[source_offset]
+        if filter_type > 4:
+            fail("room_first_view_png_filter_invalid")
+        for column in range(stride):
+            raw_value = filtered[source_offset + 1 + column]
+            target_offset = row * stride + column
+            left = decoded[target_offset - 3] if column >= 3 else 0
+            above = decoded[target_offset - stride] if row > 0 else 0
+            upper_left = decoded[target_offset - stride - 3] if row > 0 and column >= 3 else 0
+            predictor = 0 if filter_type == 0 else left if filter_type == 1 else above if filter_type == 2 else (left + above) // 2 if filter_type == 3 else paeth_predictor(left, above, upper_left)
+            decoded[target_offset] = (raw_value + predictor) & 0xff
+    pixel_count = width * height
+    weighted_sum = 0
+    dark_count = 0
+    threshold = first_view_plan["measurement"]["darkPixelThreshold"] * 10000
+    for offset in range(0, len(decoded), 3):
+        numerator = 2126 * decoded[offset] + 7152 * decoded[offset + 1] + 722 * decoded[offset + 2]
+        weighted_sum += numerator
+        dark_count += numerator < threshold
+    average_minimum = first_view_plan["criteria"]["averageLuminanceMinimum"]
+    average_pass = weighted_sum >= average_minimum * 10000 * pixel_count
+    dark_ratio_pass = dark_count * 10 <= pixel_count * 7
+    if not average_pass or not dark_ratio_pass:
+        print(json.dumps({
+            "status": "room_first_view_acceptance_failed",
+            "pixelCount": pixel_count,
+            "weightedLuminanceSum": weighted_sum,
+            "averageLuminance": weighted_sum / (10000 * pixel_count),
+            "averageLuminanceMinimum": average_minimum,
+            "averagePass": average_pass,
+            "darkPixelCount": dark_count,
+            "darkPixelRatio": dark_count / pixel_count,
+            "darkPixelRatioMaximum": first_view_plan["criteria"]["darkPixelRatioMaximum"],
+            "darkRatioPass": dark_ratio_pass,
+        }, sort_keys=True), file=sys.stderr)
+        fail("room_first_view_acceptance_failed")
+    return {
+        "status": "first-view-png-acceptance-valid",
+        "sha256": sha256_bytes(raw),
+        "byteLength": len(raw),
+        "decodedRgbSha256": sha256_bytes(decoded),
+        "widthPx": width,
+        "heightPx": height,
+        "pixelCount": pixel_count,
+        "weightedLuminanceSum": weighted_sum,
+        "darkPixelCount": dark_count,
+        "averageLuminanceMinimum": average_minimum,
+        "averagePass": average_pass,
+        "darkPixelThreshold": first_view_plan["measurement"]["darkPixelThreshold"],
+        "darkPixelRatioMaximum": first_view_plan["criteria"]["darkPixelRatioMaximum"],
+        "darkRatioPass": dark_ratio_pass,
+        "acceptancePass": average_pass and dark_ratio_pass,
+        "chunkTypes": [name for name, _ in chunks],
+    }
+
+
+def strip_first_view_png_metadata(path):
+    raw = path.read_bytes()
+    if raw[:8] != b"\x89PNG\r\n\x1a\n":
+        fail("room_first_view_png_signature_invalid")
+    offset = 8
+    stripped = bytearray(raw[:8])
+    while offset < len(raw):
+        if offset + 12 > len(raw):
+            fail("room_first_view_png_chunk_invalid")
+        length = struct.unpack(">I", raw[offset:offset + 4])[0]
+        chunk_type = raw[offset + 4:offset + 8]
+        end = offset + 12 + length
+        if end > len(raw):
+            fail("room_first_view_png_chunk_invalid")
+        data = raw[offset + 8:offset + 8 + length]
+        expected_crc = struct.unpack(">I", raw[offset + 8 + length:end])[0]
+        if binascii.crc32(chunk_type + data) & 0xffffffff != expected_crc:
+            fail("room_first_view_png_crc_invalid")
+        if chunk_type in (b"IHDR", b"IDAT", b"IEND"):
+            stripped.extend(raw[offset:end])
+        offset = end
+        if chunk_type == b"IEND":
+            break
+    if offset != len(raw):
+        fail("room_first_view_png_chunk_order_invalid")
+    path.write_bytes(stripped)
+
+
 def apply_opening_cuts(bpy, wall, opening_plan, collection, fixture_only):
     for cut in opening_plan["cuts"]:
         cutter = create_mesh_object(bpy, cut, collection, fixture_only)
@@ -1293,7 +1882,7 @@ def inventory_report(bpy, objects):
     }
 
 
-def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, material_plan, scene_specification, specification_sha256, input_kind):
+def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, lighting_plan, first_view_plan, material_plan, scene_specification, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
@@ -1302,11 +1891,12 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
     version, build_hash, binary_sha256 = blender_identity(bpy)
 
     fixture_only = input_kind == SYNTHETIC_INPUT_KIND
-    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
-    exterior_included = input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
+    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    exterior_included = input_kind in (CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    lighting_included = input_kind == CANDIDATE_LIGHTING_INPUT_KIND
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.name = "WMMR_SYNTHETIC_SHELL" if fixture_only else "WMMR_CANDIDATE_01_EXTERIOR" if exterior_included else "WMMR_CANDIDATE_01_COMPONENTS" if components_included else "WMMR_CANDIDATE_01_ARCHITECTURE"
+    scene.name = "WMMR_SYNTHETIC_SHELL" if fixture_only else "WMMR_CANDIDATE_01_LIGHTING" if lighting_included else "WMMR_CANDIDATE_01_EXTERIOR" if exterior_included else "WMMR_CANDIDATE_01_COMPONENTS" if components_included else "WMMR_CANDIDATE_01_ARCHITECTURE"
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
     scene["wmmr_fixture_only"] = fixture_only
@@ -1318,7 +1908,10 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
         scene["wmmr_components_compiled"] = components_included
         scene["wmmr_component_glb_byte_identical"] = False
         scene["wmmr_exterior_compiled"] = exterior_included
-        scene["wmmr_lighting_compiled"] = False
+        scene["wmmr_lighting_compiled"] = lighting_included
+        if lighting_included:
+            scene["wmmr_first_view_rendered"] = False
+            scene["wmmr_first_view_acceptance_verified"] = False
         scene["wmmr_media_surfaces_compiled"] = False
         scene["wmmr_final_candidate_glb_verified"] = False
         scene["wmmr_publication_ready"] = False
@@ -1328,7 +1921,7 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
             scene["wmmr_artifact_bytes_included_in_repository"] = False
             scene["wmmr_byte_identical_exports_verified"] = False
 
-    collection_name = EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else plan["collectionName"]
+    collection_name = LIGHTING_COLLECTION_NAME if lighting_included else EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else plan["collectionName"]
     collection = bpy.data.collections.new(collection_name)
     scene.collection.children.link(collection)
     for record in plan["objects"]:
@@ -1348,6 +1941,8 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
     if exterior_included:
         for record in exterior_plan["objects"]:
             create_exterior_object(bpy, record, collection, fixture_only)
+    if lighting_included:
+        create_lights_and_camera(bpy, lighting_plan, first_view_plan, collection)
 
     bpy.context.view_layer.update()
     shell_objects = [
@@ -1361,7 +1956,12 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
     profile_objects = [verify_object(bpy.data.objects.get(record["name"]), record) for record in profile_plan["objects"]]
     architecture_objects = sorted([*shell_objects, *opening_objects, *profile_objects], key=lambda record: record["name"])
     expected_names = {record["name"] for record in [*architecture_objects, *component_plan["objects"], *exterior_plan["objects"]]}
-    if set(bpy.data.objects.keys()) != expected_names or len(bpy.data.materials) != 0 or len(bpy.data.cameras) != 0 or len(bpy.data.lights) != 0:
+    if lighting_included:
+        expected_names.update(record["name"] for record in lighting_plan["lights"])
+        expected_names.add(first_view_plan["camera"]["name"])
+    if set(bpy.data.objects.keys()) != expected_names or len(bpy.data.materials) != 0 \
+            or len(bpy.data.cameras) != (1 if lighting_included else 0) \
+            or len(bpy.data.lights) != (3 if lighting_included else 0):
         fail("room_opening_inventory_invalid")
     apply_material_plan(bpy, material_plan, scene_specification["room"])
     material_report = verify_material_plan(bpy, material_plan, scene_specification["room"], components_included)
@@ -1373,6 +1973,7 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
         verify_exterior_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
         for record in exterior_plan["objects"]
     ]
+    lighting_report = verify_lights_and_camera(bpy, lighting_plan, first_view_plan) if lighting_included else None
     all_objects = sorted([*architecture_objects, *component_objects, *exterior_objects], key=lambda record: record["name"])
     return (
         bpy,
@@ -1384,6 +1985,7 @@ def apply_plan(plan, opening_plan, profile_plan, component_plan, exterior_plan, 
         profile_objects,
         component_objects,
         exterior_objects,
+        lighting_report,
         material_report,
         inventory_report(bpy, all_objects),
     )
@@ -1395,6 +1997,7 @@ def load_scene_specification(path, input_kind, expected_raw_sha256, expected_spe
         CANDIDATE_ARCHITECTURE_INPUT_KIND: (EXPECTED_CANDIDATE_SCENE_RAW_SHA256, EXPECTED_CANDIDATE_SPECIFICATION_SHA256),
         CANDIDATE_COMPONENT_INPUT_KIND: (EXPECTED_COMPONENT_SCENE_RAW_SHA256, EXPECTED_COMPONENT_SPECIFICATION_SHA256),
         CANDIDATE_EXTERIOR_INPUT_KIND: (EXPECTED_EXTERIOR_SCENE_RAW_SHA256, EXPECTED_EXTERIOR_SPECIFICATION_SHA256),
+        CANDIDATE_LIGHTING_INPUT_KIND: (EXPECTED_LIGHTING_SCENE_RAW_SHA256, EXPECTED_LIGHTING_SPECIFICATION_SHA256),
     }.get(input_kind)
     if expected is None:
         fail("room_shell_input_kind_invalid")
@@ -1444,15 +2047,32 @@ def load_exterior_construction(path, expected_raw_sha256, expected_sha256):
     return construction
 
 
-def inspect_current_blend(report_path, scene_specification, component_construction, exterior_construction, specification_sha256, input_kind):
+def load_lighting_construction(path, expected_raw_sha256, expected_sha256):
+    if expected_raw_sha256 != EXPECTED_LIGHTING_CONSTRUCTION_RAW_SHA256 \
+            or expected_sha256 != EXPECTED_LIGHTING_CONSTRUCTION_SHA256:
+        fail("room_lighting_expected_hash_invalid")
+    raw = path.read_bytes()
+    if sha256_bytes(raw) != expected_raw_sha256:
+        fail("approved_candidate_lighting_raw_sha256_mismatch")
+    try:
+        construction = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        fail("room_lighting_json_invalid")
+    if canonical_sha256(construction) != expected_sha256:
+        fail("room_lighting_sha256_mismatch")
+    return construction
+
+
+def inspect_current_blend(report_path, scene_specification, component_construction, exterior_construction, lighting_construction, specification_sha256, input_kind):
     try:
         import bpy
     except ImportError:
         fail("blender_python_required")
     version, build_hash, binary_sha256 = blender_identity(bpy)
     fixture_only = input_kind == SYNTHETIC_INPUT_KIND
-    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
-    exterior_included = input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
+    components_included = input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    exterior_included = input_kind in (CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    lighting_included = input_kind == CANDIDATE_LIGHTING_INPUT_KIND
     plan = build_shell_plan(scene_specification)
     opening_plan = build_opening_plan(scene_specification)
     profile_plan = build_profile_plan(scene_specification, opening_plan)
@@ -1463,19 +2083,40 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
     exterior_plan = build_exterior_plan(exterior_construction) if exterior_included else {
         "specified": False, "compiled": False, "objects": []
     }
+    lighting_plan = build_lighting_plan(scene_specification, lighting_construction) if lighting_included else {
+        "specified": False, "compiled": False, "lights": []
+    }
+    first_view_plan = build_first_view_plan(scene_specification, lighting_construction) if lighting_included else None
     if components_included:
         material_plan = with_component_materials(material_plan, component_plan, scene_specification)
     if exterior_included:
         material_plan = with_exterior_materials(material_plan, exterior_plan, exterior_construction)
     expected_names = {record["name"] for record in [*plan["objects"], *opening_plan["objects"], *profile_plan["objects"], *component_plan["objects"], *exterior_plan["objects"]]}
-    collection_name = EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else COLLECTION_NAME
+    if lighting_included:
+        expected_names.update(record["name"] for record in lighting_plan["lights"])
+        expected_names.add(first_view_plan["camera"]["name"])
+    collection_name = LIGHTING_COLLECTION_NAME if lighting_included else EXTERIOR_COLLECTION_NAME if exterior_included else COMPONENT_COLLECTION_NAME if components_included else COLLECTION_NAME
     if set(bpy.data.objects.keys()) != expected_names \
-            or len(bpy.data.meshes) != len(expected_names) \
+            or len(bpy.data.meshes) != len(expected_names) - (4 if lighting_included else 0) \
             or len(bpy.data.materials) != material_plan["recipeCount"] \
             or len(bpy.data.images) != 0 \
-            or len(bpy.data.cameras) != 0 \
-            or len(bpy.data.lights) != 0 \
+            or len(bpy.data.cameras) != (1 if lighting_included else 0) \
+            or len(bpy.data.lights) != (3 if lighting_included else 0) \
             or set(child.name for child in bpy.context.scene.collection.children) != {collection_name}:
+        print(json.dumps({
+            "status": "room_shell_saved_inventory_invalid",
+            "actualObjectNames": sorted(bpy.data.objects.keys()),
+            "expectedObjectNames": sorted(expected_names),
+            "meshCount": len(bpy.data.meshes),
+            "expectedMeshCount": len(expected_names) - (4 if lighting_included else 0),
+            "materialCount": len(bpy.data.materials),
+            "expectedMaterialCount": material_plan["recipeCount"],
+            "imageNames": sorted(bpy.data.images.keys()),
+            "cameraNames": sorted(bpy.data.cameras.keys()),
+            "lightNames": sorted(bpy.data.lights.keys()),
+            "sceneCollectionNames": sorted(child.name for child in bpy.context.scene.collection.children),
+            "expectedSceneCollectionName": collection_name,
+        }, sort_keys=True), file=sys.stderr)
         fail("room_shell_saved_inventory_invalid")
     collection = bpy.data.collections.get(collection_name)
     if collection is None or set(collection.objects.keys()) != expected_names:
@@ -1505,6 +2146,8 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
         verify_exterior_object(bpy.data.objects.get(record["name"]), record, allow_materials=True)
         for record in exterior_plan["objects"]
     ]
+    lighting_report = verify_lights_and_camera(bpy, lighting_plan, first_view_plan) if lighting_included else None
+    render_settings = render_settings_report(bpy) if lighting_included else None
     objects = sorted([*shell_objects, *opening_objects, *profile_objects, *component_objects, *exterior_objects], key=lambda record: record["name"])
     if bpy.context.scene.get("wmmr_fixture_only") is not fixture_only \
             or bpy.context.scene.get("wmmr_specification_sha256") != specification_sha256:
@@ -1516,10 +2159,18 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
             or bpy.context.scene.get("wmmr_components_compiled") is not components_included
             or bpy.context.scene.get("wmmr_component_glb_byte_identical") is not False
             or bpy.context.scene.get("wmmr_exterior_compiled") is not exterior_included
-            or bpy.context.scene.get("wmmr_lighting_compiled") is not False
+            or bpy.context.scene.get("wmmr_lighting_compiled") is not lighting_included
             or bpy.context.scene.get("wmmr_media_surfaces_compiled") is not False
             or bpy.context.scene.get("wmmr_final_candidate_glb_verified") is not False
             or bpy.context.scene.get("wmmr_publication_ready") is not False):
+        fail("room_shell_saved_metadata_invalid")
+    if lighting_included and (
+            bpy.context.scene.get("wmmr_first_view_rendered") is not True
+            or bpy.context.scene.get("wmmr_first_view_acceptance_verified") is not True):
+        fail("room_shell_saved_metadata_invalid")
+    if not lighting_included and (
+            "wmmr_first_view_rendered" in bpy.context.scene
+            or "wmmr_first_view_acceptance_verified" in bpy.context.scene):
         fail("room_shell_saved_metadata_invalid")
     if exterior_included and (
             bpy.context.scene.get("wmmr_exterior_specified") is not True
@@ -1529,7 +2180,7 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
         fail("room_shell_saved_metadata_invalid")
     report = {
         "schemaVersion": 1,
-        "status": "stage3-synthetic-room-profiles-materials-inspection-valid" if fixture_only else "stage3-approved-candidate-exterior-inspection-valid" if exterior_included else "stage3-approved-candidate-components-inspection-valid" if components_included else "stage3-approved-candidate-architecture-inspection-valid",
+        "status": "stage3-synthetic-room-profiles-materials-inspection-valid" if fixture_only else "stage3-approved-candidate-lighting-inspection-valid" if lighting_included else "stage3-approved-candidate-exterior-inspection-valid" if exterior_included else "stage3-approved-candidate-components-inspection-valid" if components_included else "stage3-approved-candidate-architecture-inspection-valid",
         "fixtureOnly": fixture_only,
         "specificationSha256": specification_sha256,
         "blender": {"version": version, "buildHash": build_hash, "binarySha256": binary_sha256},
@@ -1545,7 +2196,7 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
             "componentsCompiled": components_included,
             "componentGlbByteIdentical": False,
             "exteriorCompiled": exterior_included,
-            "lightingCompiled": False,
+            "lightingCompiled": lighting_included,
             "mediaSurfacesCompiled": False,
             "finalCandidateGlbVerified": False,
             "publicationReady": False,
@@ -1561,6 +2212,22 @@ def inspect_current_blend(report_path, scene_specification, component_constructi
                 "byteIdenticalExportsVerified": False,
                 "releaseArtifactsCreated": False,
                 "artifactBytesIncludedInRepository": False,
+            })
+        if lighting_included:
+            report.update({
+                "lighting": lighting_report["lighting"],
+                "lightingSpecified": True,
+                "lightingGlbByteIdentical": False,
+                "firstViewRendered": True,
+                "firstViewAcceptanceVerified": True,
+                "firstView": {
+                    **first_view_plan,
+                    "rendered": True,
+                    "acceptanceVerified": True,
+                    "camera": lighting_report["camera"],
+                    "renderSettings": render_settings,
+                },
+                "firstViewPngByteIdentical": False,
             })
     write_report(report_path, report)
     print(json.dumps(report, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
@@ -1583,7 +2250,7 @@ def write_report(path, report):
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument("--input-kind", choices=(SYNTHETIC_INPUT_KIND, CANDIDATE_ARCHITECTURE_INPUT_KIND, CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND), required=True)
+    parser.add_argument("--input-kind", choices=(SYNTHETIC_INPUT_KIND, CANDIDATE_ARCHITECTURE_INPUT_KIND, CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND), required=True)
     parser.add_argument("--scene-spec")
     parser.add_argument("--expected-raw-sha256", required=True)
     parser.add_argument("--expected-specification-sha256", required=True)
@@ -1593,9 +2260,13 @@ def parse_args(argv):
     parser.add_argument("--exterior-constructions")
     parser.add_argument("--expected-exterior-raw-sha256")
     parser.add_argument("--expected-exterior-sha256")
+    parser.add_argument("--lighting-constructions")
+    parser.add_argument("--expected-lighting-raw-sha256")
+    parser.add_argument("--expected-lighting-sha256")
     parser.add_argument("--report", required=True)
     parser.add_argument("--output-blend")
     parser.add_argument("--output-glb")
+    parser.add_argument("--output-first-view")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--inspect-only", action="store_true")
     return parser.parse_args(argv)
@@ -1615,8 +2286,9 @@ def main(argv=None):
         args.expected_raw_sha256,
         args.expected_specification_sha256,
     )
-    components_included = args.input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND)
-    exterior_included = args.input_kind == CANDIDATE_EXTERIOR_INPUT_KIND
+    components_included = args.input_kind in (CANDIDATE_COMPONENT_INPUT_KIND, CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    exterior_included = args.input_kind in (CANDIDATE_EXTERIOR_INPUT_KIND, CANDIDATE_LIGHTING_INPUT_KIND)
+    lighting_included = args.input_kind == CANDIDATE_LIGHTING_INPUT_KIND
     component_arguments = (
         args.component_constructions,
         args.expected_component_raw_sha256,
@@ -1653,16 +2325,36 @@ def main(argv=None):
             fail("room_exterior_arguments_invalid")
         exterior_construction = None
 
+    lighting_arguments = (
+        args.lighting_constructions,
+        args.expected_lighting_raw_sha256,
+        args.expected_lighting_sha256,
+    )
+    if lighting_included:
+        if any(value is None for value in lighting_arguments):
+            fail("room_lighting_arguments_missing")
+        lighting_construction = load_lighting_construction(
+            Path(args.lighting_constructions).resolve(strict=True),
+            args.expected_lighting_raw_sha256,
+            args.expected_lighting_sha256,
+        )
+    else:
+        if any(value is not None for value in lighting_arguments):
+            fail("room_lighting_arguments_invalid")
+        lighting_construction = None
+
     if args.inspect_only:
-        if args.output_blend is not None or args.output_glb is not None or args.plan_only:
+        if args.output_blend is not None or args.output_glb is not None or args.output_first_view is not None or args.plan_only:
             fail("room_shell_inspection_arguments_invalid")
-        inspect_current_blend(report_path, scene, component_construction, exterior_construction, args.expected_specification_sha256, args.input_kind)
+        inspect_current_blend(report_path, scene, component_construction, exterior_construction, lighting_construction, args.expected_specification_sha256, args.input_kind)
         return
     plan = build_shell_plan(scene)
     if components_included:
         plan["collectionName"] = COMPONENT_COLLECTION_NAME
     if exterior_included:
         plan["collectionName"] = EXTERIOR_COLLECTION_NAME
+    if lighting_included:
+        plan["collectionName"] = LIGHTING_COLLECTION_NAME
     opening_plan = build_opening_plan(scene)
     profile_plan = build_profile_plan(scene, opening_plan)
     material_plan = build_material_plan(scene, opening_plan, profile_plan)
@@ -1676,6 +2368,12 @@ def main(argv=None):
         "compiled": False,
         "objects": [],
     }
+    lighting_plan = build_lighting_plan(scene, lighting_construction) if lighting_included else {
+        "specified": False,
+        "compiled": False,
+        "lights": [],
+    }
+    first_view_plan = build_first_view_plan(scene, lighting_construction) if lighting_included else None
     if components_included:
         material_plan = with_component_materials(material_plan, component_plan, scene)
     if exterior_included:
@@ -1729,6 +2427,16 @@ def main(argv=None):
             "releaseArtifactsCreated": False,
             "artifactBytesIncludedInRepository": False,
         }
+    if lighting_included:
+        boundaries = {
+            **boundaries,
+            "lightingSpecified": True,
+            "lightingCompiled": False,
+            "lightingGlbByteIdentical": False,
+            "firstViewRendered": False,
+            "firstViewAcceptanceVerified": False,
+            "firstViewPngByteIdentical": False,
+        }
     base_report = {
         "schemaVersion": 1,
         "fixtureOnly": fixture_only,
@@ -1766,13 +2474,24 @@ def main(argv=None):
                 "releaseArtifactsCreated": False,
                 "artifactBytesIncludedInRepository": False,
             })
+        if lighting_included:
+            base_report.update({
+                "lighting": lighting_plan,
+                "lightingSpecified": True,
+                "lightingCompiled": False,
+                "lightingGlbByteIdentical": False,
+                "firstView": first_view_plan,
+                "firstViewRendered": False,
+                "firstViewAcceptanceVerified": False,
+                "firstViewPngByteIdentical": False,
+            })
 
     if args.plan_only:
-        if args.output_blend is not None or args.output_glb is not None:
+        if args.output_blend is not None or args.output_glb is not None or args.output_first_view is not None:
             fail("room_shell_plan_only_arguments_invalid")
         report = {
             **base_report,
-            "status": "stage3-synthetic-room-profiles-materials-plan-valid" if fixture_only else "stage3-approved-candidate-exterior-plan-valid" if exterior_included else "stage3-approved-candidate-components-plan-valid" if components_included else "stage3-approved-candidate-architecture-plan-valid",
+            "status": "stage3-synthetic-room-profiles-materials-plan-valid" if fixture_only else "stage3-approved-candidate-lighting-plan-valid" if lighting_included else "stage3-approved-candidate-exterior-plan-valid" if exterior_included else "stage3-approved-candidate-components-plan-valid" if components_included else "stage3-approved-candidate-architecture-plan-valid",
             "execution": "plan-only",
             "blender": None,
             "outputBlend": None,
@@ -1785,10 +2504,17 @@ def main(argv=None):
         fail("room_shell_blender_arguments_missing")
     output_path = outside_repository(Path(args.output_blend), "room_shell_output")
     glb_path = outside_repository(Path(args.output_glb), "room_glb_output")
+    first_view_path = outside_repository(Path(args.output_first_view), "room_first_view_output") if args.output_first_view is not None else None
     if output_path.suffix != ".blend" or output_path.exists():
         fail("room_shell_output_invalid")
     if glb_path.suffix != ".glb" or glb_path.exists() or glb_path == output_path:
         fail("room_glb_output_invalid")
+    if lighting_included:
+        if first_view_path is None or first_view_path.suffix != ".png" or first_view_path.exists() \
+                or first_view_path in (output_path, glb_path):
+            fail("room_first_view_output_invalid")
+    elif first_view_path is not None:
+        fail("room_first_view_output_invalid")
     (
         bpy,
         version,
@@ -1799,6 +2525,7 @@ def main(argv=None):
         profile_objects,
         component_objects,
         exterior_objects,
+        lighting_report,
         material_report,
         inventory,
     ) = apply_plan(
@@ -1807,26 +2534,45 @@ def main(argv=None):
         profile_plan,
         component_plan,
         exterior_plan,
+        lighting_plan,
+        first_view_plan,
         material_plan,
         scene,
         args.expected_specification_sha256,
         args.input_kind,
     )
+    first_view_evidence = None
+    render_settings = None
+    if lighting_included:
+        configure_first_view_render(bpy, first_view_plan, first_view_path)
+        bpy.ops.render.render(write_still=True)
+        strip_first_view_png_metadata(first_view_path)
+        first_view_evidence = inspect_first_view_png(first_view_path, first_view_plan)
+        render_result = bpy.data.images.get("Render Result")
+        if render_result is not None:
+            bpy.data.images.remove(render_result)
+        bpy.context.scene.render.filepath = "//first-view.png"
+        bpy.context.scene["wmmr_first_view_rendered"] = True
+        bpy.context.scene["wmmr_first_view_acceptance_verified"] = True
+        render_settings = render_settings_report(bpy)
     bpy.ops.wm.save_as_mainfile(filepath=str(output_path), check_existing=False, compress=False, relative_remap=False)
     output_bytes = output_path.read_bytes()
-    bpy.ops.export_scene.gltf(
-        filepath=str(glb_path),
-        export_format="GLB",
-        export_attributes=True,
-        export_cameras=False,
-        export_extras=True,
-        export_lights=False,
-        export_yup=True,
-    )
+    export_settings = {
+        "filepath": str(glb_path),
+        "export_format": "GLB",
+        "export_attributes": True,
+        "export_cameras": False,
+        "export_extras": True,
+        "export_lights": lighting_included,
+        "export_yup": True,
+    }
+    if lighting_included:
+        export_settings["export_import_convert_lighting_mode"] = "SPEC"
+    bpy.ops.export_scene.gltf(**export_settings)
     glb_bytes = glb_path.read_bytes()
     report = {
         **base_report,
-        "status": "stage3-synthetic-room-profiles-materials-compiled" if fixture_only else "stage3-approved-candidate-exterior-compiled" if exterior_included else "stage3-approved-candidate-components-compiled" if components_included else "stage3-approved-candidate-architecture-compiled",
+        "status": "stage3-synthetic-room-profiles-materials-compiled" if fixture_only else "stage3-approved-candidate-lighting-compiled" if lighting_included else "stage3-approved-candidate-exterior-compiled" if exterior_included else "stage3-approved-candidate-components-compiled" if components_included else "stage3-approved-candidate-architecture-compiled",
         "execution": "blender",
         "blender": {
             "version": version,
@@ -1845,10 +2591,14 @@ def main(argv=None):
                 "exportCameras": False,
                 "exportExtras": True,
                 "exportFormat": "GLB",
-                "exportLights": False,
+                "exportLights": lighting_included,
                 "exportYup": True,
+                **({"exportImportConvertLightingMode": "SPEC"} if lighting_included else {}),
             },
         },
+        **({
+            "outputFirstView": first_view_evidence,
+        } if lighting_included else {}),
     }
     report["boundaries"] = {
         **boundaries,
@@ -1865,7 +2615,7 @@ def main(argv=None):
                 "componentsCompiled": True,
                 "componentGlbByteIdentical": False,
                 "exteriorCompiled": False,
-                "lightingCompiled": False,
+                "lightingCompiled": lighting_included,
                 "mediaSurfacesCompiled": False,
                 "finalCandidateGlbVerified": False,
                 "publicationReady": False,
@@ -1875,7 +2625,7 @@ def main(argv=None):
                 "componentsCompiled": True,
                 "componentGlbByteIdentical": False,
                 "exteriorCompiled": False,
-                "lightingCompiled": False,
+                "lightingCompiled": lighting_included,
                 "mediaSurfacesCompiled": False,
                 "finalCandidateGlbVerified": False,
                 "publicationReady": False,
@@ -1895,13 +2645,39 @@ def main(argv=None):
                 "exteriorCompiled": True,
                 "exteriorGlbByteIdentical": False,
                 "byteIdenticalExportsVerified": False,
-                "lightingCompiled": False,
+                "lightingCompiled": lighting_included,
                 "mediaSurfacesCompiled": False,
                 "finalCandidateGlbVerified": False,
                 "releaseArtifactsCreated": False,
                 "publicationReady": False,
                 "artifactBytesIncludedInRepository": False,
                 "sceneBinaryAddedToRepository": False,
+            })
+        if lighting_included:
+            report.update({
+                "lighting": lighting_report["lighting"],
+                "lightingSpecified": True,
+                "lightingCompiled": True,
+                "lightingGlbByteIdentical": False,
+                "firstView": {
+                    **first_view_plan,
+                    "rendered": True,
+                    "acceptanceVerified": True,
+                    "camera": lighting_report["camera"],
+                    "renderSettings": render_settings,
+                    "acceptance": first_view_evidence,
+                },
+                "firstViewRendered": True,
+                "firstViewAcceptanceVerified": True,
+                "firstViewPngByteIdentical": False,
+            })
+            report["boundaries"].update({
+                "lightingSpecified": True,
+                "lightingCompiled": True,
+                "lightingGlbByteIdentical": False,
+                "firstViewRendered": True,
+                "firstViewAcceptanceVerified": True,
+                "firstViewPngByteIdentical": False,
             })
     report["shell"] = {
         **plan,
