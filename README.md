@@ -56,6 +56,31 @@ lighting-construction schemas plus Ajv Draft
 specification remains a neutral synthetic contract fixture. Its fail-closed
 compiler and reproducibility paths remain unchanged.
 
+The post-compiler release-review policy is exposed separately through
+`experiment/warm-modern-meeting-room/release-review-policy.json`,
+`schemas/release-review-policy.schema.json`, and
+`scripts/validate-release-review-policy.mjs`. It requires Candidate CI at an
+exact full commit to hash actual source, release, rights, runtime-capture, and
+report bytes. Self-reported digests, counts, gate names, or visual metrics are
+not evidence, and Scene Factory must not execute Candidate code to manufacture
+an independent claim.
+
+Candidate-local validators must prove exact object-to-part and runtime-binding
+closure, a rooted acyclic support graph, per-edge contact, scale, clearance,
+extras, GLB identity/geometry, manifest binding, and deterministic report
+bytes. Runtime capture must use structured executable/argv data and one worker,
+cover every accepted-config view exactly once, bind the full platform SHA and
+optional patch digest, hash actual captures and diagnostics, enforce every
+accepted-config requirement, recompute metrics from image bytes, pass per-view
+and aggregate thresholds, and prove `sceneDebug.state=loaded`, exact GLB byte
+counts, no missing assets, and expected runtime inventory.
+
+Under this policy a review release must leave human visual acceptance pending,
+must not change the current release, and must keep `publicationReady=false`.
+Staging verification and promotion require later records; they must not rewrite
+accepted release evidence. The policy itself does not alter the current Stage 3
+candidate lock or readiness claims.
+
 The exterior-construction contract is exposed through
 `schemas/exterior-constructions.schema.json` and
 `parseExteriorConstructionContract`. It permits only project-authored scalar
@@ -314,3 +339,10 @@ Blender projection conventions, bounded emitter geometry, encoded-byte metric
 arithmetic, the frozen first-view policy, style-bible criteria, canonical and raw
 fixture hashes, project-authored provenance, complete screenshot-rights closure,
 and six stable checked-in mutation fixtures.
+
+Release-review policy tests cover fail-closed schema and canonical JSON
+handling, actual-byte authority, the exact reality/rights/capture/staging check
+sets, structured single-worker capture, clean visual composition, immutable
+post-merge evidence, and non-promotion boundaries. Actual release evidence must
+be validated in each Candidate repository and must not be inferred from this
+policy record.
