@@ -1,15 +1,15 @@
 {
-  "schemaVersion": 3,
-  "status": "candidate-01-exact-exterior-specification-pinned",
+  "schemaVersion": 4,
+  "status": "candidate-01-exact-lighting-compilation-pinned",
   "platformValidatorCommit": "4ae8951961fce72a16f87b9d15890aee7d7eef2d",
   "candidates": {
     "candidate01": {
       "repository": "vrata-labs/warm-modern-meeting-room-candidate-01",
-      "commit": "380098d4b7cbc1d57498b059466f095ae3568929",
-      "treeOid": "671af158f4b0f213d010191f21c3cd7d4779b5e9",
-      "sceneContractValidatorCommit": "156bbc3b3e15f8d24ee3d60ee01f6f4ac2c91de2",
-      "specificationSha256": "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12",
-      "assetLedgerSha256": "d3b01c23d371221783fd6f59e637f9fe619f1970a8683d07fef899464773b2ef",
+      "commit": "5a3a45a1e8e84867a4a4377b102025ef52f08e2e",
+      "treeOid": "cd15988d106e687dc10a64e6677d9789d870384a",
+      "sceneContractValidatorCommit": "ec0a8fb118ef9c5589ebb0bd4a9b9047616a56c2",
+      "specificationSha256": "7867defa7627115c756ceda215e4a176473f13ec841a7b10b90e7dd17159aad2",
+      "assetLedgerSha256": "31451ef5d098c9557e179684af966270410ecce96548c8433554d9ee96b936bb",
       "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
       "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
       "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
@@ -17,14 +17,17 @@
       "mediaSurfaceConstructionRawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
       "exteriorConstructionSha256": "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330",
       "exteriorConstructionRawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+      "lightingConstructionSha256": "a7debec463c57f30a7016addff5fb722dd301dc9d810275920c64df78a8277d7",
+      "lightingConstructionRawSha256": "ecb7c8da21191c2a9f893c0975de3bf2b8187cf6cd8a711bb3bb2b71f3610cad",
       "acceptedInputSha256": [
         "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
         "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
         "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
-        "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
+        "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+        "ecb7c8da21191c2a9f893c0975de3bf2b8187cf6cd8a711bb3bb2b71f3610cad"
       ],
       "counts": {
-        "assetRecordCount": 4,
+        "assetRecordCount": 5,
         "generationRecordCount": 0,
         "familyCount": 4,
         "partCount": 38,
@@ -39,18 +42,20 @@
         "exteriorObjectCount": 4,
         "exteriorResolvedObjectCount": 4,
         "exteriorMaterialCount": 3,
-        "exteriorRoleCount": 4
+        "exteriorRoleCount": 4,
+        "lightCount": 3,
+        "resolvedLightCount": 3
       },
       "inputBlobs": {
         "source/scene-spec.json": {
-          "gitBlobOid": "5167453280f29785eca878ea06711ee0d85d5674",
-          "rawSha256": "7f6822b6298b1e2fb606cfd4db310663b7cbab74989245c61bff3f25b1f0c8b6",
-          "byteLength": 12228
+          "gitBlobOid": "b0876c5f1648d13cc8a5b2c043d48581516c4e07",
+          "rawSha256": "6cb67a644e251e3a0c9e0372c5b2ca1b93593cbab5ca11aad8712e9f94289a8a",
+          "byteLength": 12519
         },
         "provenance/asset-ledger.json": {
-          "gitBlobOid": "4e2132262ce6c42008fe5c6e293516113b2180cb",
-          "rawSha256": "9041daf4f838781e309e9b2d90ebcbfe442bef82c9d778d58a86759b0c85e549",
-          "byteLength": 3337
+          "gitBlobOid": "01f4421a161c4c14ee05db35f30669611584f8e7",
+          "rawSha256": "566a41415cb5ca2a5c79a189c1232fcc61254601b40b198bb0f1fc06a6cecea8",
+          "byteLength": 4149
         },
         "provenance/generation-ledger.json": {
           "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
@@ -76,9 +81,147 @@
           "gitBlobOid": "7762f1c1bf9535b8e8f0d3f77bb5652bc365f814",
           "rawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
           "byteLength": 3063
+        },
+        "source/lighting-constructions.json": {
+          "gitBlobOid": "a0ccda1e6ac94fe8611cbfbde66bb839c39ec8af",
+          "rawSha256": "ecb7c8da21191c2a9f893c0975de3bf2b8187cf6cd8a711bb3bb2b71f3610cad",
+          "byteLength": 7178
         }
       },
-      "exteriorGlbEvidence": {
+      "lightingGlbEvidence": {
+        "sha256": "ad7c19cd408681fa20d55515ebba36fe4a62be2866d7841bacba8ca9252f45ea",
+        "byteLength": 616928,
+        "blendByteLength": 1445459,
+        "observedBlendSha256": [
+          "6c5e44035bf51d2734b77f602a5c15033ed930496551a1f8b674762a6653f6f9",
+          "02945ac2025e502fb410d185c9e89ee02d46122317e32691c128a849bcb739dd"
+        ],
+        "blendByteIdentical": false,
+        "firstViewSha256": "ac892f79dfe1b9c47c47446fd60773a4e3b9c9b02d27076c6247fe903b3634a6",
+        "firstViewByteLength": 1102862,
+        "firstViewDecodedRgbSha256": "fc915fcb2fa2a444b292effa218114921eff15b6e4dbc39500a24112043592b7",
+        "firstViewPixelCount": 518400,
+        "firstViewPngByteIdentityScope": "same-host-same-blender-binary-two-run",
+        "firstViewWeightedLuminanceSum": 480506649564,
+        "firstViewDarkPixelCount": 114733,
+        "reopenInspectionSha256": "8d4ef5e8645ecafb76223886f0125a2aabe78a292b7f1eca4d2045643df6453f",
+        "meshCount": 61,
+        "architectureMeshCount": 19,
+        "componentMeshCount": 38,
+        "exteriorMeshCount": 4,
+        "lightCount": 3,
+        "materialCount": 8,
+        "nodeCount": 64,
+        "binaryByteLength": 535728,
+        "decodedVertexCount": 16656,
+        "decodedIndexCount": 24540,
+        "decodedTriangleCount": 8180,
+        "distinctPositionCount": 4208,
+        "decodedNormalCount": 16656,
+        "minimumNormalLength": 0.9999999480476065,
+        "maximumNormalLength": 1.0000000705855472,
+        "objectVertexCount": 4208,
+        "objectFaceCount": 4250,
+        "architectureSemanticSha256": "ae24faad5306191667195c0157db9cd5c6d800875492cdf242fe32d1ff962b33",
+        "khronosValidator": {
+          "package": "gltf-validator",
+          "version": "2.0.0-dev.3.10",
+          "errors": 0,
+          "warnings": 0,
+          "infos": 61,
+          "hints": 0
+        }
+      },
+      "boundaries": {
+        "componentsCompiled": true,
+        "mediaSurfacesCompiled": false,
+        "exteriorCompiled": true,
+        "lightingCompiled": true,
+        "lightingGlbByteIdentical": true,
+        "firstViewRendered": true,
+        "firstViewAcceptanceVerified": true,
+        "firstViewPngByteIdentical": true,
+        "byteIdenticalExportsVerified": false,
+        "finalCandidateGlbVerified": false,
+        "releaseArtifactsCreated": false,
+        "publicationReady": false,
+        "artifactBytesIncludedInRepository": false
+      },
+      "exteriorBaseline": {
+        "commit": "380098d4b7cbc1d57498b059466f095ae3568929",
+        "treeOid": "671af158f4b0f213d010191f21c3cd7d4779b5e9",
+        "sceneContractValidatorCommit": "156bbc3b3e15f8d24ee3d60ee01f6f4ac2c91de2",
+        "specificationSha256": "d26cad260909d50082c07b13a86dd3ea8af4b6b32b591b825957dd26c9b53b12",
+        "assetLedgerSha256": "d3b01c23d371221783fd6f59e637f9fe619f1970a8683d07fef899464773b2ef",
+        "generationLedgerSha256": "42d49a3ad4f0f2a0b6f490461a30ed27a904396d51c34c9742862e02ba818930",
+        "componentConstructionSha256": "a28310aa7806fb05b8b08087a8b13de900498c3a12dbc6c3e0a5cc77ae7a3709",
+        "componentConstructionRawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+        "mediaSurfaceConstructionSha256": "829c7ccba37c9bf73e570ad3769224895dbd2d2784fb0e9c776ad959bb6f9e8f",
+        "mediaSurfaceConstructionRawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+        "exteriorConstructionSha256": "5a02dc468db992bb7b12aa783b485408e4dde29ac4c29e09753c86c9c226a330",
+        "exteriorConstructionRawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+        "acceptedInputSha256": [
+          "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+          "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+          "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+          "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639"
+        ],
+        "counts": {
+          "assetRecordCount": 4,
+          "generationRecordCount": 0,
+          "familyCount": 4,
+          "partCount": 38,
+          "overrideCount": 2,
+          "componentCount": 11,
+          "resolvedComponentCount": 11,
+          "materialCount": 5,
+          "resolvedMaterialCount": 4,
+          "seatCount": 8,
+          "surfaceCount": 2,
+          "resolvedSurfaceCount": 2,
+          "exteriorObjectCount": 4,
+          "exteriorResolvedObjectCount": 4,
+          "exteriorMaterialCount": 3,
+          "exteriorRoleCount": 4
+        },
+        "inputBlobs": {
+          "source/scene-spec.json": {
+            "gitBlobOid": "5167453280f29785eca878ea06711ee0d85d5674",
+            "rawSha256": "7f6822b6298b1e2fb606cfd4db310663b7cbab74989245c61bff3f25b1f0c8b6",
+            "byteLength": 12228
+          },
+          "provenance/asset-ledger.json": {
+            "gitBlobOid": "4e2132262ce6c42008fe5c6e293516113b2180cb",
+            "rawSha256": "9041daf4f838781e309e9b2d90ebcbfe442bef82c9d778d58a86759b0c85e549",
+            "byteLength": 3337
+          },
+          "provenance/generation-ledger.json": {
+            "gitBlobOid": "818681718cec850450f4d79947090a817c213cf0",
+            "rawSha256": "7928a70464b60ca12a35c5fbaefe30ba99c937dfd69e6f65e519366cdbfe891e",
+            "byteLength": 96
+          },
+          "source/concept-selection.json": {
+            "gitBlobOid": "71192d2e57ee35e4a301f61bbc50b77ebfdf4b21",
+            "rawSha256": "978d0c7d75dd73d9c4d4419daa2f1530b0fdfac26c0eee1bcd7ef4e76501272a",
+            "byteLength": 1361
+          },
+          "source/component-constructions.json": {
+            "gitBlobOid": "f728ba5e555dcbb233f418b2306b39e576e094b1",
+            "rawSha256": "f32327442d015f4c89942bf752e959d6c0abc24613c72f32a8ba4c2b2b29d5d1",
+            "byteLength": 4250
+          },
+          "source/media-surface-constructions.json": {
+            "gitBlobOid": "87faedb5845ad1eed5cda3b1fac8a0f15cea5365",
+            "rawSha256": "0bdf11ca588d700c8a721d60cb503215c29ce021b48708302b8b9da45ec1036b",
+            "byteLength": 847
+          },
+          "source/exterior-constructions.json": {
+            "gitBlobOid": "7762f1c1bf9535b8e8f0d3f77bb5652bc365f814",
+            "rawSha256": "54a9e7b3b20c94844380c524443005006225eccbe22b4a57f4df50782e859639",
+            "byteLength": 3063
+          }
+        },
+        "exteriorGlbEvidence": {
         "sha256": "eb74ca5e90b7dd09ad137c2127a53988491a557eb1d634093dd2b5eee6456b92",
         "byteLength": 614784,
         "blendByteLength": 1421892,
@@ -113,15 +256,17 @@
           "hints": 0
         }
       },
-      "boundaries": {
-        "componentsCompiled": false,
-        "mediaSurfacesCompiled": false,
-        "exteriorCompiled": false,
-        "lightingCompiled": false,
-        "finalCandidateGlbVerified": false,
-        "releaseArtifactsCreated": false,
-        "publicationReady": false,
-        "artifactBytesIncludedInRepository": false
+        "boundaries": {
+          "componentsCompiled": false,
+          "mediaSurfacesCompiled": false,
+          "exteriorCompiled": false,
+          "lightingCompiled": false,
+          "finalCandidateGlbVerified": false,
+          "releaseArtifactsCreated": false,
+          "publicationReady": false,
+          "artifactBytesIncludedInRepository": false
+        },
+        "release": null
       },
       "mediaSurfaceBaseline": {
         "commit": "26d3af6e2720576113431c22b9443533b919f390",

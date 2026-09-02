@@ -131,9 +131,52 @@ when darkCount*10 <= pixelCount*7. The threshold remains 40.
 First-view rights closure covers every unique source used by material recipes,
 components, exterior, and lighting construction, and requires screenshots=true
 for each. Source provenance and accepted-input closure are also validated, but
-the contract remains fixture-only until an exact Candidate source record exists.
-No light has been compiled or rendered and no first-view criterion has been
-measured.
+the compiler consumes only the exact Candidate-owned source record.
+
+The F5 lighting compiler is exposed through
+`loadApprovedCandidateLightingSource`, `compileApprovedCandidateLighting`, and
+`verifyApprovedCandidateLightingReproducibility`. Its object-only loader reads
+exactly eight blobs at Candidate 01 commit
+`5a3a45a1e8e84867a4a4377b102025ef52f08e2e` and tree
+`cd15988d106e687dc10a64e6677d9789d870384a`, while the F4 loader remains pinned
+transitively through `exteriorBaseline`. Phase isolation permits only the new
+lighting array, validator commit, fifth accepted-input digest, and fifth asset
+record; every prior scene field and component, media-surface, and exterior byte
+and semantic projection must match F4.
+
+Exact Blender creates three root light objects and `camera.review.entry`.
+Scene coordinates map to Blender as `(x, z, y)` and local `-Z` points to each
+contract target with local `Y` as up. Lights use contract-derived linear
+Tanner-Helland colors, zero exposure, normalization, no nodes or temperature
+mode, and shadows enabled. The GLB exports the three lights in SPEC mode but not
+the retained review camera. Its only allowed extension is
+`KHR_lights_punctual`, present as the sole member of both `extensionsUsed` and
+`extensionsRequired` and only at the root and three light nodes.
+
+The first view is a compiler-owned Cycles CPU capture at 960x540, 64 samples,
+seed 42, one fixed thread, with adaptive sampling, denoising, animation seed,
+guiding, sample subset, border, crop, persistent data, dither, white balance,
+curve mapping, and all stamp flags disabled. Blender metadata chunks are removed
+before acceptance and publication. Both independent standard-library Python and
+Node decoders validate PNG signatures, chunk CRCs, RGB8 non-interlaced IHDR,
+filter reversal, exact dimensions, decoded RGB identity, and integer Rec.709
+acceptance arithmetic. The Blend retains the camera and exact render settings
+with stable `//first-view.png`; Cycles does not apply spot cutoff distance to the
+acceptance render, so GLB range remains a separate validated contract.
+
+Two F5 runs produce byte-identical 616928-byte GLB bytes with SHA-256
+`ad7c19cd408681fa20d55515ebba36fe4a62be2866d7841bacba8ca9252f45ea`,
+byte-identical 1102862-byte first-view PNG bytes with SHA-256
+`ac892f79dfe1b9c47c47446fd60773a4e3b9c9b02d27076c6247fe903b3634a6`,
+and identical reopen digest
+`8d4ef5e8645ecafb76223886f0125a2aabe78a292b7f1eca4d2045643df6453f`.
+The image contains 518400 pixels, weighted luminance sum 480506649564,
+and 114733 dark pixels, passing both frozen criteria. The GLB contains 61
+meshes, eight materials, three punctual lights, and 64 nodes; Khronos validation
+reports zero errors and zero warnings. Blend bytes are not identical, so only
+the lighting-scoped GLB and first-view PNG identity claims are true. Global
+candidate byte identity, final candidate GLB, release, and publication claims
+remain false.
 
 The F4 exterior compiler is exposed through
 `loadApprovedCandidateExteriorSource`, `compileApprovedCandidateExterior`, and
@@ -192,7 +235,7 @@ SHA-256 `352b31af533049d7fe84f1ecb55643db85e7258ceff1e2d87be8f8785e38a4fb`.
 That exact 1022-byte, two-surface, `platform-runtime-plane`, byte-identical
 evidence is pinned separately under `mediaSurfaceBaseline` in the active
 Candidate lock. The F3 API still reads its historical six-blob commit rather
-than the current F4 commit.
+than the current F5 commit.
 
 The F1 Candidate 01 architecture baseline remains pinned separately at commit
 `df564befcd65cb51a345fa9d315e40cadef6e563`, with its four Git blobs, canonical
@@ -234,9 +277,18 @@ reproducibility report sets that component-scoped result true. Single-run F3
 reports set `mediaSurfacesCompiled` true and `byteIdentical` false; only two-run
 F3 reproducibility sets `byteIdentical` true. Single-run F4 reports keep
 `exteriorGlbByteIdentical` false; only two-run F4 reproducibility sets that
-exterior-scoped result true. Lighting, final candidate GLB verification, release
-creation, publication readiness, repository inclusion of artifact bytes, and
-the global `byteIdenticalExportsVerified` claim remain explicitly false.
+exterior-scoped result true. Single-run F5 reports keep both scoped identity
+claims false; only two-run F5 reproducibility sets `lightingGlbByteIdentical`
+and `firstViewPngByteIdentical` true. The PNG identity scope is
+`same-host-same-blender-binary-two-run`: Cycles CPU output can differ by a few
+least-significant pixel bits across processor models even with the exact Blender
+binary and render settings. Cross-host single-run validation therefore pins the
+exact GLB, scene, compiler, Blender binary, reopen inspection, and Khronos
+evidence while requiring the rendered PNG to pass the locked luminance and dark
+pixel acceptance criteria. The recorded PNG hashes and measurements are a
+reference-host observation, not a cross-host byte-identity claim. Final candidate GLB verification, release
+creation, publication readiness, repository inclusion of artifact bytes, and the
+global `byteIdenticalExportsVerified` claim remain explicitly false.
 
 The neutral low-fidelity concept gate selected the functional correction of
 Concept 03 and assigned its exact validated specification to Candidate 01 without
@@ -256,10 +308,10 @@ The Candidate 01 architecture tests require a separate local checkout through
 to the exact locked Blender 4.5.12 binary to run the compile, reopen, and
 two-run byte-identity gates instead of skipping them.
 
-The same checkout must contain the exact locked F4 commit. CI checks out
-`380098d4b7cbc1d57498b059466f095ae3568929` outside this repository with full
-history so the current F4 source and historical F3, F2, and F1 baselines are all
-available.
+The same checkout must contain the exact locked F5 commit. CI checks out
+`5a3a45a1e8e84867a4a4377b102025ef52f08e2e` outside this repository with full
+history so the current F5 source and historical F4, F3, F2, and F1 baselines are
+all available.
 
 The boundary check rejects scene binaries and forbidden top-level paths. The
 experiment validator checks the brief, readiness record, style bible,
