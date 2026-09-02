@@ -18,6 +18,7 @@ import { loadWmmrModelArtifactLock } from "./verify-trellis-model-artifact.mjs";
 import { loadWmmrTrellisPayloadArtifactLock } from "./verify-trellis-payload-artifact.mjs";
 import { verifyPatchedTree } from "./verify-trellis-patched-tree.mjs";
 import { validateWmmrSelectionContract } from "./verify-trellis-source-selection.mjs";
+import { parseReleaseReviewPolicy } from "./validate-release-review-policy.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const execFileAsync = promisify(execFile);
@@ -872,6 +873,25 @@ assert(lightingConstructionReport.boundaries.lightingCompiled === false
   && lightingConstructionReport.boundaries.firstViewAcceptanceVerified === false
   && lightingConstructionReport.boundaries.finalCandidateGlbVerified === false
   && lightingConstructionReport.boundaries.publicationReady === false, "stage3_lighting_boundary_invalid");
+
+const releaseReviewPolicyReport = parseReleaseReviewPolicy(await readFile(resolve(
+  root,
+  "experiment/warm-modern-meeting-room/release-review-policy.json"
+), "utf8"));
+assert(releaseReviewPolicyReport.status === "release-review-policy-valid", "release_review_policy_invalid");
+assert(releaseReviewPolicyReport.realityCheckCount === 18
+  && releaseReviewPolicyReport.captureCheckCount === 24
+  && releaseReviewPolicyReport.rightsCheckCount === 5
+  && releaseReviewPolicyReport.stagingCheckCount === 10, "release_review_policy_gate_count_invalid");
+assert(releaseReviewPolicyReport.promotionGate.humanVisualAcceptance === "required"
+  && releaseReviewPolicyReport.promotionGate.automatedEvidenceSubstitutesForHumanAcceptance === false
+  && releaseReviewPolicyReport.promotionGate.realityGateRequiredBeforePromotion === true
+  && releaseReviewPolicyReport.promotionGate.captureGateRequiredBeforePromotion === true
+  && releaseReviewPolicyReport.promotionGate.rightsGateRequiredBeforePromotion === true
+  && releaseReviewPolicyReport.promotionGate.stagingGateRequiredBeforePromotion === true
+  && releaseReviewPolicyReport.promotionGate.currentReleaseMayChangeBeforeAcceptance === false
+  && releaseReviewPolicyReport.promotionGate.reviewReleaseIsCurrent === false
+  && releaseReviewPolicyReport.promotionGate.publicationReadyBeforeAcceptance === false, "release_review_policy_promotion_boundary_invalid");
 
 const referenceLedger = await json("experiment/warm-modern-meeting-room/reference-ledger.json");
 assert(referenceLedger.schemaVersion === 1, "invalid_reference_ledger_schema");

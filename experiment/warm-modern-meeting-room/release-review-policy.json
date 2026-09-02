@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "status": "post-compiler-review-policy",
+  "scope": "warm-modern-meeting-room-candidates",
+  "authority": {
+    "evidenceProducedBy": "candidate-repository-ci",
+    "repositoryRevision": "full-commit-sha",
+    "actualBytesRequired": true,
+    "selfReportedEvidenceSufficient": false,
+    "candidateCodeExecutionByFactory": false
+  },
+  "realityGate": {
+    "requiredInputs": [
+      "accepted-source-lock",
+      "validator-source",
+      "scene-reality-contract",
+      "user-scenarios-contract",
+      "scene-manifest",
+      "release-glb",
+      "release-asset-ledger"
+    ],
+    "requiredChecks": [
+      "actual-input-bytes-hashed",
+      "accepted-source-lock-bound",
+      "scene-release-identity-bound",
+      "object-part-inventory-exact",
+      "unknown-objects-rejected",
+      "support-graph-rooted-acyclic",
+      "support-contact-per-edge",
+      "scale-range-per-object",
+      "clearance-gates-evaluated",
+      "extras-metrics-evaluated",
+      "runtime-seat-bindings-exact",
+      "runtime-media-bindings-exact",
+      "glb-part-set-exact",
+      "glb-node-identity-stable",
+      "glb-geometry-evaluated",
+      "manifest-runtime-bindings-exact",
+      "deterministic-report",
+      "report-digest-bound"
+    ],
+    "reportGeneratedBy": "candidate-validator-at-exact-commit",
+    "reportMayContainTimestamps": false
+  },
+  "captureGate": {
+    "requiredInputs": [
+      "accepted-source-lock",
+      "visual-parity-config",
+      "release-glb",
+      "reference-images",
+      "runtime-capture-images",
+      "capture-binding",
+      "runtime-diagnostics",
+      "visual-report",
+      "platform-repository"
+    ],
+    "optionalInputs": [
+      "platform-patch"
+    ],
+    "runner": {
+      "representation": "structured-executable-argv",
+      "workers": 1,
+      "environmentBound": true,
+      "batchesBound": true
+    },
+    "cleanPolicy": {
+      "stripAnchors": true,
+      "avatarsEnabled": true,
+      "avatarFallbackCapsulesEnabled": false,
+      "avatarSeatsEnabled": false
+    },
+    "requiredChecks": [
+      "actual-input-bytes-hashed",
+      "accepted-config-digest-bound",
+      "accepted-config-all-requirements-enforced",
+      "release-glb-bound",
+      "platform-full-sha-checked-out",
+      "platform-patch-digest-applied-when-specified",
+      "runner-executable-argv-bound",
+      "workers-exactly-one",
+      "environment-exact",
+      "view-batches-cover-config-exactly-once",
+      "clean-policy-exact",
+      "render-settings-exact",
+      "runtime-state-loaded",
+      "runtime-failure-reason-null",
+      "runtime-missing-assets-empty",
+      "runtime-asset-byte-count-exact",
+      "runtime-inventory-exact",
+      "capture-files-digest-bound",
+      "metrics-computed-from-image-bytes",
+      "per-view-thresholds-passed",
+      "aggregate-metrics-recomputed",
+      "aggregate-thresholds-passed",
+      "deterministic-report",
+      "report-digest-bound"
+    ]
+  },
+  "rightsGate": {
+    "requiredInputs": [
+      "rights-verdict",
+      "release-asset-ledger"
+    ],
+    "requiredChecks": [
+      "actual-input-bytes-hashed",
+      "decision-approved",
+      "used-asset-closure-exact",
+      "screenshot-rights-approved",
+      "release-redistribution-approved"
+    ]
+  },
+  "stagingGate": {
+    "timing": "after-exact-merge-commit",
+    "evidenceStorage": "separate-promotion-record",
+    "acceptedReleaseEvidenceMutable": false,
+    "requiredChecks": [
+      "review-room-url-binds-exact-merge-sha",
+      "review-room-isolated-from-current-release",
+      "current-release-unchanged",
+      "affected-room-loaded",
+      "affected-room-missing-assets-empty",
+      "baseline-rooms-loaded",
+      "selector-navigation-works",
+      "staging-smoke-suite-run",
+      "staging-smoke-suite-passed-or-approved-waiver",
+      "suite-deviations-explicitly-attributed"
+    ]
+  },
+  "promotionGate": {
+    "humanVisualAcceptance": "required",
+    "automatedEvidenceSubstitutesForHumanAcceptance": false,
+    "realityGateRequiredBeforePromotion": true,
+    "captureGateRequiredBeforePromotion": true,
+    "rightsGateRequiredBeforePromotion": true,
+    "stagingGateRequiredBeforePromotion": true,
+    "currentReleaseMayChangeBeforeAcceptance": false,
+    "reviewReleaseIsCurrent": false,
+    "publicationReadyBeforeAcceptance": false
+  }
+}

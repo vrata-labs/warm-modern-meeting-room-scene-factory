@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vrata-labs/warm-modern-meeting-room-scene-factory/schemas/release-review-policy.schema.json",
+  "title": "Warm Modern Meeting Room Release Review Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "scope", "authority", "realityGate", "captureGate", "rightsGate", "stagingGate", "promotionGate"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "const": "post-compiler-review-policy" },
+    "scope": { "const": "warm-modern-meeting-room-candidates" },
+    "authority": { "$ref": "#/$defs/authority" },
+    "realityGate": { "$ref": "#/$defs/realityGate" },
+    "captureGate": { "$ref": "#/$defs/captureGate" },
+    "rightsGate": { "$ref": "#/$defs/rightsGate" },
+    "stagingGate": { "$ref": "#/$defs/stagingGate" },
+    "promotionGate": { "$ref": "#/$defs/promotionGate" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "uniqueIdList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceProducedBy", "repositoryRevision", "actualBytesRequired", "selfReportedEvidenceSufficient", "candidateCodeExecutionByFactory"],
+      "properties": {
+        "evidenceProducedBy": { "const": "candidate-repository-ci" },
+        "repositoryRevision": { "const": "full-commit-sha" },
+        "actualBytesRequired": { "const": true },
+        "selfReportedEvidenceSufficient": { "const": false },
+        "candidateCodeExecutionByFactory": { "const": false }
+      }
+    },
+    "realityGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredInputs", "requiredChecks", "reportGeneratedBy", "reportMayContainTimestamps"],
+      "properties": {
+        "requiredInputs": { "$ref": "#/$defs/uniqueIdList" },
+        "requiredChecks": { "$ref": "#/$defs/uniqueIdList" },
+        "reportGeneratedBy": { "const": "candidate-validator-at-exact-commit" },
+        "reportMayContainTimestamps": { "const": false }
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["representation", "workers", "environmentBound", "batchesBound"],
+      "properties": {
+        "representation": { "const": "structured-executable-argv" },
+        "workers": { "const": 1 },
+        "environmentBound": { "const": true },
+        "batchesBound": { "const": true }
+      }
+    },
+    "cleanPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stripAnchors", "avatarsEnabled", "avatarFallbackCapsulesEnabled", "avatarSeatsEnabled"],
+      "properties": {
+        "stripAnchors": { "const": true },
+        "avatarsEnabled": { "const": true },
+        "avatarFallbackCapsulesEnabled": { "const": false },
+        "avatarSeatsEnabled": { "const": false }
+      }
+    },
+    "captureGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredInputs", "optionalInputs", "runner", "cleanPolicy", "requiredChecks"],
+      "properties": {
+        "requiredInputs": { "$ref": "#/$defs/uniqueIdList" },
+        "optionalInputs": { "$ref": "#/$defs/uniqueIdList" },
+        "runner": { "$ref": "#/$defs/runner" },
+        "cleanPolicy": { "$ref": "#/$defs/cleanPolicy" },
+        "requiredChecks": { "$ref": "#/$defs/uniqueIdList" }
+      }
+    },
+    "rightsGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredInputs", "requiredChecks"],
+      "properties": {
+        "requiredInputs": { "$ref": "#/$defs/uniqueIdList" },
+        "requiredChecks": { "$ref": "#/$defs/uniqueIdList" }
+      }
+    },
+    "stagingGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timing", "evidenceStorage", "acceptedReleaseEvidenceMutable", "requiredChecks"],
+      "properties": {
+        "timing": { "const": "after-exact-merge-commit" },
+        "evidenceStorage": { "const": "separate-promotion-record" },
+        "acceptedReleaseEvidenceMutable": { "const": false },
+        "requiredChecks": { "$ref": "#/$defs/uniqueIdList" }
+      }
+    },
+    "promotionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["humanVisualAcceptance", "automatedEvidenceSubstitutesForHumanAcceptance", "realityGateRequiredBeforePromotion", "captureGateRequiredBeforePromotion", "rightsGateRequiredBeforePromotion", "stagingGateRequiredBeforePromotion", "currentReleaseMayChangeBeforeAcceptance", "reviewReleaseIsCurrent", "publicationReadyBeforeAcceptance"],
+      "properties": {
+        "humanVisualAcceptance": { "const": "required" },
+        "automatedEvidenceSubstitutesForHumanAcceptance": { "const": false },
+        "realityGateRequiredBeforePromotion": { "const": true },
+        "captureGateRequiredBeforePromotion": { "const": true },
+        "rightsGateRequiredBeforePromotion": { "const": true },
+        "stagingGateRequiredBeforePromotion": { "const": true },
+        "currentReleaseMayChangeBeforeAcceptance": { "const": false },
+        "reviewReleaseIsCurrent": { "const": false },
+        "publicationReadyBeforeAcceptance": { "const": false }
+      }
+    }
+  }
+}
